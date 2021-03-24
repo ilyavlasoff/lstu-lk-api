@@ -2,14 +2,12 @@
 
 namespace App\Controller;
 
-use App\Document\User;
 use App\Exception\ValidationException;
 use App\Model\Response\AuthenticationDataObject;
 use App\Model\Request\RegisterCredentials;
 use App\Model\Request\UserIdentifier;
 use App\Repository\AuthenticationRepository;
 use App\Repository\UserRepository;
-use Doctrine\ODM\MongoDB\DocumentManager;
 use Gesdinet\JWTRefreshTokenBundle\Service\RefreshToken;
 use Gesdinet\JWTRefreshTokenBundle\Model\RefreshTokenManagerInterface;
 use JMS\Serializer\SerializerInterface;
@@ -19,7 +17,6 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
-use Symfony\Component\Security\Core\Encoder\UserPasswordEncoderInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 /**
@@ -45,11 +42,9 @@ class AuthenticationController extends AbstractRestController
         ValidatorInterface $validator,
         AuthenticationRepository $authenticationRepository,
         UserRepository $userRepository,
-        JWTTokenManagerInterface $tokenManager,
-        DocumentManager $documentManager,
-        UserPasswordEncoderInterface $passwordEncoder
-    ) {
-        /*try {
+        JWTTokenManagerInterface $tokenManager
+    ):JsonResponse {
+        try {
             $userIdentifier = $serializer->deserialize($request->getContent(), UserIdentifier::class, 'json');
             if (count($validationErrors = $validator->validate($userIdentifier)) > 0) {
                 throw new ValidationException($validationErrors, UserIdentifier::class);
@@ -59,24 +54,14 @@ class AuthenticationController extends AbstractRestController
             $user = $userRepository->persistIdentifiedUser($oid);
         } catch (\Exception $e) {
             return $this->responseWithError($e, Response::HTTP_UNAUTHORIZED);
-        }*/
-        $user = new User();
-        $user->setRoles(['ROLE_USER']);
-        $user->setPassword($passwordEncoder->encodePassword($user, 'password'));
-        $user->setEmail('test@test.com');
-        $user->setDbOid('123');
-        $documentManager->persist($user);
-        $documentManager->flush();
-        //var_dump($documentManager->getRepository(User::class)->findOneBy(['email' => 'test@test.com']));
+        }
 
         $jwt = $tokenManager->create($user);
         $authenticationData = new AuthenticationDataObject();
         $authenticationData->setRoles($user->getRoles());
         $authenticationData->setJwtToken($jwt);
 
-        //$t =  $serializer->serialize($authenticationData, 'json');
-        var_dump($authenticationData);
-        //return $t;
+        return $this->responseSuccessWithObject($authenticationData, Response::HTTP_CREATED);
     }
 
     /**
@@ -89,7 +74,6 @@ class AuthenticationController extends AbstractRestController
      * @param RefreshTokenManagerInterface $refreshTokenManager
      * @param ParameterBagInterface $parameterBag
      * @return \Symfony\Component\HttpFoundation\JsonResponse
-     * @throws \Exception
      */
     public function register(
         Request $request,
@@ -99,10 +83,10 @@ class AuthenticationController extends AbstractRestController
         UserRepository $userRepository,
         RefreshTokenManagerInterface $refreshTokenManager,
         ParameterBagInterface $parameterBag
-    ) {
+    ): JsonResponse {
         try {
             $registerCredentials = $serializer->deserialize($request->getContent(), RegisterCredentials::class, 'json');
-            if ($credentialsValidationErrors = $validator->validate($registerCredentials)) {
+            if (count($credentialsValidationErrors = $validator->validate($registerCredentials))) {
                 throw new ValidationException($credentialsValidationErrors, RegisterCredentials::class);
             }
             $user = $userRepository->persistRegistration($this->getUser(), $registerCredentials);
@@ -138,7 +122,7 @@ class AuthenticationController extends AbstractRestController
     }
 
     /**
-     * @Route("/refresh", name="app_jwt_refresh", methods={"POST"})
+     * @Route("/token/refresh", name="app_jwt_refresh", methods={"POST"})
      * @param Request $request
      * @param RefreshToken $refreshService
      * @return JsonResponse

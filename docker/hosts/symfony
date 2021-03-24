@@ -14,13 +14,13 @@ location ~ ^/index\.php(/|$) {
     fastcgi_read_timeout 240s;
     include fastcgi_params;
 
-    fastcgi_buffer_size 512k;
-    fastcgi_buffers 4 1024k;
-    fastcgi_busy_buffers_size 1024k;
+    fastcgi_buffer_size 10240k;
+    fastcgi_buffers 4 10240k;
+    fastcgi_busy_buffers_size 10240k;
 
-    proxy_buffer_size 512k;
-    proxy_buffers 4 1024k;
-    proxy_busy_buffers_size 1024k;
+    proxy_buffer_size 10240k;
+    proxy_buffers 4 10240k;
+    proxy_busy_buffers_size 10240k;
 
     # optionally set the value of the environment variables used in the application
     # fastcgi_param APP_ENV prod;

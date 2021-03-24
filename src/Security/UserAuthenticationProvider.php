@@ -56,4 +56,5 @@ class UserAuthenticationProvider implements UserProviderInterface, PasswordUpgra
     {
         return;
     }
+
 }

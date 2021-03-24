@@ -2,19 +2,13 @@
 
 namespace App\Document;
 
-use App\Model\Request\RegisterCredentials;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Doctrine\ODM\MongoDB\Mapping\Annotations as ODM;
-use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 
 /**
  * Class User
  * @package App\Document
  * @ODM\Document(collection="usr")
- * @UniqueEntity(
- *     fields={"email"},
- *     message="User with email {{ value }} is already exists"
- * )
  */
 class User implements UserInterface
 {
@@ -25,6 +19,7 @@ class User implements UserInterface
 
     /**
      * @ODM\Field(type="string", nullable=false)
+     *
      */
     private $email;
 
@@ -35,6 +30,7 @@ class User implements UserInterface
 
     /**
      * @ODM\Field(type="string", nullable=false)
+     *
      */
     private $dbOid;
 
@@ -71,7 +67,7 @@ class User implements UserInterface
      */
     public function getUsername()
     {
-        return (string)$this->getUsername();
+        return (string)$this->email;
     }
 
     /**

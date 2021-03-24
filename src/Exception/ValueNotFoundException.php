@@ -8,7 +8,7 @@ use Throwable;
 
 class ValueNotFoundException extends \Exception implements IUserException
 {
-    private const code = "ERR_NOTFOUND";
+    private const errcode = "ERR_NOTFOUND";
     private $notFoundValue;
 
     public function __construct($notFoundValue, $message = "Value not found", $code = 0, Throwable $previous = null)
@@ -21,7 +21,7 @@ class ValueNotFoundException extends \Exception implements IUserException
     {
         $warning = new UserExceptionWarning();
         $warning->setCode(Response::HTTP_NOT_FOUND);
-        $warning->setError(self::code);
+        $warning->setError(self::errcode);
         $warning->setErrorMessages([$this->notFoundValue => $this->message]);
         $warning->setGenericMessage($this->message);
         return $warning;

@@ -22,9 +22,13 @@ security:
                 password_path: password
                 success_handler: lexik_jwt_authentication.handler.authentication_success
                 failure_handler: lexik_jwt_authentication.handler.authentication_failure
-                require_previous_session: false
-        register:
-            pattern: ^/api/v1/(identify|refresh)
+                #require_previous_session: false
+        identify:
+            pattern: ^/api/v1/identify
+            anonymous: true
+            stateless: true
+        token_refresh:
+            pattern: ^/api/v1/token/refresh
             anonymous: true
             stateless: true
         docs:
@@ -33,10 +37,13 @@ security:
         api:
             pattern: ^/api/v1/
             stateless: true
+            anonymous: false
+            provider: app_user_provider
             guard:
                 authenticators:
                     - lexik_jwt_authentication.jwt_token_authenticator
     access_control:
          - { path: ^/api/v1/(auth|identify|refresh|docs), roles: IS_AUTHENTICATED_ANONYMOUSLY }
+         - { path: ^/api/v1/token/refresh, roles: IS_AUTHENTICATED_ANONYMOUSLY }
          - { path: ^/api/v1/reg, roles: ROLE_IDENTIFIED }
-         - { path: ^/api/v1, roles: ROLE_STUDENT }
+         - { path: ^/api/v1/, roles: ROLE_STUDENT }

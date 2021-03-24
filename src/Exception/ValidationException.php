@@ -9,7 +9,7 @@ use Throwable;
 
 class ValidationException extends \Exception implements IUserException
 {
-    private const code = 'ERR_VALIDATION';
+    private const errcode = 'ERR_VALIDATION';
     private $validationErrors;
 
     public function __construct(ConstraintViolationListInterface $validationErrors, string $className, Throwable $previous = null, $code = 0)
@@ -25,7 +25,7 @@ class ValidationException extends \Exception implements IUserException
     {
         $warning = new UserExceptionWarning();
         $warning->setCode(Response::HTTP_BAD_REQUEST);
-        $warning->setError($this->code);
+        $warning->setError(self::errcode);
         $warning->setGenericMessage($this->getMessage());
         $warning->setErrorMessages($this->validationErrors);
         return $warning;
