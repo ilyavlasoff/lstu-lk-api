@@ -35,7 +35,5 @@ services:
     Gesdinet\JWTRefreshTokenBundle\Service\RefreshToken:
         alias: "gesdinet.jwtrefreshtoken"
 
-    gesdinet.jwtrefreshtoken.refresh_token_manager:
-        class: App\Doctrine\RefreshTokenManager
-        public: true
-        arguments: [ '@doctrine.orm.default_entity_manager', 'Gesdinet\JWTRefreshTokenBundle\Entity\RefreshToken' ]
+    Gesdinet\JWTRefreshTokenBundle\Model\RefreshTokenManagerInterface:
+        alias: "gesdinet.jwtrefreshtoken.refresh_token_manager"

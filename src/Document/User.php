@@ -24,7 +24,7 @@ class User implements UserInterface
     private $email;
 
     /**
-     * @ODM\Field(type="string", nullable=false)
+     * @ODM\Field(type="string", nullable=true)
      */
     private $password;
 
