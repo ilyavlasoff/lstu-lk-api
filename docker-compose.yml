@@ -28,6 +28,9 @@ services:
       - COMPOSER_ALLOW_SUPERUSER=1
       - ORACLE_HOME="/opt/oracle/instantclient_12_1"
       - LD_LIBRARY_PATH="/opt/oracle/instantclient_12_1"
+      - PHP_IDE_CONFIG="serverName=docker"
+      - PHP_XDEBUG_ENABLED=1
+      - XDEBUG_CONFIG="remote_host=10.254.254.254"
     restart: always
     links:
       - mongodb

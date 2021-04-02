@@ -70,7 +70,9 @@ RUN apt-get install -y \
     && docker-php-ext-enable mongodb \
     && docker-php-ext-install -j$(nproc) intl bcmath soap zip mbstring exif opcache\
     && docker-php-ext-install -j$(nproc) gd \
-    && docker-php-ext-enable mcrypt opcache 
+    && docker-php-ext-enable mcrypt opcache
+
+RUN pecl install xdebug-3.0.0 && docker-php-ext-enable xdebug
 
 ADD php.ini /usr/local/etc/php/conf.d/40-custom.ini
 
