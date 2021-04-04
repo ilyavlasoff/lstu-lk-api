@@ -12,12 +12,14 @@ use Gesdinet\JWTRefreshTokenBundle\Service\RefreshToken;
 use Gesdinet\JWTRefreshTokenBundle\Model\RefreshTokenManagerInterface;
 use JMS\Serializer\SerializerInterface;
 use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
+use Nelmio\ApiDocBundle\Annotation\Model;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
+use OpenApi\Annotations as OA;
 
 /**
  * Class AuthenticationController
@@ -71,7 +73,6 @@ class AuthenticationController extends AbstractRestController
      * @param ValidatorInterface $validator
      * @param JWTTokenManagerInterface $tokenManager
      * @param UserRepository $userRepository
-     * @param RefreshTokenManagerInterface $refreshTokenManager
      * @param ParameterBagInterface $parameterBag
      * @return \Symfony\Component\HttpFoundation\JsonResponse
      */
@@ -81,7 +82,7 @@ class AuthenticationController extends AbstractRestController
         ValidatorInterface $validator,
         JWTTokenManagerInterface $tokenManager,
         UserRepository $userRepository,
-        RefreshTokenManagerInterface $refreshTokenManager,
+        //RefreshTokenManagerInterface $refreshTokenManager,
         ParameterBagInterface $parameterBag
     ): JsonResponse {
         try {
@@ -96,17 +97,17 @@ class AuthenticationController extends AbstractRestController
 
         $jwtToken = $tokenManager->create($user);
 
-        $refreshToken = $refreshTokenManager->create();
+        /*$refreshToken = $refreshTokenManager->create();
         $refreshToken->setUsername($user->getEmail());
         $refreshToken->setRefreshToken();
 
         $expiresSeconds = $parameterBag->get('expires_seconds');
         $expiresTime = (new \DateTime('now'))->add(new \DateInterval("PT{$expiresSeconds}S"));
         $refreshToken->setValid($expiresTime);
-        $refreshTokenManager->save($refreshToken);
+        $refreshTokenManager->save($refreshToken);*/
 
         $authenticationData = new AuthenticationDataObject();
-        $authenticationData->setRefreshToken($refreshToken->getRefreshToken());
+        //$authenticationData->setRefreshToken($refreshToken->getRefreshToken());
         $authenticationData->setJwtToken($jwtToken);
         $authenticationData->setRoles($user->getRoles());
 
@@ -121,14 +122,14 @@ class AuthenticationController extends AbstractRestController
         // Implemented in LexicJWT
     }
 
-    /**
+    /*
      * @Route("/token/refresh", name="app_jwt_refresh", methods={"POST"})
      * @param Request $request
      * @param RefreshToken $refreshService
      * @return JsonResponse
      */
-    public function refreshJwt(Request $request, RefreshToken $refreshService): JsonResponse
+    /*public function refreshJwt(Request $request, RefreshToken $refreshService): JsonResponse
     {
         return $refreshService->refresh($request);
-    }
+    }*/
 }

@@ -12,7 +12,7 @@ use Symfony\Component\HttpFoundation\Response;
 
 abstract class AbstractRestController extends AbstractController
 {
-    private $serializer;
+    protected $serializer;
 
     public function __construct(SerializerInterface $serializer)
     {

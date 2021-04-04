@@ -134,4 +134,13 @@ class User implements UserInterface
         return $this->email;
     }
 
+    /**
+     * @return mixed
+     */
+    public function getDbOid()
+    {
+        return $this->dbOid;
+    }
+
+
 }
