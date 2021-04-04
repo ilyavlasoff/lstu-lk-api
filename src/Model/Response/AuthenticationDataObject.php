@@ -9,18 +9,21 @@ class AuthenticationDataObject
     /**
      * @var string
      * @JMS\Type("string")
+     * @JMS\Groups({"fully-authorized", "identified"})
      */
     private $jwtToken;
 
     /**
      * @var string
      * @JMS\Type("string")
+     * @JMS\Groups({"fully-authorized"})
      */
     private $refreshToken;
 
     /**
      * @var array
      * @JMS\Type("array")
+     * @JMS\Groups({"fully-authorized", "identified"})
      */
     private $roles;
 

@@ -8,6 +8,7 @@ use App\Exception\ValueNotFoundException;
 use App\Repository\PersonalRepository;
 use JMS\Serializer\SerializerInterface;
 use Nelmio\ApiDocBundle\Annotation\Model;
+use Nelmio\ApiDocBundle\Annotation\Security;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
 use OpenApi\Annotations as OA;
@@ -33,7 +34,28 @@ class PersonalController extends AbstractRestController
      * @Route("/props/{id}", name="get_person_props", methods={"GET"})
      * @param string $id
      * @return JsonResponse
-     * @throws ValueNotFoundException
+     *
+     * @OA\Get(
+     *     tags={"Пользователь"},
+     *     summary="Получение объекта свойств пользователя",
+     *     @Security(name="Bearer"),
+     *     @OA\Parameter(
+     *          in="path",
+     *          name="id",
+     *          description="Идентификатор пользователя",
+     *          required=true
+     *     ),
+     *     @OA\Response(
+     *          response="200",
+     *          description="Объект студента",
+     *          @OA\JsonContent(ref=@Model(type=PersonalProperties::class, groups={"Default"}))
+     *     ),
+     *     @OA\Response(
+     *          response="404",
+     *          description="Студент с данными идентификатором не найден"
+     *     )
+     * )
+     * @throws \Exception
      */
     public function getPersonProperties(string $id): JsonResponse
     {

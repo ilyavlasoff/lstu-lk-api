@@ -30,6 +30,22 @@ class AuthenticationController extends AbstractRestController
 {
     /**
      * @Route("/identify", name="app_user_identify", methods={"POST"})
+     *
+     * @OA\Post(
+     *     tags={"Авторизация и регистрация"},
+     *     summary="Идентификация студента",
+     *     @OA\RequestBody(
+     *          required=true,
+     *          description="Объект идентификатора",
+     *          @OA\JsonContent(ref=@Model(type=UserIdentifier::class, groups={"Default"}))
+     *     ),
+     *     @OA\Response(
+     *          response="201",
+     *          description="Объект идентификации пользователя",
+     *          @OA\JsonContent(ref=@Model(type=AuthenticationDataObject::class, groups={"identified"}))
+     *     )
+     * )
+     *
      * @param Request $request
      * @param SerializerInterface $serializer
      * @param ValidatorInterface $validator
@@ -68,6 +84,22 @@ class AuthenticationController extends AbstractRestController
 
     /**
      * @Route("/reg", name="app_user_register", methods={"POST"})
+     *
+     * @OA\Post(
+     *     tags={"Авторизация и регистрация"},
+     *     summary="Регистрация студента",
+     *     @OA\RequestBody(
+     *          required=true,
+     *          description="Объект учетных данных пользователя",
+     *          @OA\JsonContent(ref=@Model(type=RegisterCredentials::class, groups={"Default"}))
+     *     ),
+     *     @OA\Response(
+     *          response="201",
+     *          description="Объект идентификации пользователя",
+     *          @OA\JsonContent(ref=@Model(type=AuthenticationDataObject::class, groups={"fully-authorized"}))
+     *     )
+     * )
+     *
      * @param Request $request
      * @param SerializerInterface $serializer
      * @param ValidatorInterface $validator
@@ -116,6 +148,21 @@ class AuthenticationController extends AbstractRestController
 
     /**
      * @Route("/auth", name="app_user_authenticate", methods={"POST"})
+     *
+     * @OA\Post(
+     *     tags={"Авторизация и регистрация"},
+     *     summary="Авторизация студента",
+     *     @OA\RequestBody(
+     *          required=true,
+     *          description="Объект учетных данных пользователя",
+     *          @OA\JsonContent(ref=@Model(type=RegisterCredentials::class, groups={"Default"}))
+     *     ),
+     *     @OA\Response(
+     *          response="200",
+     *          description="Объект идентификации пользователя",
+     *          @OA\JsonContent(ref=@Model(type=AuthenticationDataObject::class, groups={"fully-authorized"}))
+     *     )
+     * )
      */
     public function authenticate(): void
     {

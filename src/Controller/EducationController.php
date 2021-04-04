@@ -3,12 +3,17 @@
 namespace App\Controller;
 
 use App\Repository\EducationRepository;
+use App\Repository\PersonalRepository;
+use Nelmio\ApiDocBundle\Annotation\Model;
+use Nelmio\ApiDocBundle\Annotation\Security;
+use Symfony\Component\HttpFoundation\Request;
 use JMS\Serializer\SerializationContext;
 use JMS\Serializer\SerializerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use App\Model\Mapping\Education;
+use OpenApi\Annotations as OA;
 
 /**
  * Class EducationController
@@ -26,13 +31,30 @@ class EducationController extends AbstractRestController
     }
 
     /**
-     * @Route("/list/{personId}", name="get_educations_list", methods={"GET"})
-     *
-     * @param string $personId
+     * @Route("/list", name="get_educations_list", methods={"GET"})
+     * @OA\Get(
+     *     tags={"Образование"},
+     *     summary="Список периодов обучения студента",
+     *     @Security(name="Bearer"),
+     *     @OA\Parameter(
+     *          in="query",
+     *          required=true,
+     *          name="person",
+     *          description="Идентификатор пользователя"
+     *     ),
+     *     @OA\Response(
+     *          response="200",
+     *          description="Массив объектов обучения",
+     *          @OA\JsonContent(type="array", @OA\Items(ref=@Model(type=Education::class, groups={"Default"})))
+     *     )
+     * )
+     * @param Request $request
      * @return JsonResponse
      */
-    public function getEducationList(string $personId): JsonResponse
+    public function getEducationList(Request $request): JsonResponse
     {
+        $personId = $request->query->get('person');
+
         $educationList = $this->educationRepository->getLstuEducationListByPerson($personId);
 
         return new JsonResponse(
@@ -46,10 +68,65 @@ class EducationController extends AbstractRestController
     }
 
     /**
-     * @Route("/{educationId}", name="get_education_details", methods={"GET"})
+     * @Route("/semesters", name="get_semesters_list", methods={"GET"})
+     * @OA\Get(
+     *     tags={"Образование"},
+     *     summary="Список семестров указанного периода обучения",
+     *     @Security(name="Bearer"),
+     *     @OA\Parameter(
+     *          in="query",
+     *          required=true,
+     *          name="edu",
+     *          description="Идентификатор периода обучения"
+     *     ),
+     *     @OA\Response(
+     *          response="200",
+     *          description="Массив объектов семестров",
+     *          @OA\JsonContent(type="array", @OA\Items(ref=@Model(type=Semester::class, groups={"Default"})))
+     *     )
+     * )
+     * @param Request $request
+     * @param PersonalRepository $personalRepository
+     * @return JsonResponse
+     * @throws \Exception
      */
-    public function getEducationDetails(): JsonResponse
+    public function getSemesterList(Request $request, PersonalRepository $personalRepository)
     {
-        return new JsonResponse();
+        $education = $request->query->get('edu');
+
+        $groupId = $personalRepository->getGroupByContingent($education);
+        $semesterList = $this->educationRepository->getSemesterList($groupId);
+        return new JsonResponse(
+            $this->serializer->serialize($semesterList, 'json',
+                SerializationContext::create()->setInitialType('array<App\Model\Mapping\Semester>')
+            ),
+            Response::HTTP_OK,
+            [],
+            true
+        );
+    }
+
+    /**
+     * @Route("/", name="get_education_details", methods={"GET"})
+     *
+     * @OA\Get(
+     *     tags={"Образование"},
+     *     summary="Расширенная информация о запрошенном периоде обучения",
+     *     @Security(name="Bearer"),
+     *     @OA\Parameter(
+     *          in="query",
+     *          required=true,
+     *          name="edu",
+     *          description="Идентификатор периода обучения"
+     *     )
+     * )
+     * @param Request $request
+     * @param PersonalRepository $personalRepository
+     * @return JsonResponse
+     */
+    public function getEducationDetails(Request $request, PersonalRepository $personalRepository): JsonResponse
+    {
+        $education = $request->query->get('edu');
+
     }
 }
