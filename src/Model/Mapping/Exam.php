@@ -19,6 +19,7 @@ class Exam
 
     /**
      * @var \DateTime
+     * @JMS\Type("DateTime<'Y-m-d\TH:i:s.uT'>")
      */
     private $examTime;
 

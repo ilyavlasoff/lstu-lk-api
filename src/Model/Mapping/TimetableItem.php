@@ -7,150 +7,150 @@ use JMS\Serializer\Annotation as JMS;
 class TimetableItem
 {
     /**
-     * @var Discipline
+     * @var Discipline|null
      * @JMS\Type("App\Model\Mapping\Discipline")
      */
     private $discipline;
 
     /**
-     * @var Teacher
+     * @var Teacher|null
      * @JMS\Type("App\Model\Mapping\Teacher")
      */
     private $teacher;
 
     /**
-     * @var string
+     * @var string|null
      */
     private $lessonType;
 
     /**
-     * @var string
+     * @var string|null
      */
     private $beginTime;
 
     /**
-     * @var string
+     * @var string|null
      */
     private $endTime;
 
     /**
-     * @var string
+     * @var string|null
      */
     private $room;
 
     /**
-     * @var string
+     * @var string|null
      */
     private $campus;
 
     /**
-     * @return Discipline
+     * @return Discipline|null
      */
-    public function getDiscipline(): Discipline
+    public function getDiscipline(): ?Discipline
     {
         return $this->discipline;
     }
 
     /**
-     * @param Discipline $discipline
+     * @param Discipline|null $discipline
      */
-    public function setDiscipline(Discipline $discipline): void
+    public function setDiscipline(?Discipline $discipline): void
     {
         $this->discipline = $discipline;
     }
 
     /**
-     * @return Teacher
+     * @return Teacher|null
      */
-    public function getTeacher(): Teacher
+    public function getTeacher(): ?Teacher
     {
         return $this->teacher;
     }
 
     /**
-     * @param Teacher $teacher
+     * @param Teacher|null $teacher
      */
-    public function setTeacher(Teacher $teacher): void
+    public function setTeacher(?Teacher $teacher): void
     {
         $this->teacher = $teacher;
     }
 
     /**
-     * @return string
+     * @return string|null
      */
-    public function getLessonType(): string
+    public function getLessonType(): ?string
     {
         return $this->lessonType;
     }
 
     /**
-     * @param string $lessonType
+     * @param string|null $lessonType
      */
-    public function setLessonType(string $lessonType): void
+    public function setLessonType(?string $lessonType): void
     {
         $this->lessonType = $lessonType;
     }
 
     /**
-     * @return string
+     * @return string|null
      */
-    public function getBeginTime(): string
+    public function getBeginTime(): ?string
     {
         return $this->beginTime;
     }
 
     /**
-     * @param string $beginTime
+     * @param string|null $beginTime
      */
-    public function setBeginTime(string $beginTime): void
+    public function setBeginTime(?string $beginTime): void
     {
         $this->beginTime = $beginTime;
     }
 
     /**
-     * @return string
+     * @return string|null
      */
-    public function getEndTime(): string
+    public function getEndTime(): ?string
     {
         return $this->endTime;
     }
 
     /**
-     * @param string $endTime
+     * @param string|null $endTime
      */
-    public function setEndTime(string $endTime): void
+    public function setEndTime(?string $endTime): void
     {
         $this->endTime = $endTime;
     }
 
     /**
-     * @return string
+     * @return string|null
      */
-    public function getRoom(): string
+    public function getRoom(): ?string
     {
         return $this->room;
     }
 
     /**
-     * @param string $room
+     * @param string|null $room
      */
-    public function setRoom(string $room): void
+    public function setRoom(?string $room): void
     {
         $this->room = $room;
     }
 
     /**
-     * @return string
+     * @return string|null
      */
-    public function getCampus(): string
+    public function getCampus(): ?string
     {
         return $this->campus;
     }
 
     /**
-     * @param string $campus
+     * @param string|null $campus
      */
-    public function setCampus(string $campus): void
+    public function setCampus(?string $campus): void
     {
         $this->campus = $campus;
     }

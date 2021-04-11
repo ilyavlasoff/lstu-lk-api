@@ -7,12 +7,12 @@ use JMS\Serializer\Annotation as JMS;
 class Week
 {
     /**
-     * @var bool
+     * @var bool | null
      */
     private $current;
 
     /**
-     * @var string
+     * @var string | null
      */
     private $type;
 
@@ -23,33 +23,33 @@ class Week
     private $days;
 
     /**
-     * @return bool
+     * @return bool|null
      */
-    public function isCurrent(): bool
+    public function getCurrent(): ?bool
     {
         return $this->current;
     }
 
     /**
-     * @param bool $current
+     * @param bool|null $current
      */
-    public function setCurrent(bool $current): void
+    public function setCurrent(?bool $current): void
     {
         $this->current = $current;
     }
 
     /**
-     * @return string
+     * @return string|null
      */
-    public function getType(): string
+    public function getType(): ?string
     {
         return $this->type;
     }
 
     /**
-     * @param string $type
+     * @param string|null $type
      */
-    public function setType(string $type): void
+    public function setType(?string $type): void
     {
         $this->type = $type;
     }

@@ -64,6 +64,9 @@ RUN apt-get install -y \
     libcurl4-openssl-dev \
     pkg-config \
     libssl-dev \
+    sendmail \
+    libpng-dev \
+    zlib1g-dev \
     gcc zip \
     && pecl install mcrypt-1.0.1 \
     && pecl install mongodb \

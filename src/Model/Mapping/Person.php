@@ -4,67 +4,77 @@ namespace App\Model\Mapping;
 
 use JMS\Serializer\Annotation as JMS;
 
-class PersonalProperties
+class Person
 {
     /**
      * @var string|null
-     * @JMS\Type("string")
      */
     private $uoid;
 
     /**
      * @var string|null
-     * @JMS\Type("string")
      */
     private $lname;
 
     /**
      * @var string|null
-     * @JMS\Type("string")
      */
     private $fname;
 
     /**
      * @var string|null
-     * @JMS\Type("string")
      */
     private $patronymic;
 
     /**
      * @var \DateTime|null
-     * @JMS\Type("DateTime<'d.m.Y'>")
+     * @JMS\Type("DateTime<'Y-m-d\TH:i:s.uT'>")
      */
     private $bday;
 
     /**
      * @var string|null
-     * @JMS\Type("string")
      */
     private $sex;
 
     /**
      * @var string|null
-     * @JMS\Type("string")
      */
     private $phone;
 
     /**
      * @var string|null
-     * @JMS\Type("string")
      */
     private $email;
 
     /**
      * @var string|null
-     * @JMS\Type("string")
      */
     private $messenger;
 
     /**
      * @var string|null
-     * @JMS\Type("string")
      */
     private $post;
+
+    public function mergeChanges(self $edited): self
+    {
+        $original = clone $this;
+
+        if($ph = $edited->getPhone()) {
+            $original->setPhone($ph);
+        }
+
+        if($email = $edited->getEmail()) {
+            $original->setEmail($email);
+        }
+
+        if($msn = $edited->getMessenger()) {
+            $original->setMessenger($msn);
+        }
+
+        return $original;
+    }
 
     /**
      * @return string|null

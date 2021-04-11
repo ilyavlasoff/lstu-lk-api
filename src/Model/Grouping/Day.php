@@ -3,6 +3,7 @@
 namespace App\Model\Grouping;
 
 use App\Model\Mapping\TimetableItem;
+use JMS\Serializer\Annotation as JMS;
 
 class Day
 {
@@ -12,51 +13,64 @@ class Day
     private $id;
 
     /**
-     * @var string
-     * @JMS\Groups({"lessonsContainer"})
+     * @var string | null
      */
     private $name;
 
     /**
-     * @var integer
-     * @JMS\Groups({"lessonsContainer"})
+     * @var integer | null
      */
     private $number;
 
     /**
      * @var TimetableItem[]
-     * @JMS\Groups({"lessonsContainer"})
      */
     private $lessons;
 
     /**
      * @return string
      */
-    public function getName(): string
+    public function getId(): string
+    {
+        return $this->id;
+    }
+
+    /**
+     * @param string $id
+     */
+    public function setId(string $id): void
+    {
+        $this->id = $id;
+    }
+
+    /**
+     * @return string|null
+     */
+    public function getName(): ?string
     {
         return $this->name;
     }
 
     /**
-     * @param string $name
+     * @param string|null $name
      */
-    public function setName(string $name): void
+    public function setName(?string $name): void
     {
         $this->name = $name;
     }
 
     /**
-     * @return int
+     * @return int|null
      */
-    public function getNumber(): int
+    public function getNumber(): ?int
     {
         return $this->number;
     }
 
     /**
-     * @param int $number
+     * @param int|null $number
      */
-    public function setNumber(int $number): void
+    public function setNumber(?int $number): void
     {
         $this->number = $number;
     }
@@ -75,22 +89,6 @@ class Day
     public function setLessons(array $lessons): void
     {
         $this->lessons = $lessons;
-    }
-
-    /**
-     * @return string
-     */
-    public function getId(): string
-    {
-        return $this->id;
-    }
-
-    /**
-     * @param string $id
-     */
-    public function setId(string $id): void
-    {
-        $this->id = $id;
     }
 
 }

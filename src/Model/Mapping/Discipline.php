@@ -8,13 +8,11 @@ class Discipline
 {
     /**
      * @var string
-     * @JMS\Groups({"Definition"})
      */
     public $id;
 
     /**
      * @var string
-     * @JMS\Groups({"Definition"})
      */
     public $name;
 

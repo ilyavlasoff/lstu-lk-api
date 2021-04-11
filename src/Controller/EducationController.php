@@ -2,9 +2,8 @@
 
 namespace App\Controller;
 
-use App\Model\Grouping\Day;
-use App\Model\Grouping\Week;
-use App\Model\Response\Timetable;
+use App\Model\Response\EducationsList;
+use App\Model\Response\SemestersList;
 use App\Repository\EducationRepository;
 use App\Repository\PersonalRepository;
 use Nelmio\ApiDocBundle\Annotation\Model;
@@ -57,17 +56,16 @@ class EducationController extends AbstractRestController
     public function educationList(Request $request): JsonResponse
     {
         $personId = $request->query->get('person');
+        if(!$personId) {
+            throw new \Exception('Incorrect query');
+        }
 
-        $educationList = $this->educationRepository->getLstuEducationListByPerson($personId);
+        $educations = $this->educationRepository->getLstuEducationListByPerson($personId);
+        $educationList = new EducationsList();
+        $educationList->setPerson($personId);
+        $educationList->setEducations($educations);
 
-        return new JsonResponse(
-            $this->serializer->serialize($educationList, 'json',
-                SerializationContext::create()->setInitialType('array<App\Model\Mapping\Education>')
-            ),
-            Response::HTTP_OK,
-            [],
-            true
-        );
+        return $this->responseSuccessWithObject($educationList);
     }
 
     /**
@@ -96,17 +94,19 @@ class EducationController extends AbstractRestController
     public function semesterList(Request $request, PersonalRepository $personalRepository)
     {
         $education = $request->query->get('edu');
+        if(!$education) {
+            throw new \Exception("Incorrect query");
+        }
 
         $groupId = $personalRepository->getGroupByContingent($education);
-        $semesterList = $this->educationRepository->getSemesterList($groupId);
-        return new JsonResponse(
-            $this->serializer->serialize($semesterList, 'json',
-                SerializationContext::create()->setInitialType('array<App\Model\Mapping\Semester>')
-            ),
-            Response::HTTP_OK,
-            [],
-            true
-        );
+        $semesters = $this->educationRepository->getSemesterList($groupId);
+
+        $semesterList = new SemestersList();
+        $semesterList->setEducation($education);
+        $semesterList->setCurrent(false);
+        $semesterList->setSemesters($semesters);
+
+        return $this->responseSuccessWithObject($semesterList);
     }
 
     /**
@@ -134,146 +134,13 @@ class EducationController extends AbstractRestController
     public function currentSemester(Request $request, PersonalRepository $personalRepository)
     {
         $education = $request->query->get('edu');
-
         if(!$education) {
-            throw new \Exception('Bad arguments');
+            throw new \Exception('Incorrect query');
         }
 
-        try {
-            $groupId = $personalRepository->getGroupByContingent($education);
-            $semester = $this->educationRepository->getCurrentSemester($groupId);
-            return $this->responseSuccessWithObject($semester);
-        } catch (\Exception $e) {
-            throw $e;
-        }
+        $groupId = $personalRepository->getGroupByContingent($education);
+        $semester = $this->educationRepository->getCurrentSemester($groupId);
+        return $this->responseSuccessWithObject($semester);
     }
 
-    /**
-     * @Route("/timetable", name="lesson_timetable", methods={"GET"})
-     *
-     * @OA\Get(
-     *     tags={"Расписание"},
-     *     summary="Расписание",
-     *     @Security(name="Bearer"),
-     *     @OA\Parameter(
-     *          in="query",
-     *          required=false,
-     *          name="week",
-     *          description="Наименование учбеной недели (green-зеленая, white-белая, при отсутствии-обе)"
-     *     ),
-     *     @OA\Parameter(
-     *          in="query",
-     *          required=true,
-     *          name="edu",
-     *          description="Идентификатор периода обучения"
-     *     ),
-     *     @OA\Parameter(
-     *          in="query",
-     *          required=true,
-     *          name="sem",
-     *          description="Идентификатор семестра"
-     *     ),
-     *
-     * )
-     *
-     * @param Request $request
-     * @throws \Exception
-     */
-    public function lessonTimetable(Request $request, PersonalRepository $personalRepository)
-    {
-        $week = $request->query->get('week');
-        $education = $request->query->get('edu');
-        $semester = $request->query->get('sem');
-
-        if(!$education || !$semester || ($week && !in_array($week, ['green', 'white']))) {
-            throw new \Exception('Bad response');
-        }
-        $week = $week ?? ['green', 'white'];
-
-        try {
-            $groupId = $personalRepository->getGroupByContingent($education);
-        } catch (\Exception $e) {
-            throw $e;
-        }
-
-        $timetable = new Timetable();
-        $timetable->setGroupId($groupId);
-        $timetable->setGroupName('group');
-
-        $timetableWeeks = [];
-        foreach ($week as $weekName) {
-            $week = new Week();
-            $week->setType($weekName);
-
-            $dbWeekCodes = $this->educationRepository->getWeeksByName($weekName);
-            $days = $this->educationRepository->getDays();
-
-            $timetableItems = $this->educationRepository->getTimetableItems($groupId, $semester, $dbWeekCodes);
-            foreach ($timetableItems as $weekTimetable) {
-                foreach ($weekTimetable as $day => $dayTimetable) {
-
-                    /** @var Day[] $currentDay */
-                    $currentDay = array_filter($days, function (Day $fday) use($day) {return $fday->getId() === $day;});
-
-                    if(count($currentDay)) {
-                        $currentDay[0]->setLessons($dayTimetable);
-                        $week[] = $currentDay[0];
-                    }
-
-                }
-            }
-
-            $timetableWeeks[] = $week;
-        }
-
-        $timetable->setWeeks($timetableWeeks);
-        return $this->responseSuccessWithObject($timetable);
-    }
-
-    /**
-     * @Route("/", name="get_education_details", methods={"GET"})
-     *
-     * @OA\Get(
-     *     tags={"Образование"},
-     *     summary="Расширенная информация о запрошенном периоде обучения",
-     *     @Security(name="Bearer"),
-     *     @OA\Parameter(
-     *          in="query",
-     *          required=true,
-     *          name="edu",
-     *          description="Идентификатор периода обучения"
-     *     )
-     * )
-     * @param Request $request
-     * @param PersonalRepository $personalRepository
-     * @return JsonResponse
-     */
-    public function educationDetails(Request $request, PersonalRepository $personalRepository): JsonResponse
-    {
-        $education = $request->query->get('edu');
-
-    }
-
-    /**
-     * @Route("/exams", name="exams_timetable", methods={"GET"})
-     *
-     * @param Request $request
-     * @param PersonalRepository $personalRepository
-     * @return JsonResponse
-     * @throws \Exception
-     */
-    public function examsTimetable(Request $request, PersonalRepository $personalRepository)
-    {
-        $education = $request->query->get('edu');
-        $semester = $request->query->get('sem');
-
-        try {
-            $groupId = $personalRepository->getGroupByContingent($education);
-            $exams = $this->educationRepository->getExamsTimetable($groupId, $semester);
-
-            return $this->responseSuccessWithObject($exams);
-        } catch (\Exception $e) {
-            throw $e;
-        }
-    }
 }

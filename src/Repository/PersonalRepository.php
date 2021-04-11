@@ -2,7 +2,7 @@
 
 namespace App\Repository;
 
-use App\Model\Mapping\PersonalProperties;
+use App\Model\Mapping\Person;
 use Doctrine\ORM\EntityManagerInterface;
 
 class PersonalRepository
@@ -14,7 +14,7 @@ class PersonalRepository
         $this->entityManager = $entityManager;
     }
 
-    public function getPersonalProperties(string $nPersonId): PersonalProperties
+    public function getPersonalProperties(string $nPersonId): Person
     {
         $queryBuilder = $this->entityManager->getConnection()->createQueryBuilder();
         $result = $queryBuilder->select('NP.OID UOID, NP.FAMILY AS LNAME,NP.FNAME, NP.MNAME AS PATRONYMIC, 
@@ -32,7 +32,7 @@ class PersonalRepository
         }
 
         $personDataArray = $personalPropertiesDataList[0];
-        $personalProps = new PersonalProperties();
+        $personalProps = new Person();
         $personalProps->setUoid($personDataArray['UOID']);
         $personalProps->setEmail($personDataArray['EMAIL']);
         $personalProps->setPatronymic($personDataArray['PATRONYMIC']);
@@ -62,5 +62,20 @@ class PersonalRepository
         }
 
         return $groupsList[0]['GRP'];
+    }
+
+    public function updatePerson(Person $newPerson) {
+        $queryBuilder = $this->entityManager->getConnection()->createQueryBuilder();
+        $queryBuilder
+            ->update('NPERSONS', 'NP')
+            ->set('NP.MASSAGER', ':MSN')
+            ->set('NP.TELEPHONS', ':PH')
+            ->set('NP.EMAIL', ':EMAIL')
+            ->where('NP.OID = :PERSONID')
+            ->setParameter('PH', $newPerson->getPhone())
+            ->setParameter('EMAIL', $newPerson->getEmail())
+            ->setParameter('MSN', $newPerson->getMessenger())
+            ->setParameter('PERSONID', $newPerson->getUoid());
+        $queryBuilder->execute();
     }
 }

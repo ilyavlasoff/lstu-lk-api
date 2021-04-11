@@ -19,13 +19,13 @@ class Education
 
     /**
      * @var \DateTime|null
-     * @JMS\Type("DateTime<'m.Y'>")
+     * @JMS\Type("DateTime<'Y-m-d\TH:i:s.uT'>")
      */
     private $start;
 
     /**
      * @var \DateTime|null
-     * @JMS\Type("DateTime<'m.Y'>")
+     * @JMS\Type("DateTime<'Y-m-d\TH:i:s.uT'>")
      */
     private $end;
 
