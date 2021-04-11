@@ -9,6 +9,7 @@ class Semester
     /**
      * @var string
      * @JMS\Type("string")
+     * @JMS\Groups("Default", "idOnly")
      */
     private $oid;
 

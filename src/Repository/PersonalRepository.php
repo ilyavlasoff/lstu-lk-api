@@ -2,10 +2,8 @@
 
 namespace App\Repository;
 
-use App\Exception\ValueNotFoundException;
 use App\Model\Mapping\PersonalProperties;
 use Doctrine\ORM\EntityManagerInterface;
-use Doctrine\ORM\Query\ResultSetMapping;
 
 class PersonalRepository
 {
@@ -18,16 +16,17 @@ class PersonalRepository
 
     public function getPersonalProperties(string $nPersonId): PersonalProperties
     {
-        $sql = "SELECT NP.OID UOID, NP.FAMILY AS LNAME,NP.FNAME, NP.MNAME AS PATRONYMIC, NP.CREATED AS BDAY, TS.VALUE AS SEX, " .
-            "NP.TELEPHONS AS PHONE, NP.EMAIL, NP.MASSAGER AS MSNGR, TP.NAME AS POST " .
-            "FROM NPERSONS NP LEFT JOIN T_SEX TS on NP.SEX = TS.OID LEFT JOIN T_POSITIONS TP on NP.POSITION = TP.OID " .
-            "WHERE NP.OID = :OID";
+        $queryBuilder = $this->entityManager->getConnection()->createQueryBuilder();
+        $result = $queryBuilder->select('NP.OID UOID, NP.FAMILY AS LNAME,NP.FNAME, NP.MNAME AS PATRONYMIC, 
+            NP.CREATED AS BDAY, TS.VALUE AS SEX, NP.TELEPHONS AS PHONE, NP.EMAIL, NP.MASSAGER AS MSNGR, TP.NAME AS POST')
+            ->from('NPERSONS', 'NP')
+            ->leftJoin('NP', 'T_SEX', 'TS', 'NP.SEX = TS.OID')
+            ->leftJoin('NP', 'T_POSITIONS', 'TP', 'NP.POSITION = TP.OID')
+            ->where('NP.OID = :OID')
+            ->setParameter('OID', $nPersonId)
+            ->execute();
 
-        $query = $this->entityManager->getConnection()->prepare($sql);
-        $query->bindValue('OID', $nPersonId);
-        $query->execute();
-
-        $personalPropertiesDataList = $query->fetchAll();
+        $personalPropertiesDataList = $result->fetchAll();
         if (count($personalPropertiesDataList) !== 1) {
             throw new \Exception('Person not found');
         }
@@ -50,13 +49,14 @@ class PersonalRepository
 
     public function getGroupByContingent(string $contingentId): string
     {
-        $sql = 'SELECT G AS GRP FROM ET_CONTINGENTS WHERE OID = :CONTINGENT_OID';
+        $result = $this->entityManager->getConnection()->createQueryBuilder()
+            ->select('EC.G AS GRP')
+            ->from('ET_CONTINGENTS', 'EC')
+            ->where('EC.OID = :CONTINGENT_OID')
+            ->setParameter('CONTINGENT_OID', $contingentId)
+            ->execute();
 
-        $query = $this->entityManager->getConnection()->prepare($sql);
-        $query->bindValue('CONTINGENT_OID', $contingentId);
-        $query->execute();
-
-        $groupsList = $query->fetchAll();
+        $groupsList = $result->fetchAll();
         if (count($groupsList) !== 1) {
             throw new \Exception('Invalid response');
         }

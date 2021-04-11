@@ -10,6 +10,7 @@ use JMS\Serializer\SerializerInterface;
 use Nelmio\ApiDocBundle\Annotation\Model;
 use Nelmio\ApiDocBundle\Annotation\Security;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpKernel\Exception\UnauthorizedHttpException;
 use Symfony\Component\Routing\Annotation\Route;
 use OpenApi\Annotations as OA;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -47,7 +48,7 @@ class PersonalController extends AbstractRestController
      *     ),
      *     @OA\Response(
      *          response="200",
-     *          description="Объект студента",
+     *          description="Объект пользователя",
      *          @OA\JsonContent(ref=@Model(type=PersonalProperties::class, groups={"Default"}))
      *     ),
      *     @OA\Response(
@@ -61,6 +62,50 @@ class PersonalController extends AbstractRestController
     {
         try {
             $personalProps = $this->personalRepository->getPersonalProperties($id);
+
+            if (!$personalProps) {
+                throw new ValueNotFoundException('Person', 'Person not found');
+            }
+
+            return $this->responseSuccessWithObject($personalProps);
+
+        } catch (\Exception $e)
+        {
+            throw $e;
+        }
+    }
+
+    /**
+     * @Route("/whoami", name="get_current_person", methods={"GET"})
+     * @return JsonResponse
+     *
+     * @OA\Get(
+     *     tags={"Пользователь"},
+     *     summary="Получение текущего пользователя",
+     *     @Security(name="Bearer"),
+     *     @OA\Response(
+     *          response="200",
+     *          description="Объект пользователя",
+     *          @OA\JsonContent(ref=@Model(type=PersonalProperties::class, groups={"Default"}))
+     *     ),
+     *     @OA\Response(
+     *          response="404",
+     *          description="Зарегистрированный студент не найден"
+     *     )
+     * )
+     * @throws \Exception
+     */
+    public function getCurrentPerson(): JsonResponse
+    {
+        /** @var User $currentUser */
+        $currentUser = $this->getUser();
+
+        if(!$currentUser) {
+            throw new \Exception('User not found');
+        }
+
+        try {
+            $personalProps = $this->personalRepository->getPersonalProperties($currentUser->getDbOid());
 
             if (!$personalProps) {
                 throw new ValueNotFoundException('Person', 'Person not found');

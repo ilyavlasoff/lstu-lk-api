@@ -19,23 +19,23 @@ class SubjectRepository
 
     public function getSubjectsBySemester(string $groupId, string $semesterId): array
     {
-        $sql = 'SELECT EDIS.OID as DISCIPLINE_ID, EDIS.NAME AS DISCIPLINE_NAME, ECH.VALUE AS CHAIR_NAME ' .
-                'FROM ET_RCONTINGENTS ER ' .
-                'INNER JOIN ET_GROUPS EG ON ER.G = EG.OID ' .
-                'INNER JOIN ET_CSEMESTERS ECSEM ON ER.CSEMESTER = ECSEM.OID ' .
-                'INNER JOIN ET_CURRICULUMS EC ON ER.PLAN = EC.OID ' .
-                'INNER JOIN ET_DSPLANS ED ON EC.OID = ED.EPLAN AND ED.SEMESTER = ER.SEMESTER ' .
-                'INNER JOIN ET_DISCIPLINES EDIS ON ED.DISCIPLINE = EDIS.OID ' .
-                'LEFT JOIN ET_CHAIRS ECH ON ED.CHAIR = ECH.OID ' .
-                'WHERE EG.OID = :GROUPID AND ECSEM.OID = :SEMESTERID';
-
-        $query = $this->entityManager->getConnection()->prepare($sql);
-        $query->bindValue('GROUPID', $groupId);
-        $query->bindValue('SEMESTERID', $semesterId);
-        $query->execute();
+        $queryBuilder = $this->entityManager->getConnection()->createQueryBuilder();
+        $result = $queryBuilder->select('EDIS.OID as DISCIPLINE_ID, EDIS.NAME AS DISCIPLINE_NAME, ECH.VALUE AS CHAIR_NAME')
+            ->from('ET_RCONTINGENTS', 'ER')
+            ->innerJoin('ER', 'ET_GROUPS', 'EG', 'ER.G = EG.OID')
+            ->innerJoin('ER', 'ET_CSEMESTERS', 'ECSEM', 'ER.CSEMESTER = ECSEM.OID')
+            ->innerJoin('ER', 'ET_CURRICULUMS', 'EC', 'ER.PLAN = EC.OID')
+            ->innerJoin('EC', 'ET_DSPLANS', 'ED', $queryBuilder->expr()->andX('EC.OID = ED.EPLAN', 'ED.SEMESTER = ER.SEMESTER'))
+            ->innerJoin('ED', 'ET_DISCIPLINES', 'EDIS', 'ED.DISCIPLINE = EDIS.OID')
+            ->leftJoin('ED', 'ET_CHAIRS', 'ECH', 'ED.CHAIR = ECH.OID')
+            ->where('EG.OID = :GROUPID')
+            ->andWhere('ECSEM.OID = :SEMESTERID')
+            ->setParameter('GROUPID', $groupId)
+            ->setParameter('SEMESTERID', $semesterId)
+            ->execute();
 
         $subjectList = [];
-        while($subject = $query->fetch())
+        while($subject = $result->fetch())
         {
             $subjectItem = new AcademicSubject();
             $subjectItem->setSubjectName($subject['DISCIPLINE_NAME'] ?

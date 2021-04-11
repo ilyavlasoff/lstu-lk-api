@@ -30,7 +30,6 @@ class User implements UserInterface
 
     /**
      * @ODM\Field(type="string", nullable=false)
-     *
      */
     private $dbOid;
 
