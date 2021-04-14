@@ -60,5 +60,13 @@ class DisciplineRepository
         return $disciplineTeachers;
     }
 
+    public function getDisciplineTimetable(
+        string $group,
+        string $semester,
+        string $weekColor = null,
+        string $discipline = null,
+        string $teacher = null
+    ){
 
+    }
 }

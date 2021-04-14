@@ -23,34 +23,64 @@ class TimetableRepository
         $this->stringConverter = $stringConverter;
     }
 
-    public function getTimetableItems(string $groupId, string $semesterId, array $weekColorCodes): array
-    {
+    public function getTimetable(
+        string $group,
+        string $semester,
+        string $weekColor = null,
+        string $discipline = null,
+        string $teacher = null
+    ): array {
         $queryBuilder = $this->entityManager->getConnection()->createQueryBuilder();
-        $result = $queryBuilder->select('ED.OID DISCIPLINE_OID, ED.NAME AS DISCIPLINE, NP.OID AS TCH_PERSON,
+        $queryBuilder->select('ED.OID DISCIPLINE_OID, ED.NAME AS DISCIPLINE, NP.OID AS TCH_PERSON,
             TTCH.OID AS TEACHER_OID, NP.FNAME AS TCH_FNAME, NP.FAMILY AS TCH_LNAME, NP.MNAME AS TTCH_PTR,
             EDL.NAME AS TCH_POST, EW.OID AS WEEK, EDW.OID AS WEEKDAY, ECT.BEGIN AS TIME_START, ECT.END AS TIME_END, 
             TTK.VALUE AS CLASS_TYPE, TT.HALL AS ROOM, EK.NAME AS CAMPUS')
             ->from('ET_GROUPS', 'EG')
             ->innerJoin('EG', 'ET_RCONTINGENTS', 'ER', 'EG.OID = ER.G')
             ->innerJoin('ER', 'ET_CSEMESTERS', 'EC','ER.CSEMESTER = EC.OID')
-            ->innerJoin('EC', 'T_TIMETABLE', 'TT',
-                $queryBuilder->expr()->andX('EC.OID = TT.CSEMESTER', 'EG.OID = TT.G'))
+            ->innerJoin(
+                'EC',
+                "(SELECT ITT.*, W2.OID AS COLOR2 FROM T_TIMETABLE ITT
+                JOIN ET_WEEKCOLOR IEW ON ITT.WEEKCOLOR = IEW.OID
+                CROSS JOIN (SELECT OID FROM ET_WEEKCOLOR WHERE NAME IN ('Белая','Зеленая')) W2
+                WHERE IEW.NAME = 'Всегда'
+                UNION ALL
+                SELECT I2TT.*, I2EW.OID AS COLOR2 FROM T_TIMETABLE I2TT
+                JOIN ET_WEEKCOLOR I2EW on I2TT.WEEKCOLOR = I2EW.OID
+                WHERE I2EW.NAME <> 'Всегда')",
+                'TT',
+                'EC.OID = TT.CSEMESTER AND TT.G = EG.OID'
+            )
             ->innerJoin('TT', 'ET_DISCIPLINES', 'ED', 'ED.OID = TT.DISCIPLINE')
             ->innerJoin('TT', 'ET_DAYWEEK', 'EDW', 'EDW.OID = TT.DAY')
             ->innerJoin('TT', 'ET_CLASSTIME', 'ECT', 'ECT.OID = TT.ROOM_TIME')
             ->leftJoin('TT', 'T_TKINDS', 'TTK', 'TTK.OID = TT.TKIND')
-            ->innerJoin('TT', 'ET_WEEKCOLOR', 'EW', 'EW.OID = TT.WEEKCOLOR')
+            ->innerJoin('TT', 'ET_WEEKCOLOR', 'EW', 'EW.OID = TT.COLOR2')
             ->leftJoin('TT', 'T_TEACHERS', 'TTCH', 'TT.TEACHER = TTCH.OID')
             ->leftJoin('TTCH', 'NPERSONS', 'NP', 'TTCH.C_OID = NP.OID')
             ->leftJoin('TTCH', 'ET_DOLTIMETABLE', 'EDL', 'TTCH.DOLTIMETABLE = EDL.OID')
             ->leftJoin('TT', 'ET_ROOMS', 'ERMS', 'TT.HALL = ERMS.CODE')
             ->leftJoin('ERMS', 'ET_KORPUS', 'EK', 'ERMS.KORPUS = EK.OID')
-            ->where('EW.CODE IN (:COLORS)')
-            ->andWhere('TT.G = :GROUP')
-            ->andWhere('TT.CSEMESTER = :SEM')
-            ->setParameter('COLORS', $weekColorCodes, \Doctrine\DBAL\Connection::PARAM_STR_ARRAY)
-            ->setParameter('GROUP', $groupId)
-            ->setParameter('SEM', $semesterId)
+            ->where('TT.G = :GROUP')
+            ->andWhere('TT.CSEMESTER = :SEM');
+        if($weekColor) {
+            $queryBuilder
+                ->andWhere('EW.CODE = :COLOR')
+                ->setParameter('COLOR', $weekColor);
+        };
+        if($discipline) {
+            $queryBuilder
+                ->andWhere('ED.OID = :DISCIPLINE')
+                ->setParameter('DISCIPLINE', $discipline);
+        }
+        if($teacher) {
+            $queryBuilder
+                ->andWhere('TTCH.OID = :TCHR')
+                ->setParameter('TCHR', $teacher);
+        }
+        $result = $queryBuilder
+            ->setParameter('GROUP', $group)
+            ->setParameter('SEM', $semester)
             ->execute();
 
         $disciplines = [];
@@ -106,33 +136,38 @@ class TimetableRepository
         return $weekDays;
     }
 
-    public function getWeeksByName(string $name): array
+    public function getWeekByName(string $weekName)
     {
-        if($name === 'green') {
-            $weekDbNames = ['Всегда', 'Зеленая'];
-        } elseif ($name === 'white') {
-            $weekDbNames = ['Всегда', 'Белая'];
-        } else {
-            return [];
-        }
-
-        $queryBuilder = $this->entityManager->getConnection()->createQueryBuilder();
-        $result = $queryBuilder
+        $result = $this->entityManager->getConnection()->createQueryBuilder()
             ->select('WC.CODE')
             ->from('ET_WEEKCOLOR', 'WC')
-            ->where('WC.NAME IN (:WNAMES)')
-            ->setParameter('WNAMES', $weekDbNames, \Doctrine\DBAL\Connection::PARAM_STR_ARRAY)
+            ->where('WC.NAME = :WEEKNAME')
+            ->setParameter('WEEKNAME', $weekName)
             ->execute();
-        return $result->fetchAll(FetchMode::COLUMN);
+        $weekData = $result->fetchAll();
+
+        if(!$weekData) {
+            throw new \Exception('Incorrect value');
+        }
+
+        return $weekData[0]['CODE'];
     }
 
     public function getExamsTimetable(string $groupId, string $semesterId): array
     {
         $queryBuilder = $this->entityManager->getConnection()->createQueryBuilder();
         $result = $queryBuilder
-            ->select("ED.OID DISC_ID, ED.NAME DISCIPLINE, CASE WHEN EE.LTEACHER IS NOT NULL THEN
-                COALESCE(EDL.ABBR, 'преп.') || TT.SURNAME || ' ' || SUBSTR(TT.FIRSTNAME, 0, 1) || '.' || SUBSTR(TT.PATRONYMIC, 0, 1) ELSE EE.TEACHER END AS TEACHER,
-                EE.EDATE AS DT, EE.ETIME AS TM, EE.ROOM, EK.NAME AS CAMPUS")
+            ->select(
+                "ED.OID DISC_ID, 
+                ED.NAME DISCIPLINE, 
+                TT.SURNAME AS TCH_SURNAME,
+                TT.FIRSTNAME AS TCH_FIRSTNAME,
+                TT.PATRONYMIC AS TCH_PATRONYMIC,
+                EE.TEACHER AS UK_TEACHER,
+                EE.EDATE AS DT, 
+                EE.ETIME AS TM, 
+                EE.ROOM, 
+                EK.NAME AS CAMPUS")
             ->from('ET_EEXAMS', 'EE')
             ->innerJoin('EE', 'ET_DISCIPLINES', 'ED', 'EE.DISCIPLINE = ED.OID')
             ->leftJoin('EE', 'T_TEACHERS', 'TT', 'EE.LTEACHER = TT.OID')
@@ -148,7 +183,12 @@ class TimetableRepository
         $exams = [];
         while($examRow = $result->fetch()) {
             $exam = new Exam();
-            $exam->setTeacherName($examRow['TEACHER']);
+            if($tname = $examRow['TCH_FIRSTNAME'] && $tsurname = $examRow['TCH_SURNAME']) {
+                $teacherAbbrName = $this->stringConverter->createAbbreviatedName($tname, $tsurname, $examRow['TCH_PATRONYMIC']);
+            } else {
+                $teacherAbbrName = $examRow['UK_TEACHER'];
+            }
+            $exam->setTeacherName($teacherAbbrName);
             $exam->setRoom($examRow['ROOM']);
             $exam->setCampus($examRow['CAMPUS']);
 

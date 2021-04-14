@@ -3,15 +3,18 @@
 namespace App\Repository;
 
 use App\Model\Mapping\Person;
+use App\Service\StringConverter;
 use Doctrine\ORM\EntityManagerInterface;
 
 class PersonalRepository
 {
     private $entityManager;
+    private $stringConverter;
 
-    public function __construct(EntityManagerInterface $entityManager)
+    public function __construct(EntityManagerInterface $entityManager, StringConverter $stringConverter)
     {
         $this->entityManager = $entityManager;
+        $this->stringConverter = $stringConverter;
     }
 
     public function getPersonalProperties(string $nPersonId): Person
@@ -35,9 +38,9 @@ class PersonalRepository
         $personalProps = new Person();
         $personalProps->setUoid($personDataArray['UOID']);
         $personalProps->setEmail($personDataArray['EMAIL']);
-        $personalProps->setPatronymic($personDataArray['PATRONYMIC']);
-        $personalProps->setFname($personDataArray['FNAME']);
-        $personalProps->setLname($personDataArray['LNAME']);
+        $personalProps->setPatronymic($this->stringConverter->capitalize($personDataArray['PATRONYMIC']));
+        $personalProps->setFname($this->stringConverter->capitalize($personDataArray['FNAME']));
+        $personalProps->setLname($this->stringConverter->capitalize($personDataArray['LNAME']));
         $personalProps->setBday(new \DateTime($personDataArray['BDAY']));
         $personalProps->setMessenger($personDataArray['MSNGR']);
         $personalProps->setSex($personDataArray['SEX']);

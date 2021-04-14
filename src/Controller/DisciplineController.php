@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Repository\DisciplineRepository;
 use App\Repository\PersonalRepository;
 use JMS\Serializer\SerializerInterface;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
 use Nelmio\ApiDocBundle\Annotation\Security;
@@ -56,5 +57,43 @@ class DisciplineController extends AbstractRestController
         }
     }
 
+    /**
+     * @Route("/timetable", name="discipline-timetable", methods={"GET"})
+     */
+    public function disciplineTimetable(Request $request)
+    {
 
+    }
+
+    /**
+     * @Route("/chat", name="discipline-chat", methods={"GET"})
+     */
+    public function disciplineChatMessages(Request $request)
+    {
+
+    }
+
+    /**
+     * @Route("/chat", name="discipline-chat-add", methods={"POST"})
+     */
+    public function disciplineChatMessagesAdd(Request $request)
+    {
+
+    }
+
+    /**
+     * @Route("/studwork", name="discipline-studwork", methods={"GET"})
+     */
+    public function disciplineStudworks(Request $request): JsonResponse
+    {
+
+    }
+
+    /**
+     * @Route("/studwork/answer", name="discipline-studwork-add", methods={"POST"})
+     */
+    public function disciplineStudworkAdd(Request $request): JsonResponse
+    {
+
+    }
 }

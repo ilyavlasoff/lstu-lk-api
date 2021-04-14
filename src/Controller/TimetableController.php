@@ -67,10 +67,9 @@ class TimetableController extends AbstractRestController
         $education = $request->query->get('edu');
         $semester = $request->query->get('sem');
 
-        if(!$education || !$semester || ($week && !in_array($week, ['green', 'white']))) {
-            throw new \Exception('Bad response');
+        if(!$education || !$semester) {
+            throw new \Exception('Bad request');
         }
-        $week = $week ? [$week] : ['green', 'white'];
 
         try {
             $groupId = $personalRepository->getGroupByContingent($education);
@@ -82,15 +81,30 @@ class TimetableController extends AbstractRestController
         $timetable->setGroupId($groupId);
         $timetable->setGroupName('group');
 
-        $timetableWeeks = [];
-        foreach ($week as $weekName) {
-            $week = new Week();
-            $week->setType($weekName);
+        $timetableWeekTranslate = [
+            'green' => 'Зеленая',
+            'white' => 'Белая',
+        ];
 
-            $dbWeekCodes = $this->timetableRepository->getWeeksByName($weekName);
+        if($week) {
+            if(!array_key_exists($week, $timetableWeekTranslate)) {
+                throw new \Exception('Incorrect query');
+            }
+            $timetableWeekNames = [$timetableWeekTranslate[$week]];
+        } else {
+            $timetableWeekNames = array_values($timetableWeekTranslate);
+        }
+
+        $studyWeeks = [];
+
+        foreach ($timetableWeekNames as $weekName) {
+            $weekCode = $this->timetableRepository->getWeekByName($weekName);
             $days = $this->timetableRepository->getDays();
 
-            $timetableItems = $this->timetableRepository->getTimetableItems($groupId, $semester, $dbWeekCodes);
+            $timetableWeek = new Week();
+            $timetableWeek->setType($week);
+
+            $timetableItems = $this->timetableRepository->getTimetable($groupId, $semester, $weekCode);
 
             foreach ($timetableItems as $weekTimetable) {
                 $weekDays = [];
@@ -98,7 +112,13 @@ class TimetableController extends AbstractRestController
                 foreach ($weekTimetable as $day => $dayTimetable) {
 
                     /** @var Day[] $currentDay */
-                    $currentDay = array_values(array_filter($days, function (Day $fday) use($day) {return $fday->getId() === $day;}));
+                    $currentDay = array_values(
+                        array_filter($days,
+                            function (Day $fday) use($day) {
+                                return $fday->getId() === $day;
+                            }
+                        )
+                    );
 
                     if(count($currentDay)) {
                         $currentDay[0]->setLessons($dayTimetable);
@@ -106,13 +126,13 @@ class TimetableController extends AbstractRestController
                     }
 
                 }
-                $week->setDays($weekDays);
+                $timetableWeek->setDays($weekDays);
             }
 
-            $timetableWeeks[] = $week;
+            $studyWeeks[] = $week;
         }
 
-        $timetable->setWeeks($timetableWeeks);
+        $timetable->setWeeks($studyWeeks);
         return $this->responseSuccessWithObject($timetable);
     }
 
