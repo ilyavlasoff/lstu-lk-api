@@ -7,6 +7,7 @@ use App\Model\Grouping\Day;
 use App\Model\Grouping\Week;
 use App\Model\Mapping\TimetableItem;
 use App\Model\Response\DiscussionChatList;
+use App\Model\Response\StudentWorkList;
 use App\Model\Response\Timetable;
 use App\Repository\DisciplineRepository;
 use App\Repository\EducationRepository;
@@ -141,15 +142,42 @@ class DisciplineController extends AbstractRestController
     }
 
     /**
-     * @Route("/studwork", name="discipline-studwork", methods={"GET"})
+     * @Route("/tasks", name="discipline-studwork", methods={"GET"})
      */
-    public function disciplineStudworks(Request $request): JsonResponse
-    {
+    public function disciplineStudworks(
+        Request $request,
+        EducationRepository $educationRepository,
+        PersonalRepository $personalRepository
+    ): JsonResponse {
+        $semester = $request->query->get('sem');
+        $discipline = $request->query->get('dis');
+        $education = $request->query->get('edu');
 
+        /** @var User $user */
+        $user = $this->getUser();
+        $currentUserEduList = $educationRepository->getUserEducationsIdList($user->getDbOid());
+        if(!($education && in_array($education, array_values($currentUserEduList)))) {
+            throw new \Exception('Operation not allowed for this user');
+        }
+
+        try {
+            $group = $personalRepository->getGroupByContingent($education);
+            $workList = $this->disciplineRepository->getStudentWorksList($semester, $discipline, $group, $education);
+
+            $workListAnswer = new StudentWorkList();
+            $workListAnswer->setSemester($semester);
+            $workListAnswer->setDiscipline($discipline);
+            $workListAnswer->setEducation($education);
+            $workListAnswer->setTasks($workList);
+
+            return $this->responseSuccessWithObject($workListAnswer);
+        } catch (\Exception $e) {
+            throw $e;
+        }
     }
 
     /**
-     * @Route("/studwork/answer", name="discipline-studwork-add", methods={"POST"})
+     * @Route("/tasks/answer", name="discipline-studwork-add", methods={"POST"})
      */
     public function disciplineStudworkAdd(Request $request): JsonResponse
     {

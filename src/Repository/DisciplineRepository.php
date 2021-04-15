@@ -7,8 +7,11 @@ use App\Model\Mapping\DiscussionAttachment;
 use App\Model\Mapping\DiscussionExternalLink;
 use App\Model\Mapping\DiscussionMessage;
 use App\Model\Mapping\Person;
+use App\Model\Mapping\StudentWork;
 use App\Model\Mapping\Teacher;
 use App\Model\Mapping\TimetableItem;
+use App\Model\Mapping\WorkAnswer;
+use App\Model\Mapping\WorkAttachment;
 use App\Service\StringConverter;
 use Doctrine\ORM\EntityManagerInterface;
 
@@ -188,11 +191,12 @@ class DisciplineRepository
                 ESW.NAME AS WORK_NAME,
                 ESW.THEME AS WORK_THEME,
                 ESW.MAX_BALL AS SCORE,
-                ROUND(DBMS_LOB.GETLENGTH(ES.DOC)/1024) AS ATT_DOC_KB,
-                ES.FILE\$DOC AS ATT_FILEAME,
-                ES.NAME AS ATT_TITLE,
-                ES.EXTLINK AS ATT_EXT,
-                E.BALL AS WORK_SCORE
+                W_ANS.OID AS ATT_ID,
+                W_ANS.DOC_SIZE AS ATT_DOC_KB,
+                W_ANS.DOC_NAME AS ATT_FILENAME,
+                W_ANS.DOC_TITLE AS ATT_TITLE,
+                W_ANS.DOC_LINK AS ATT_EXT,
+                W_ANS.SCORE AS WORK_SCORE
             ")
             ->from('ET_STUDENTWORK', 'ESW')
             ->leftJoin('ESW', 'T_TEACHERS', 'TT', 'ESW.TEACHER = TT.OID')
@@ -201,13 +205,32 @@ class DisciplineRepository
             ->leftJoin('ESW', 'T_TKINDS', 'T', 'ESW.STUDYTYPE = T.OID')
             ->leftJoin(
                 'ESW',
-                $this->entityManager->getConnection()->createQueryBuilder()
+                sprintf('(%s)', $this->entityManager->getConnection()->createQueryBuilder()
+                    ->select('ES.OID, ES.WORK, ES.FILE$DOC AS DOC_NAME, ES.NAME AS DOC_TITLE, ES.EXTLINK AS DOC_LINK, ROUND(DBMS_LOB.GETLENGTH(ES.DOC)/1024) AS DOC_SIZE, ESG.SCORE')
                     ->from('ET_SWATTACHMENT', 'ES')
-                    ->leftJoin('ESW', 'ET_SWGRADES', 'ESG',
-                        $queryBuilder->expr()->andX('ESW.OID = ESG.WORK', 'ESG.CONTINGENT = ES.CONTINGENT'))
+                    ->leftJoin(
+                        'ES',
+                        sprintf('(%s)', $this->entityManager->getConnection()->createQueryBuilder()
+                            ->select('ISWG.BALL AS SCORE, ISWG.WORK, ISWG.CONTINGENT')
+                            ->from('ET_SWGRADES', 'ISWG')
+                            ->innerJoin(
+                                'ISWG',
+                                sprintf('(%s)', $queryBuilder->getConnection()->createQueryBuilder()
+                                    ->select('MAX(I2SWG.OID) AS MX')
+                                    ->from('ET_SWGRADES', 'I2SWG')
+                                    ->groupBy('I2SWG.CONTINGENT, I2SWG.WORK')
+                                    ->getSQL()
+                                ),
+                                'MOID',
+                                'MOID.MX = ISWG.OID'
+                            )
+                            ->getSQL()
+                        ),
+                        'ESG',
+                        $queryBuilder->expr()->andX('ES.WORK = ESG.WORK', 'ESG.CONTINGENT = ES.CONTINGENT'))
                     ->where('ES.CONTINGENT = :CONT')
-                    ->setParameter('CONT', $contingent)
-                    ->getSQL(),
+                    ->getSQL()
+                ),
                 'W_ANS',
                 'W_ANS.WORK = ESW.OID'
             )
@@ -218,30 +241,74 @@ class DisciplineRepository
             ->setParameter('SEMESTER', $semester)
             ->setParameter('DISCIPLINE', $discipline)
             ->setParameter('GROUP', $group)
+            ->setParameter('CONT', $contingent)
             ->execute();
+
+        $persons = [];
+        $teachers = [];
+        $works = [];
+
         while($workRow = $result->fetch())
         {
-            $teacherPerson = new Person();
-            $teacherPerson->setUoid($workRow['TCH_POID']);
+            if(!(key_exists($workId = $workRow['WORK_ID'], $works) && $work = $works[$workId])) {
+                $work = new StudentWork();
+                $work->setId($workId);
+                $work->setWorkName($workRow['WORK_NAME']);
+                $work->setWorkTheme($workRow['WORK_THEME']);
+                $work->setWorkType($workRow['WORK_TYPE']);
+                $work->setWorkMaxScore($workRow['SCORE']);
 
-            if ($fname = $workRow['TCH_NAME']) {
-                $teacherPerson->setFname($this->stringConverter->capitalize($fname));
+                if(!(key_exists($teacherPersonId = $workRow['TCH_POID'], $persons) && $teacherPerson = $persons[$teacherPersonId])) {
+                    $teacherPerson = new Person();
+                    $teacherPerson->setUoid($teacherPersonId);
+                    if ($fname = $workRow['TCH_NAME']) {
+                        $teacherPerson->setFname($this->stringConverter->capitalize($fname));
+                    }
+                    if($lname = $workRow['TCH_SURNAME']) {
+                        $teacherPerson->setLname($this->stringConverter->capitalize($lname));
+                    }
+                    if($patronymic = $workRow['TCH_PTR']) {
+                        $teacherPerson->setFname($patronymic);
+                    }
+                    $persons[$teacherPersonId] = $teacherPerson;
+                }
+
+                if(!(key_exists($teacherId = $workRow['TCH_ID'], $teachers) && $teacher = $teachers[$teacherId])) {
+                    $teacher = new Teacher();
+                    $teacher->setId($teacherId);
+                    $teacher->setPosition($workRow['TCH_POST']);
+                    $teacher->setPerson($teacherPerson);
+                    $teachers[$teacherId] = $teacher;
+                }
+
+                $work->setTeacher($teacher);
+                $works[$workId] = $work;
             }
 
-            if($lname = $workRow['TCH_SURNAME']) {
-                $teacherPerson->setLname($this->stringConverter->capitalize($lname));
+            if(!$work->getAnswer() && (
+                $workRow['WORK_SCORE'] ||
+                $workRow['ATT_DOC_KB'] ||
+                $workRow['ATT_FILENAME'] ||
+                $workRow['ATT_TITLE'] ||
+                $workRow['ATT_EXT'])
+            ) {
+                $answer = new WorkAnswer();
+                $answer->setScore($workRow['WORK_SCORE']);
+                $answer->setAttachments([]);
+                $work->setAnswer($answer);
             }
 
-            if($patronymic = $workRow['TCH_PTR']) {
-                $teacherPerson->setFname($patronymic);
+            if($workRow['ATT_ID'] || $workRow['ATT_DOC_KB'] || $workRow['ATT_FILENAME'] || $workRow['ATT_TITLE'] || $workRow['ATT_EXT']) {
+                $workAttachment = new WorkAttachment();
+                $workAttachment->setAttachmentId($workRow['ATT_ID']);
+                $workAttachment->setFileSize($workRow['ATT_DOC_KB']);
+                $workAttachment->setFileName($workRow['ATT_FILENAME']);
+                $workAttachment->setDisplayedName($workRow['ATT_TITLE']);
+                $workAttachment->setExternalLink($workRow['ATT_EXT']);
+                $work->getAnswer()->addAttachment($workAttachment);
             }
-
-            $teacher = new Teacher();
-            $teacher->setId($workRow['TCH_ID']);
-            $teacher->setPosition($workRow['TCH_POST']);
-            $teacher->setPerson($teacherPerson);
-
-
         }
+
+        return $works;
     }
 }

@@ -30,9 +30,14 @@ class StudentWork
     private $workTheme;
 
     /**
-     * @var int | null
+     * @var float | null
      */
     private $workMaxScore;
+
+    /**
+     * @var WorkAnswer | null
+     */
+    private $answer;
 
     /**
      * @return string
@@ -128,6 +133,22 @@ class StudentWork
     public function setWorkMaxScore(?int $workMaxScore): void
     {
         $this->workMaxScore = $workMaxScore;
+    }
+
+    /**
+     * @return WorkAnswer|null
+     */
+    public function getAnswer(): ?WorkAnswer
+    {
+        return $this->answer;
+    }
+
+    /**
+     * @param WorkAnswer|null $answer
+     */
+    public function setAnswer(?WorkAnswer $answer): void
+    {
+        $this->answer = $answer;
     }
 
 }

@@ -36,11 +36,6 @@ class WorkAttachment
     private $externalLink;
 
     /**
-     * @var int | null
-     */
-    private $score;
-
-    /**
      * @return string
      */
     public function getAttachmentId(): string
@@ -118,22 +113,6 @@ class WorkAttachment
     public function setExternalLink(?string $externalLink): void
     {
         $this->externalLink = $externalLink;
-    }
-
-    /**
-     * @return int|null
-     */
-    public function getScore(): ?int
-    {
-        return $this->score;
-    }
-
-    /**
-     * @param int|null $score
-     */
-    public function setScore(?int $score): void
-    {
-        $this->score = $score;
     }
 
 }
