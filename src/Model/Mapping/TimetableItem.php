@@ -24,6 +24,11 @@ class TimetableItem
     private $lessonType;
 
     /**
+     * @var int | null
+     */
+    private $lessonNumber;
+
+    /**
      * @var string|null
      */
     private $beginTime;
@@ -89,6 +94,22 @@ class TimetableItem
     public function setLessonType(?string $lessonType): void
     {
         $this->lessonType = $lessonType;
+    }
+
+    /**
+     * @return int|null
+     */
+    public function getLessonNumber(): ?int
+    {
+        return $this->lessonNumber;
+    }
+
+    /**
+     * @param int|null $lessonNumber
+     */
+    public function setLessonNumber(?int $lessonNumber): void
+    {
+        $this->lessonNumber = $lessonNumber;
     }
 
     /**

@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Model\Grouping\Day;
 use App\Model\Grouping\Week;
+use App\Model\Mapping\TimetableItem;
 use App\Model\Response\ExamsTimetable;
 use App\Model\Response\Timetable;
 use App\Repository\PersonalRepository;
@@ -32,34 +33,6 @@ class TimetableController extends AbstractRestController
 
     /**
      * @Route("/", name="lesson_timetable", methods={"GET"})
-     *
-     * @OA\Get(
-     *     tags={"Расписание"},
-     *     summary="Расписание",
-     *     @Security(name="Bearer"),
-     *     @OA\Parameter(
-     *          in="query",
-     *          required=false,
-     *          name="week",
-     *          description="Наименование учбеной недели (green-зеленая, white-белая, при отсутствии-обе)"
-     *     ),
-     *     @OA\Parameter(
-     *          in="query",
-     *          required=true,
-     *          name="edu",
-     *          description="Идентификатор периода обучения"
-     *     ),
-     *     @OA\Parameter(
-     *          in="query",
-     *          required=true,
-     *          name="sem",
-     *          description="Идентификатор семестра"
-     *     ),
-     *
-     * )
-     *
-     * @param Request $request
-     * @throws \Exception
      */
     public function lessonTimetable(Request $request, PersonalRepository $personalRepository)
     {
@@ -77,10 +50,6 @@ class TimetableController extends AbstractRestController
             throw $e;
         }
 
-        $timetable = new Timetable();
-        $timetable->setGroupId($groupId);
-        $timetable->setGroupName('group');
-
         $timetableWeekTranslate = [
             'green' => 'Зеленая',
             'white' => 'Белая',
@@ -90,49 +59,12 @@ class TimetableController extends AbstractRestController
             if(!array_key_exists($week, $timetableWeekTranslate)) {
                 throw new \Exception('Incorrect query');
             }
-            $timetableWeekNames = [$timetableWeekTranslate[$week]];
+            $weekCode = $this->timetableRepository->getWeekByName($timetableWeekTranslate[$week]);
+            $timetable = $this->timetableRepository->getTimetable($groupId, $semester, $weekCode);
         } else {
-            $timetableWeekNames = array_values($timetableWeekTranslate);
+            $timetable = $this->timetableRepository->getTimetable($groupId, $semester);
         }
 
-        $studyWeeks = [];
-
-        foreach ($timetableWeekNames as $weekName) {
-            $weekCode = $this->timetableRepository->getWeekByName($weekName);
-            $days = $this->timetableRepository->getDays();
-
-            $timetableWeek = new Week();
-            $timetableWeek->setType($week);
-
-            $timetableItems = $this->timetableRepository->getTimetable($groupId, $semester, $weekCode);
-
-            foreach ($timetableItems as $weekTimetable) {
-                $weekDays = [];
-
-                foreach ($weekTimetable as $day => $dayTimetable) {
-
-                    /** @var Day[] $currentDay */
-                    $currentDay = array_values(
-                        array_filter($days,
-                            function (Day $fday) use($day) {
-                                return $fday->getId() === $day;
-                            }
-                        )
-                    );
-
-                    if(count($currentDay)) {
-                        $currentDay[0]->setLessons($dayTimetable);
-                        $weekDays[] = $currentDay[0];
-                    }
-
-                }
-                $timetableWeek->setDays($weekDays);
-            }
-
-            $studyWeeks[] = $week;
-        }
-
-        $timetable->setWeeks($studyWeeks);
         return $this->responseSuccessWithObject($timetable);
     }
 

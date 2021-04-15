@@ -39,22 +39,6 @@ class Teacher
     }
 
     /**
-     * @return string
-     */
-    public function getPosition(): string
-    {
-        return $this->position;
-    }
-
-    /**
-     * @param string $position
-     */
-    public function setPosition(string $position): void
-    {
-        $this->position = $position;
-    }
-
-    /**
      * @return Person|null
      */
     public function getPerson(): ?Person
@@ -68,6 +52,22 @@ class Teacher
     public function setPerson(?Person $person): void
     {
         $this->person = $person;
+    }
+
+    /**
+     * @return string|null
+     */
+    public function getPosition(): ?string
+    {
+        return $this->position;
+    }
+
+    /**
+     * @param string|null $position
+     */
+    public function setPosition(?string $position): void
+    {
+        $this->position = $position;
     }
 
 }

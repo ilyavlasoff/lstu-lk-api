@@ -3,11 +3,13 @@
 namespace App\Repository;
 
 use App\Model\Grouping\Day;
+use App\Model\Grouping\Week;
 use App\Model\Mapping\Discipline;
 use App\Model\Mapping\Exam;
 use App\Model\Mapping\Person;
 use App\Model\Mapping\Teacher;
 use App\Model\Mapping\TimetableItem;
+use App\Model\Response\Timetable;
 use App\Service\StringConverter;
 use Doctrine\DBAL\FetchMode;
 use Doctrine\ORM\EntityManagerInterface;
@@ -29,12 +31,12 @@ class TimetableRepository
         string $weekColor = null,
         string $discipline = null,
         string $teacher = null
-    ): array {
+    ): Timetable {
         $queryBuilder = $this->entityManager->getConnection()->createQueryBuilder();
         $queryBuilder->select('ED.OID DISCIPLINE_OID, ED.NAME AS DISCIPLINE, NP.OID AS TCH_PERSON,
             TTCH.OID AS TEACHER_OID, NP.FNAME AS TCH_FNAME, NP.FAMILY AS TCH_LNAME, NP.MNAME AS TTCH_PTR,
             EDL.NAME AS TCH_POST, EW.OID AS WEEK, EDW.OID AS WEEKDAY, ECT.BEGIN AS TIME_START, ECT.END AS TIME_END, 
-            TTK.VALUE AS CLASS_TYPE, TT.HALL AS ROOM, EK.NAME AS CAMPUS')
+            ECT.NUM AS LESSON_NUM, TTK.VALUE AS CLASS_TYPE, TT.HALL AS ROOM, EK.NAME AS CAMPUS')
             ->from('ET_GROUPS', 'EG')
             ->innerJoin('EG', 'ET_RCONTINGENTS', 'ER', 'EG.OID = ER.G')
             ->innerJoin('ER', 'ET_CSEMESTERS', 'EC','ER.CSEMESTER = EC.OID')
@@ -83,7 +85,7 @@ class TimetableRepository
             ->setParameter('SEM', $semester)
             ->execute();
 
-        $disciplines = [];
+        $timetableUnmapped = [];
         while($timetableItem = $result->fetch()) {
             $discipline = new Discipline();
             $discipline->setId($timetableItem['DISCIPLINE_OID']);
@@ -101,6 +103,7 @@ class TimetableRepository
             $teacher->setPosition($timetableItem['TCH_POST']);
 
             $tti = new TimetableItem();
+            $tti->setLessonNumber($timetableItem['LESSON_NUM']);
             $tti->setBeginTime($timetableItem['TIME_START']);
             $tti->setEndTime($timetableItem['TIME_END']);
             $tti->setCampus($timetableItem['CAMPUS']);
@@ -111,29 +114,63 @@ class TimetableRepository
 
             $week = $timetableItem['WEEK'];
             $weekday = $timetableItem['WEEKDAY'];
-            $disciplines[$week][$weekday][] = $tti;
+            $timetableUnmapped[$week][$weekday][] = $tti;
         }
 
-        return $disciplines;
+        $timetable = new Timetable();
+        $timetable->setGroupId($group);
+        $timetable->setGroupName('group');
+
+        $timetableWeeks = [];
+        foreach ($timetableUnmapped as $timetableWeek) {
+            $week = new Week();
+            $week->setType('type');
+            $week->setCurrent(false);
+            $weekDays = [];
+            foreach ($timetableWeek as $timetableDay => $dayLessons) {
+                $day = $this->getDayById($timetableDay);
+
+                usort($dayLessons, static function (TimetableItem $f, TimetableItem $s) {
+                    return $f->getLessonNumber() > $s->getLessonNumber();
+                });
+
+                $day->setLessons($dayLessons);
+                $weekDays[] = $day;
+            }
+
+            usort($weekDays, static function (Day $f, Day $s) {
+                return $f->getNumber() > $s->getNumber();
+            });
+
+            $week->setDays($weekDays);
+            $timetableWeeks[] = $week;
+        }
+        $timetable->setWeeks($timetableWeeks);
+
+        return $timetable;
     }
 
-    public function getDays(): array
+    public function getDayById(string $dayId): Day
     {
         $queryBuilder = $this->entityManager->getConnection()->createQueryBuilder();
         $result = $queryBuilder->select('DW.OID, DW.NUM, DW.NAME')
             ->from('ET_DAYWEEK', 'DW')
-            ->execute();
+            ->where('DW.OID = :DWID')
+            ->setParameter('DWID', $dayId)
+            ->execute()
+            ->fetchAll();
 
-        $weekDays = [];
-        while($day = $result->fetch()) {
-            $weekDay = new Day();
-            $weekDay->setId($day['OID']);
-            $weekDay->setName($day['NAME']);
-            $weekDay->setNumber($day['NUM']);
-            $weekDays[] = $weekDay;
+        if(!count($result)) {
+            throw new \Exception('Day not found');
         }
 
-        return $weekDays;
+        $day = $result[0];
+        $weekDay = new Day();
+        $weekDay->setId($day['OID']);
+        $weekDay->setName($day['NAME']);
+        $weekDay->setNumber($day['NUM']);
+
+        return $weekDay;
     }
 
     public function getWeekByName(string $weekName)
@@ -183,8 +220,8 @@ class TimetableRepository
         $exams = [];
         while($examRow = $result->fetch()) {
             $exam = new Exam();
-            if($tname = $examRow['TCH_FIRSTNAME'] && $tsurname = $examRow['TCH_SURNAME']) {
-                $teacherAbbrName = $this->stringConverter->createAbbreviatedName($tname, $tsurname, $examRow['TCH_PATRONYMIC']);
+            if(($tName = $examRow['TCH_FIRSTNAME']) && ($tSurname = $examRow['TCH_SURNAME'])) {
+                $teacherAbbrName = $this->stringConverter->createAbbreviatedName($tName, $tSurname, $examRow['TCH_PATRONYMIC']);
             } else {
                 $teacherAbbrName = $examRow['UK_TEACHER'];
             }

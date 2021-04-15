@@ -2,8 +2,16 @@
 
 namespace App\Controller;
 
+use App\Document\User;
+use App\Model\Grouping\Day;
+use App\Model\Grouping\Week;
+use App\Model\Mapping\TimetableItem;
+use App\Model\Response\DiscussionChatList;
+use App\Model\Response\Timetable;
 use App\Repository\DisciplineRepository;
+use App\Repository\EducationRepository;
 use App\Repository\PersonalRepository;
+use App\Repository\TimetableRepository;
 use JMS\Serializer\SerializerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -60,17 +68,68 @@ class DisciplineController extends AbstractRestController
     /**
      * @Route("/timetable", name="discipline-timetable", methods={"GET"})
      */
-    public function disciplineTimetable(Request $request)
-    {
+    public function disciplineTimetable(
+        Request $request,
+        TimetableRepository $timetableRepository,
+        PersonalRepository $personalRepository
+    ) {
+        $discipline = $request->query->get('dis');
+        $education = $request->query->get('edu');
+        $semester = $request->query->get('sem');
 
+        $group = $personalRepository->getGroupByContingent($education);
+
+        $timetableForDiscipline = $timetableRepository->getTimetable($group, $semester, null, $discipline);
+
+        return $this->responseSuccessWithObject($timetableForDiscipline);
     }
 
     /**
      * @Route("/chat", name="discipline-chat", methods={"GET"})
      */
-    public function disciplineChatMessages(Request $request)
-    {
+    public function disciplineChatMessages(
+        Request $request,
+        EducationRepository $educationRepository,
+        PersonalRepository $personalRepository
+    ): JsonResponse {
+        $discipline = $request->query->get('dis');
+        $education = $request->query->get('edu');
+        $semester = $request->query->get('sem');
+        $offset = $request->query->get('of');
+        $count = $request->query->get('c');
 
+        /** @var User $user */
+        $user = $this->getUser();
+        $currentUserEduList = $educationRepository->getUserEducationsIdList($user->getDbOid());
+        if(!($education && in_array($education, array_values($currentUserEduList)))) {
+            throw new \Exception('Operation not allowed for this user');
+        }
+
+        try {
+            $group = $personalRepository->getGroupByContingent($education);
+
+            $disciplineChatMessages = $this->disciplineRepository->getDisciplineChatMessages($semester, $discipline, $group, $offset, $count);
+
+            $totalMessageCount = $this->disciplineRepository->getDisciplineChatMessagesCount($group, $semester, $discipline);
+            $remainsCount = $totalMessageCount - $offset - count($disciplineChatMessages);
+
+            $discussionChatList = new DiscussionChatList();
+            $discussionChatList->setEducation($education);
+            $discussionChatList->setDiscipline($discipline);
+            $discussionChatList->setSemester($semester);
+            $discussionChatList->setOffset($offset);
+            $discussionChatList->setRemains($remainsCount);
+
+            if($remainsCount > 0) {
+                $discussionChatList->setNextOffset($offset + count($disciplineChatMessages));
+            }
+
+            $discussionChatList->setMessages($disciplineChatMessages);
+            return $this->responseSuccessWithObject($discussionChatList);
+
+        } catch (\Exception $e) {
+            throw $e;
+        }
     }
 
     /**

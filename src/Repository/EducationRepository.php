@@ -112,4 +112,16 @@ class EducationRepository
         return $semesterList;
     }
 
+    public function getUserEducationsIdList(string $person): array {
+        $queryBuilder = $this->entityManager->getConnection()->createQueryBuilder();
+        $result = $queryBuilder
+            ->select('EC.OID AS ID')
+            ->from('NPERSONS', 'NP')
+            ->innerJoin('NP', 'ET_CONTINGENTS', 'EC', 'NP.OID = EC.C_OID')
+            ->where('NP.OID = :PERSON')
+            ->setParameter('PERSON', $person)
+            ->execute();
+        return $result->fetchAll(FetchMode::COLUMN);
+    }
+
 }

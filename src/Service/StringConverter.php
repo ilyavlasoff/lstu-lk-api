@@ -17,9 +17,10 @@ class StringConverter
         $post = '',
         $abbrPostNameLength = 0
     ) {
-        return $post && $abbrPostNameLength > 0 ? mb_substr($post, 0, $abbrPostNameLength) . '. ' : ''
-            . $lastName . ' '
-            . mb_substr($firstName, 0, 1) . '. '
-            . $patronymic ? mb_substr($patronymic, 0, 1) . '.' : '';
+        $postAbbr = $post && $abbrPostNameLength > 0 ? mb_substr($post, 0, $abbrPostNameLength) . '. ' : '';
+        $nameAbbr = mb_substr($firstName, 0, 1);
+        $patronymicAbbr = $patronymic ? mb_substr($patronymic, 0, 1) . '.' : '';
+
+        return "$postAbbr$lastName $nameAbbr.$patronymicAbbr";
     }
 }
