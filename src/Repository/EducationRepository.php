@@ -24,6 +24,30 @@ class EducationRepository
         $this->stringConverter = $stringConverter;
     }
 
+    public function isEducationExists(string $education): bool {
+        $edu = $this->entityManager->getConnection()->createQueryBuilder()
+            ->select('EC.OID')
+            ->from('ET_CONTINGENTS', 'EC')
+            ->where('EC.OID = :EDUCATION')
+            ->setParameter('EDUCATION', $education)
+            ->execute()
+            ->fetchAll(FetchMode::COLUMN);
+
+        return count($edu) === 1;
+    }
+
+    public function isSemesterExists(string $semester): bool {
+        $sem = $this->entityManager->getConnection()->createQueryBuilder()
+            ->select('ES.OID')
+            ->from('ET_CSEMESTERS', 'ES')
+            ->where('ES.OID = :SEMESTER')
+            ->setParameter('SEMESTER', $semester)
+            ->execute()
+            ->fetchAll(FetchMode::COLUMN);
+
+        return count($sem) === 1;
+    }
+
     public function getLstuEducationListByPerson(string $personOid): array
     {
         $queryBuilder = $this->entityManager->getConnection()->createQueryBuilder();

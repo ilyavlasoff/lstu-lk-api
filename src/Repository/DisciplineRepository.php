@@ -13,6 +13,7 @@ use App\Model\Mapping\TimetableItem;
 use App\Model\Mapping\WorkAnswer;
 use App\Model\Mapping\WorkAttachment;
 use App\Service\StringConverter;
+use Doctrine\DBAL\FetchMode;
 use Doctrine\ORM\EntityManagerInterface;
 
 class DisciplineRepository
@@ -24,6 +25,18 @@ class DisciplineRepository
     {
         $this->entityManager = $entityManager;
         $this->stringConverter = $stringConverter;
+    }
+
+    public function isDisciplineExists(string $discipline): bool {
+        $dis = $this->entityManager->getConnection()->createQueryBuilder()
+            ->select('EDIS.OID')
+            ->from('ET_DISCIPLINES', 'EDIS')
+            ->where('EDIS.OID = :DISCIPLINE')
+            ->setParameter('DISCIPLINE', $discipline)
+            ->execute()
+            ->fetchAll(FetchMode::COLUMN);
+
+        return count($dis) === 1;
     }
 
     public function getTeachersByDiscipline(string $discipline, string $group, string $semester): array

@@ -117,7 +117,7 @@ class AchievementRepository
             $publication->setTitle($publicationRow['TITLE']);
             $publication->setDescription($publicationRow['DESCRIPTION']);
             $publication->setPublished($publicationRow['PUBLISHED']);
-            $publication->setTitle($publicationRow['PBL_TYPE']);
+            $publication->setPubType($publicationRow['PBL_TYPE']);
             $publication->setPubForm($publicationRow['PBL_FORM']);
             $publication->setPubFormValue($publicationRow['PBL_FORM_VALUE']);
 

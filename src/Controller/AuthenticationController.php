@@ -2,17 +2,22 @@
 
 namespace App\Controller;
 
+use App\Exception\DataAccessException;
+use App\Exception\InvalidCredentialsException;
 use App\Exception\ValidationException;
-use App\Model\Response\AuthenticationDataObject;
+use App\Model\Response\AuthenticationData;
 use App\Model\Request\RegisterCredentials;
 use App\Model\Request\UserIdentifier;
 use App\Repository\AuthenticationRepository;
 use App\Repository\UserRepository;
 use Gesdinet\JWTRefreshTokenBundle\Service\RefreshToken;
 use Gesdinet\JWTRefreshTokenBundle\Model\RefreshTokenManagerInterface;
+use JMS\Serializer\Serializer;
 use JMS\Serializer\SerializerInterface;
 use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
+use mysql_xdevapi\Exception;
 use Nelmio\ApiDocBundle\Annotation\Model;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -26,8 +31,14 @@ use OpenApi\Annotations as OA;
  * @package App\Controller
  * @Route("/api/v1")
  */
-class AuthenticationController extends AbstractRestController
+class AuthenticationController extends AbstractController
 {
+    private $serializer;
+
+    public function __construct(SerializerInterface $serializer) {
+        $this->serializer = $serializer;
+    }
+
     /**
      * @Route("/identify", name="app_user_identify", methods={"POST"})
      *
@@ -40,9 +51,17 @@ class AuthenticationController extends AbstractRestController
      *          @OA\JsonContent(ref=@Model(type=UserIdentifier::class, groups={"Default"}))
      *     ),
      *     @OA\Response(
-     *          response="201",
+     *          response="200",
      *          description="Объект идентификации пользователя",
-     *          @OA\JsonContent(ref=@Model(type=AuthenticationDataObject::class, groups={"identified"}))
+     *          @OA\JsonContent(ref=@Model(type=AuthenticationData::class, groups={"identified"}))
+     *     ),
+     *     @OA\Response(
+     *          response="401",
+     *          description="Пользователь с заданными параметрами не найден"
+     *     ),
+     *     @OA\Response(
+     *          response="400",
+     *          description="Предоставленные данные невалидны"
      *     )
      * )
      *
@@ -53,6 +72,8 @@ class AuthenticationController extends AbstractRestController
      * @param UserRepository $userRepository
      * @param JWTTokenManagerInterface $tokenManager
      * @return \Symfony\Component\HttpFoundation\JsonResponse
+     * @throws \App\Exception\DataAccessException
+     * @throws \App\Exception\ValidationException
      */
     public function identify(
         Request $request,
@@ -62,24 +83,31 @@ class AuthenticationController extends AbstractRestController
         UserRepository $userRepository,
         JWTTokenManagerInterface $tokenManager
     ):JsonResponse {
-        try {
-            $userIdentifier = $serializer->deserialize($request->getContent(), UserIdentifier::class, 'json');
-            if (count($validationErrors = $validator->validate($userIdentifier)) > 0) {
-                throw new ValidationException($validationErrors, UserIdentifier::class);
-            }
+        $userIdentifier = $serializer->deserialize($request->getContent(), UserIdentifier::class, 'json');
+        if (count($validationErrors = $validator->validate($userIdentifier)) > 0) {
+            throw new ValidationException($validationErrors, 'UserIdentifier');
+        }
 
+        try {
             $oid = $authenticationRepository->identifyUser($userIdentifier);
             $user = $userRepository->persistIdentifiedUser($oid);
+        } catch (InvalidCredentialsException $e) {
+            throw $e;
         } catch (\Exception $e) {
-            return $this->responseWithError($e, Response::HTTP_UNAUTHORIZED);
+            throw new DataAccessException('User', $e);
         }
 
         $jwt = $tokenManager->create($user);
-        $authenticationData = new AuthenticationDataObject();
+        $authenticationData = new AuthenticationData();
         $authenticationData->setRoles($user->getRoles());
         $authenticationData->setJwtToken($jwt);
 
-        return $this->responseSuccessWithObject($authenticationData, Response::HTTP_CREATED);
+        return new JsonResponse(
+            $this->serializer->serialize($authenticationData, 'json'),
+            Response::HTTP_OK,
+            [],
+            true
+        );
     }
 
     /**
@@ -96,7 +124,7 @@ class AuthenticationController extends AbstractRestController
      *     @OA\Response(
      *          response="201",
      *          description="Объект идентификации пользователя",
-     *          @OA\JsonContent(ref=@Model(type=AuthenticationDataObject::class, groups={"fully-authorized"}))
+     *          @OA\JsonContent(ref=@Model(type=AuthenticationData::class, groups={"fully-authorized"}))
      *     )
      * )
      *
@@ -117,14 +145,18 @@ class AuthenticationController extends AbstractRestController
         //RefreshTokenManagerInterface $refreshTokenManager,
         ParameterBagInterface $parameterBag
     ): JsonResponse {
+        $registerCredentials = $serializer->deserialize($request->getContent(), RegisterCredentials::class, 'json');
+        if (count($credentialsValidationErrors = $validator->validate($registerCredentials))) {
+            throw new ValidationException($credentialsValidationErrors, 'RegisterCredentials');
+        }
+
+        /** @var \App\Document\User $user */
+        $user = $this->getUser();
+
         try {
-            $registerCredentials = $serializer->deserialize($request->getContent(), RegisterCredentials::class, 'json');
-            if (count($credentialsValidationErrors = $validator->validate($registerCredentials))) {
-                throw new ValidationException($credentialsValidationErrors, RegisterCredentials::class);
-            }
-            $user = $userRepository->persistRegistration($this->getUser(), $registerCredentials);
+            $user = $userRepository->persistRegistration($user, $registerCredentials);
         } catch (\Exception $e) {
-            return $this->responseWithError($e, Response::HTTP_UNAUTHORIZED);
+            throw new DataAccessException('User', $e);
         }
 
         $jwtToken = $tokenManager->create($user);
@@ -138,12 +170,17 @@ class AuthenticationController extends AbstractRestController
         $refreshToken->setValid($expiresTime);
         $refreshTokenManager->save($refreshToken);*/
 
-        $authenticationData = new AuthenticationDataObject();
+        $authenticationData = new AuthenticationData();
         //$authenticationData->setRefreshToken($refreshToken->getRefreshToken());
         $authenticationData->setJwtToken($jwtToken);
         $authenticationData->setRoles($user->getRoles());
 
-        return $this->responseSuccessWithObject($authenticationData, Response::HTTP_CREATED);
+        return new JsonResponse(
+            $this->serializer->serialize($authenticationData, 'json'),
+            Response::HTTP_CREATED,
+            [],
+            true
+        );
     }
 
     /**
@@ -160,7 +197,7 @@ class AuthenticationController extends AbstractRestController
      *     @OA\Response(
      *          response="200",
      *          description="Объект идентификации пользователя",
-     *          @OA\JsonContent(ref=@Model(type=AuthenticationDataObject::class, groups={"fully-authorized"}))
+     *          @OA\JsonContent(ref=@Model(type=AuthenticationData::class, groups={"fully-authorized"}))
      *     )
      * )
      */
@@ -169,14 +206,14 @@ class AuthenticationController extends AbstractRestController
         // Implemented in LexicJWT
     }
 
-    /*
+    /**
      * @Route("/token/refresh", name="app_jwt_refresh", methods={"POST"})
      * @param Request $request
-     * @param RefreshToken $refreshService
      * @return JsonResponse
      */
-    /*public function refreshJwt(Request $request, RefreshToken $refreshService): JsonResponse
+    public function refreshJwt(Request $request/*, RefreshToken $refreshService*/): JsonResponse
     {
-        return $refreshService->refresh($request);
-    }*/
+        return new JsonResponse();
+        //return $refreshService->refresh($request);
+    }
 }

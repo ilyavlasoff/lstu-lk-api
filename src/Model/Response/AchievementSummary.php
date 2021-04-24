@@ -4,6 +4,7 @@ namespace App\Model\Response;
 
 use App\Model\Mapping\Achievement;
 use App\Model\Mapping\Publication;
+use JMS\Serializer\Annotation as JMS;
 
 class AchievementSummary
 {

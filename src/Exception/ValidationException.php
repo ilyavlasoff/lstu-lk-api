@@ -2,32 +2,47 @@
 
 namespace App\Exception;
 
-use App\Model\Response\Exception\UserExceptionWarning;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Validator\ConstraintViolationListInterface;
 use Throwable;
 
-class ValidationException extends \Exception implements IUserException
+class ValidationException extends AbstractUserException
 {
-    private const errcode = 'ERR_VALIDATION';
-    private $validationErrors;
+    protected $httpCode = Response::HTTP_BAD_REQUEST;
 
-    public function __construct(ConstraintViolationListInterface $validationErrors, string $className, Throwable $previous = null, $code = 0)
-    {
+    /**
+     * @var array
+     * @JMS\Type("array<string>")
+     * @JMS\Expose()
+     * Array of validation errors
+     */
+    public $validationErrors;
+
+    /**
+     * @var string
+     * @JMS\Expose()
+     * @JMS\Type("string")
+     * Resource name
+     */
+    public $resource;
+
+    public function __construct(
+        ConstraintViolationListInterface $validationErrors,
+        string $resource,
+        Throwable $previous = null,
+        $code = 0
+    ) {
+        $this->resource = $resource;
         $this->validationErrors = [];
         foreach ($validationErrors as $violation) {
             $this->validationErrors[$violation->getPropertyPath()][] = $violation->getMessage();
         }
-        parent::__construct("Validation error occurred in $className", $code, $previous);
-    }
-
-    public function toUserExceptionWarning(): UserExceptionWarning
-    {
-        $warning = new UserExceptionWarning();
-        $warning->setCode(Response::HTTP_BAD_REQUEST);
-        $warning->setError(self::errcode);
-        $warning->setGenericMessage($this->getMessage());
-        $warning->setErrorMessages($this->validationErrors);
-        return $warning;
+        parent::__construct(
+            'ERR_VALIDATION',
+            "Validation errors occurred",
+            "Обнаружен ввод некорректных значений",
+            $code,
+            $previous
+        );
     }
 }

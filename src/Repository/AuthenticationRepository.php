@@ -3,7 +3,8 @@
 namespace App\Repository;
 
 use App\Exception\InheritedSystemException;
-use App\Exception\ValueNotFoundException;
+use App\Exception\InvalidCredentialsException;
+use App\Exception\ResourceNotFoundException;
 use App\Model\Request\UserIdentifier;
 use Doctrine\DBAL\DBALException;
 use Doctrine\DBAL\FetchMode;
@@ -13,32 +14,33 @@ class AuthenticationRepository extends AbstractRepository
     /**
      * @param UserIdentifier $identifier
      * @return mixed
-     * @throws InheritedSystemException
-     * @throws ValueNotFoundException
+     * @throws \App\Exception\InvalidCredentialsException
      */
     public function identifyUser(UserIdentifier $identifier)
     {
-        /*
-         * Выборка oid пользователя по предоставленным параметрам UNAME - ФИО, UCODE - номер зачетной книжки, UENTER - год поступления
-         */
-        $sql = "SELECT p.OID FROM NPERSONS p JOIN ET_CONTINGENTS c ON p.OID = c.C_OID JOIN M_CONTSTATES st ON c.ESTATE = st.OID " .
-            "JOIN M_GROUPS mg ON c.G = mg.OID JOIN ET_MAINSPECS esp ON mg.LEGACY_SPECIALITY = esp.OID JOIN M_QUALIFICATION mq ON esp.QUALIFICATION = mq.OID " .
-            "WHERE UPPER(mq.name) IN ('Б','С','М','Т') AND st.code IN (1,4) AND LOWER(p.name) = :UNAME AND c.CODE = :UCODE AND EXTRACT(YEAR FROM mg.CREATED) = :UENTER";
+        $queryBuilder = $this->getConnection()->createQueryBuilder();
+        $result = $queryBuilder
+            ->select('P.OID')
+            ->from('NPERSONS', 'P')
+            ->innerJoin('P', 'ET_CONTINGENTS', 'C', 'P.OID = C.C_OID')
+            ->innerJoin('C', 'M_CONTSTATES', 'ST', 'C.ESTATE = ST.OID')
+            ->innerJoin('C', 'M_GROUPS', 'MG', 'C.G = MG.OID')
+            ->innerJoin('MG', 'ET_MAINSPECS', 'ESP', 'MG.LEGACY_SPECIALITY = ESP.OID')
+            ->innerJoin('ESP', 'M_QUALIFICATION', 'MQ', 'ESP.QUALIFICATION = MQ.OID')
+            ->where("UPPER(mq.name) IN ('Б','С','М','Т')")
+            ->andWhere('ST.CODE IN (1, 4)')
+            ->andWhere('LOWER(P.NAME) = :UNAME')
+            ->andWhere('C.CODE = :UCODE')
+            ->andWhere('EXTRACT(YEAR FROM MG.CREATED) = :UENTER')
+            ->setParameter('UNAME', mb_strtolower($identifier->getUsername()))
+            ->setParameter('UCODE', $identifier->getZBookNumber())
+            ->setParameter('UENTER', $identifier->getEnteredYear())
+            ->execute();
 
-        try {
-            $query = $this->getConnection()->prepare($sql);
-            $query->bindValue('UNAME', mb_strtolower($identifier->getUsername()));
-            $query->bindValue('UCODE', $identifier->getZBookNumber());
-            $query->bindValue('UENTER', $identifier->getEnteredYear());
-            $query->execute();
-        } catch (DBALException $e) {
-            throw new InheritedSystemException($e, "Statement execute occurred in " . self::class);
-        }
-
-        $foundedUsers = $query->fetchAll(FetchMode::ASSOCIATIVE);
+        $foundedUsers = $result->fetchAll(FetchMode::ASSOCIATIVE);
 
         if (count($foundedUsers) !== 1) {
-            throw new ValueNotFoundException($identifier->getUsername());
+            throw new InvalidCredentialsException();
         }
         return $foundedUsers[0]['OID'];
     }

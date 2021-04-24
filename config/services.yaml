@@ -37,3 +37,9 @@ services:
 
     Gesdinet\JWTRefreshTokenBundle\Model\RefreshTokenManagerInterface:
         alias: "gesdinet.jwtrefreshtoken.refresh_token_manager"
+
+    App\Service\Validation\PersonValidationService:
+        public: true
+
+    App\Service\Validation\PaginationValidationService:
+        public: true

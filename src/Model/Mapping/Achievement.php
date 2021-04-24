@@ -12,7 +12,7 @@ class Achievement
     private $id;
 
     /**
-     * @var string
+     * @var string | null
      */
     private $name;
 

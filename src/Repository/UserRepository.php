@@ -6,7 +6,7 @@ use App\Document\User;
 use App\Exception\DuplicateValueException;
 use App\Exception\InheritedSystemException;
 use App\Exception\ValidationException;
-use App\Exception\ValueNotFoundException;
+use App\Exception\ResourceNotFoundException;
 use App\Model\Request\RegisterCredentials;
 use Doctrine\ODM\MongoDB\DocumentManager;
 use Doctrine\ODM\MongoDB\MongoDBException;
@@ -33,7 +33,6 @@ class UserRepository
     /**
      * @param string $oid
      * @return User
-     * @throws InheritedSystemException
      * @throws ValidationException
      */
     public function persistIdentifiedUser(string $oid): User
@@ -64,14 +63,14 @@ class UserRepository
      * @param RegisterCredentials $registerCredentials
      * @return User
      * @throws InheritedSystemException
-     * @throws ValueNotFoundException
+     * @throws ResourceNotFoundException
      */
     public function persistRegistration(
         User $currentUser,
         RegisterCredentials $registerCredentials
     ): User {
         if (!$currentUser || !in_array('ROLE_IDENTIFIED', $currentUser->getRoles(), true)) {
-            throw new ValueNotFoundException(User::class, 'User was not found');
+            throw new ResourceNotFoundException(User::class, 'User was not found');
         }
 
         $existingSameEmail = $this->documentManager->getRepository(User::class)

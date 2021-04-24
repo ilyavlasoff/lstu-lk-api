@@ -2,12 +2,17 @@
 
 namespace App\Controller;
 
+use App\Exception\DataAccessException;
+use App\Exception\ResourceNotFoundException;
 use App\Model\Response\EducationsList;
 use App\Model\Response\SemestersList;
 use App\Repository\EducationRepository;
 use App\Repository\PersonalRepository;
+use App\Service\Validation\EducationValidationService;
+use App\Service\Validation\PersonValidationService;
 use Nelmio\ApiDocBundle\Annotation\Model;
 use Nelmio\ApiDocBundle\Annotation\Security;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use JMS\Serializer\SerializationContext;
 use JMS\Serializer\SerializerInterface;
@@ -22,13 +27,14 @@ use OpenApi\Annotations as OA;
  * @package App\Controller
  * @Route("/api/v1/student/edu")
  */
-class EducationController extends AbstractRestController
+class EducationController extends AbstractController
 {
     private $educationRepository;
+    private $serializer;
 
     public function __construct(SerializerInterface $serializer, EducationRepository $educationRepository)
     {
-        parent::__construct($serializer);
+        $this->serializer = $serializer;
         $this->educationRepository = $educationRepository;
     }
 
@@ -41,7 +47,7 @@ class EducationController extends AbstractRestController
      *     @OA\Parameter(
      *          in="query",
      *          required=true,
-     *          name="person",
+     *          name="p",
      *          description="Идентификатор пользователя"
      *     ),
      *     @OA\Response(
@@ -53,19 +59,29 @@ class EducationController extends AbstractRestController
      * @param Request $request
      * @return JsonResponse
      */
-    public function educationList(Request $request): JsonResponse
-    {
-        $personId = $request->query->get('person');
-        if(!$personId) {
-            throw new \Exception('Incorrect query');
+    public function educationList(
+        Request $request,
+        PersonValidationService $personValidationService
+    ): JsonResponse {
+        $personId = $request->query->get('p');
+        $personValidationService->validate($personId, 'p');
+
+        try {
+            $educations = $this->educationRepository->getLstuEducationListByPerson($personId);
+        } catch (\Exception $e) {
+            throw new DataAccessException('Education');
         }
 
-        $educations = $this->educationRepository->getLstuEducationListByPerson($personId);
         $educationList = new EducationsList();
         $educationList->setPerson($personId);
         $educationList->setEducations($educations);
 
-        return $this->responseSuccessWithObject($educationList);
+        return new JsonResponse(
+            $this->serializer->serialize($educationList, 'json'),
+            Response::HTTP_OK,
+            [],
+            true
+        );
     }
 
     /**
@@ -91,12 +107,13 @@ class EducationController extends AbstractRestController
      * @return JsonResponse
      * @throws \Exception
      */
-    public function semesterList(Request $request, PersonalRepository $personalRepository)
-    {
+    public function semesterList(
+        Request $request,
+        PersonalRepository $personalRepository,
+        EducationValidationService $educationValidationService
+    ): JsonResponse {
         $education = $request->query->get('edu');
-        if(!$education) {
-            throw new \Exception("Incorrect query");
-        }
+        $educationValidationService->validate($education, 'edu');
 
         $groupId = $personalRepository->getGroupByContingent($education);
         $semesters = $this->educationRepository->getSemesterList($groupId);
@@ -106,7 +123,12 @@ class EducationController extends AbstractRestController
         $semesterList->setCurrent(false);
         $semesterList->setSemesters($semesters);
 
-        return $this->responseSuccessWithObject($semesterList);
+        return new JsonResponse(
+            $this->serializer->serialize($semesterList, 'json'),
+            Response::HTTP_OK,
+            [],
+            true
+        );
     }
 
     /**
@@ -131,16 +153,29 @@ class EducationController extends AbstractRestController
      *
      * @param Request $request
      */
-    public function currentSemester(Request $request, PersonalRepository $personalRepository)
-    {
+    public function currentSemester(
+        Request $request,
+        PersonalRepository $personalRepository,
+        EducationValidationService $educationValidationService
+    ): JsonResponse{
         $education = $request->query->get('edu');
-        if(!$education) {
-            throw new \Exception('Incorrect query');
+        $educationValidationService->validate($education, 'edu');
+
+        try {
+            $groupId = $personalRepository->getGroupByContingent($education);
+            $semester = $this->educationRepository->getCurrentSemester($groupId);
+        } catch (ResourceNotFoundException $e) {
+            throw $e;
+        } catch (\Exception $e) {
+            throw new DataAccessException('Semester', $e);
         }
 
-        $groupId = $personalRepository->getGroupByContingent($education);
-        $semester = $this->educationRepository->getCurrentSemester($groupId);
-        return $this->responseSuccessWithObject($semester);
+        return new JsonResponse(
+            $this->serializer->serialize($semester, 'json'),
+            Response::HTTP_OK,
+            [],
+            true
+        );
     }
 
 }

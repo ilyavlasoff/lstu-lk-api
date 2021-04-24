@@ -2,8 +2,10 @@
 
 namespace App\Repository;
 
+use App\Exception\ResourceNotFoundException;
 use App\Model\Mapping\Person;
 use App\Service\StringConverter;
+use Doctrine\DBAL\FetchMode;
 use Doctrine\ORM\EntityManagerInterface;
 
 class PersonalRepository
@@ -15,6 +17,18 @@ class PersonalRepository
     {
         $this->entityManager = $entityManager;
         $this->stringConverter = $stringConverter;
+    }
+
+    public function isPersonExists(string $personId): bool {
+        $prs = $this->entityManager->getConnection()->createQueryBuilder()
+            ->select('NP.OID')
+            ->from('NPERSONS', 'NP')
+            ->where('NP.OID = :PERSON')
+            ->setParameter('PERSON', $personId)
+            ->execute()
+            ->fetchAll(FetchMode::COLUMN);
+
+        return count($prs) === 1;
     }
 
     public function getPersonalProperties(string $nPersonId): Person
@@ -61,7 +75,7 @@ class PersonalRepository
 
         $groupsList = $result->fetchAll();
         if (count($groupsList) !== 1) {
-            throw new \Exception('Invalid response');
+            throw new ResourceNotFoundException('Group');
         }
 
         return $groupsList[0]['GRP'];
