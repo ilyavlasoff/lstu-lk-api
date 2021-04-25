@@ -2,6 +2,7 @@
 
 namespace App\Repository;
 
+use App\Model\Mapping\AcademicSubject;
 use App\Model\Mapping\Discipline;
 use App\Model\Mapping\DiscussionAttachment;
 use App\Model\Mapping\DiscussionExternalLink;
@@ -27,6 +28,11 @@ class DisciplineRepository
         $this->stringConverter = $stringConverter;
     }
 
+    /**
+     * @param string $discipline
+     * @return bool
+     * @throws \Doctrine\DBAL\Exception
+     */
     public function isDisciplineExists(string $discipline): bool {
         $dis = $this->entityManager->getConnection()->createQueryBuilder()
             ->select('EDIS.OID')
@@ -39,6 +45,13 @@ class DisciplineRepository
         return count($dis) === 1;
     }
 
+    /**
+     * @param string $discipline
+     * @param string $group
+     * @param string $semester
+     * @return array
+     * @throws \Doctrine\DBAL\Exception
+     */
     public function getTeachersByDiscipline(string $discipline, string $group, string $semester): array
     {
         $queryBuilder = $this->entityManager->getConnection()->createQueryBuilder();
@@ -86,6 +99,13 @@ class DisciplineRepository
         return $disciplineTeachers;
     }
 
+    /**
+     * @param string $group
+     * @param string $semester
+     * @param string $discipline
+     * @return int
+     * @throws \Doctrine\DBAL\Exception
+     */
     public function getDisciplineChatMessagesCount(string $group, string $semester, string $discipline): int
     {
         $queryBuilder = $this->entityManager->getConnection()->createQueryBuilder();
@@ -100,9 +120,19 @@ class DisciplineRepository
             ->setParameter('DISC', $discipline)
             ->execute()
             ->fetchAll();
+
         return $result[0]['COUNT'];
     }
 
+    /**
+     * @param string $semester
+     * @param string $discipline
+     * @param string $group
+     * @param int $offset
+     * @param int $limit
+     * @return array
+     * @throws \Doctrine\DBAL\Exception
+     */
     public function getDisciplineChatMessages(
         string $semester,
         string $discipline,
@@ -184,12 +214,21 @@ class DisciplineRepository
         return $discussionMessages;
     }
 
+    /**
+     * @param string $semester
+     * @param string $discipline
+     * @param string $group
+     * @param string $contingent
+     * @return array
+     * @throws \Doctrine\DBAL\Exception
+     */
     public function getStudentWorksList(
         string $semester,
         string $discipline,
         string $group,
         string $contingent
-    ) {
+    ): array
+    {
         $queryBuilder = $this->entityManager->getConnection()->createQueryBuilder();
         $queryBuilder
             ->select("
@@ -323,5 +362,43 @@ class DisciplineRepository
         }
 
         return $works;
+    }
+
+    /**
+     * @param string $groupId
+     * @param string $semesterId
+     * @return array
+     * @throws \Doctrine\DBAL\Exception
+     */
+    public function getDisciplinesBySemester(string $groupId, string $semesterId): array
+    {
+        $queryBuilder = $this->entityManager->getConnection()->createQueryBuilder();
+        $result = $queryBuilder->select('EDIS.OID as DISCIPLINE_ID, EDIS.NAME AS DISCIPLINE_NAME, ECH.VALUE AS CHAIR_NAME')
+            ->from('ET_RCONTINGENTS', 'ER')
+            ->innerJoin('ER', 'ET_GROUPS', 'EG', 'ER.G = EG.OID')
+            ->innerJoin('ER', 'ET_CSEMESTERS', 'ECSEM', 'ER.CSEMESTER = ECSEM.OID')
+            ->innerJoin('ER', 'ET_CURRICULUMS', 'EC', 'ER.PLAN = EC.OID')
+            ->innerJoin('EC', 'ET_DSPLANS', 'ED', $queryBuilder->expr()->andX('EC.OID = ED.EPLAN', 'ED.SEMESTER = ER.SEMESTER'))
+            ->innerJoin('ED', 'ET_DISCIPLINES', 'EDIS', 'ED.DISCIPLINE = EDIS.OID')
+            ->leftJoin('ED', 'ET_CHAIRS', 'ECH', 'ED.CHAIR = ECH.OID')
+            ->where('EG.OID = :GROUPID')
+            ->andWhere('ECSEM.OID = :SEMESTERID')
+            ->setParameter('GROUPID', $groupId)
+            ->setParameter('SEMESTERID', $semesterId)
+            ->execute();
+
+        $subjectList = [];
+        while($subject = $result->fetch())
+        {
+            $subjectItem = new AcademicSubject();
+            $subjectItem->setSubjectName($subject['DISCIPLINE_NAME'] ?
+                $this->stringConverter->capitalize($subject['DISCIPLINE_NAME']) : null);
+            $subjectItem->setChairName($subject['CHAIR_NAME'] ?
+                $this->stringConverter->capitalize($subject['CHAIR_NAME']) : null);
+            $subjectItem->setSubjectId($subject['DISCIPLINE_ID']);
+            $subjectList[] = $subjectItem;
+        }
+
+        return $subjectList;
     }
 }

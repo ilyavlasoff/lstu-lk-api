@@ -50,7 +50,7 @@ RUN mkdir -p /usr/src/php/ext && \
 
 RUN docker-php-ext-install mysql_xdevapi
 
-RUN apt-get install -y \
+RUN apt-get update -y && apt-get upgrade -y && apt-get install -y \
     curl \
     wget \
     git \

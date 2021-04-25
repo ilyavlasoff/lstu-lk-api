@@ -4,16 +4,18 @@ namespace App\Controller;
 
 use App\Document\User;
 use App\Exception\DataAccessException;
-use App\Exception\InvalidUserException;
+use App\Exception\SystemException;
 use App\Exception\ValidationException;
-use App\Exception\ResourceNotFoundException;
 use App\Model\Mapping\Person;
+use App\Model\Request\PersonProperties;
+use App\Model\Request\UserPic;
+use App\Model\Response\ProfilePicture;
 use App\Repository\PersonalRepository;
-use App\Service\Validation\PersonValidationService;
+use App\Service\ImageConverter;
+use Doctrine\DBAL\Exception;
 use JMS\Serializer\SerializerInterface;
 use Nelmio\ApiDocBundle\Annotation\Model;
 use Nelmio\ApiDocBundle\Annotation\Security;
-use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
@@ -26,13 +28,12 @@ use Symfony\Component\Validator\Validator\ValidatorInterface;
  * @package App\Controller
  * @Route("/api/v1/person")
  */
-class PersonalController extends AbstractController
+class PersonalController extends AbstractRestController
 {
-    private $serializer;
     private $personalRepository;
 
     public function __construct(SerializerInterface $serializer, PersonalRepository $personalRepository){
-        $this->serializer = $serializer;
+        parent::__construct($serializer);
         $this->personalRepository = $personalRepository;
     }
 
@@ -76,111 +77,91 @@ class PersonalController extends AbstractController
      *     )
      * )
      *
-     * @param \Symfony\Component\HttpFoundation\Request $request
-     * @param \App\Service\Validation\PersonValidationService $personValidationService
+     * @param \App\Model\Request\Person $person
      * @return JsonResponse
      * @throws \App\Exception\DataAccessException
-     * @throws \App\Exception\ParameterExistenceException
-     * @throws \App\Exception\ResourceNotFoundException
      */
-    public function personProperties(
-        Request $request,
-        PersonValidationService $personValidationService
-    ): JsonResponse {
-        $personId = $request->query->get('p');
-        $personValidationService->validate($personId, 'p');
-
+    public function personProperties(\App\Model\Request\Person $person): JsonResponse
+    {
         try {
-            $personalProps = $this->personalRepository->getPersonalProperties($personId);
-        } catch (\Exception $e) {
-            throw new DataAccessException('Person', $e);
+            $personalProps = $this->personalRepository->getPersonalProperties($person->getPersonId());
+        } catch (Exception $e) {
+            throw new DataAccessException($e);
         }
 
-        return new JsonResponse(
-            $this->serializer->serialize($personalProps, 'json'),
-            Response::HTTP_OK,
-            [],
-            true
-        );
+        return $this->responseSuccessWithObject($personalProps);
     }
 
     /**
      * @Route("/props", name="edit_person_properties", methods={"POST"})
      *
-     * @throws \App\Exception\ValidationException
-     * @throws \App\Exception\DataAccessException
-     * @throws \App\Exception\InvalidUserException
+     * @param \App\Model\Request\PersonProperties $personProperties
+     * @return \Symfony\Component\HttpFoundation\JsonResponse
      */
-    public function personPropertiesEdit(
-        Request $request,
-        SerializerInterface $serializer,
-        ValidatorInterface $validator
-    ): JsonResponse {
-        /** @var User $currentUser */
-        $currentUser = $this->getUser();
-        if(!$currentUser || !$currentUser instanceof User) {
-            throw new InvalidUserException();
-        }
-
-        /** @var Person $editedPerson */
-        $editedPerson = $serializer->deserialize($request->getContent(), Person::class, 'json');
+    public function personPropertiesEdit(PersonProperties $personProperties): JsonResponse
+    {
+        /** @var User $user */
+        $user = $this->getUser();
 
         try {
-            $personalProps = $this->personalRepository->getPersonalProperties($currentUser->getDbOid());
-        } catch (\Exception $e) {
-            throw new DataAccessException('Person');
+            $this->personalRepository->updatePerson($personProperties, $user->getDbOid());
+        } catch (Exception $e) {
+            throw new DataAccessException();
         }
 
-        $mergedPerson = $personalProps->mergeChanges($editedPerson);
-        if(count($validationErrors = $validator->validate($mergedPerson))) {
-            throw new ValidationException($validationErrors, 'Person');
-        }
-
-        $this->personalRepository->updatePerson($mergedPerson);
-        return new JsonResponse(json_encode(['success' => true]), Response::HTTP_OK ,[], true);
+        return $this->responseSuccess();
     }
 
     /**
      * @Route("/whoami", name="get_current_person", methods={"GET"})
      *
-     * @return JsonResponse
-     * @throws \Exception
+     * @return \Symfony\Component\HttpFoundation\JsonResponse
      */
     public function currentPersonId(): JsonResponse
     {
         /** @var User $currentUser */
         $currentUser = $this->getUser();
-        if(!$currentUser) {
-            throw new InvalidUserException();
-        }
 
         $person = new Person();
         $person->setUoid($currentUser->getDbOid());
 
-        return new JsonResponse(
-            $this->serializer->serialize($person, 'json'),
-            Response::HTTP_OK,
-            [],
-            true
-        );
+        return $this->responseSuccessWithObject($person);
     }
 
     /**
-     * @Route("/userpic/{size}", name="get_adapted_userpic")
-     * @return JsonResponse
+     * @Route("/userpic", name="get_adapted_userpic")
+     *
+     * @param \App\Model\Request\UserPic $userPicRequest
+     * @param \App\Service\ImageConverter $imageConverter
+     * @param \App\Repository\PersonalRepository $personalRepository
+     * @return \Symfony\Component\HttpFoundation\JsonResponse
+     * @throws \App\Exception\SystemException
      */
-    public function userpic(string $size, Request $request): JsonResponse
+    public function getProfilePicture(UserPic $userPicRequest, ImageConverter $imageConverter, PersonalRepository $personalRepository): JsonResponse
     {
-        if(!in_array($size, ['sm', 'md', 'lg'])) {
-            throw new \Exception('Incorrect argument');
+        $image = $personalRepository->getProfileImage($userPicRequest->getPersonId());
+
+        $imagick = new \Imagick();
+
+        try {
+            if($image) {
+                $imagick->readImageBlob($image);
+            } else {
+                $imagick->readImage('default_userpic.png');
+            }
+
+            $imageConverter->convert($imagick, $userPicRequest->getImageSize());
+
+            $convertedImageBlob = $imagick->getImagesBlob();
+        } catch (\ImagickException $e) {
+            throw new SystemException($e);
         }
 
-        $personId = $request->query->get('usr');
-        if(!$personId) {
-            throw new InvalidUserException();
-        }
+        $profilePicture = new ProfilePicture();
+        $profilePicture->setPerson($userPicRequest->getPersonId());
+        $profilePicture->setProfilePicture(base64_encode($convertedImageBlob));
 
-
+        return $this->responseSuccessWithObject($profilePicture);
     }
 
 }

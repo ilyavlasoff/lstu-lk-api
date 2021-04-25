@@ -30,7 +30,8 @@
         "symfony/yaml": "5.2.*",
         "twig/extra-bundle": "^2.12|^3.0",
         "twig/twig": "^2.12|^3.0",
-        "zircote/swagger-php": "^3.1"
+        "zircote/swagger-php": "^3.1",
+      "ext-imagick": "*"
     },
     "config": {
         "optimize-autoloader": true,

@@ -2,11 +2,13 @@
 
 namespace App\Repository;
 
-use App\Exception\ResourceNotFoundException;
+use App\Exception\NotFoundException;
 use App\Model\Mapping\Person;
+use App\Model\Request\PersonProperties;
 use App\Service\StringConverter;
 use Doctrine\DBAL\FetchMode;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class PersonalRepository
 {
@@ -19,6 +21,11 @@ class PersonalRepository
         $this->stringConverter = $stringConverter;
     }
 
+    /**
+     * @param string $personId
+     * @return bool
+     * @throws \Doctrine\DBAL\Exception
+     */
     public function isPersonExists(string $personId): bool {
         $prs = $this->entityManager->getConnection()->createQueryBuilder()
             ->select('NP.OID')
@@ -31,6 +38,11 @@ class PersonalRepository
         return count($prs) === 1;
     }
 
+    /**
+     * @param string $nPersonId
+     * @return \App\Model\Mapping\Person
+     * @throws \Doctrine\DBAL\Exception
+     */
     public function getPersonalProperties(string $nPersonId): Person
     {
         $queryBuilder = $this->entityManager->getConnection()->createQueryBuilder();
@@ -45,7 +57,7 @@ class PersonalRepository
 
         $personalPropertiesDataList = $result->fetchAll();
         if (count($personalPropertiesDataList) !== 1) {
-            throw new \Exception('Person not found');
+            throw new NotFoundException('Person');
         }
 
         $personDataArray = $personalPropertiesDataList[0];
@@ -64,6 +76,11 @@ class PersonalRepository
         return $personalProps;
     }
 
+    /**
+     * @param string $contingentId
+     * @return string
+     * @throws \Doctrine\DBAL\Exception
+     */
     public function getGroupByContingent(string $contingentId): string
     {
         $result = $this->entityManager->getConnection()->createQueryBuilder()
@@ -75,13 +92,18 @@ class PersonalRepository
 
         $groupsList = $result->fetchAll();
         if (count($groupsList) !== 1) {
-            throw new ResourceNotFoundException('Group');
+            throw new NotFoundException('Group');
         }
 
         return $groupsList[0]['GRP'];
     }
 
-    public function updatePerson(Person $newPerson) {
+    /**
+     * @param \App\Model\Request\PersonProperties $newPerson
+     * @param string $userOid
+     * @throws \Doctrine\DBAL\Exception
+     */
+    public function updatePerson(PersonProperties $newPerson, string $userOid) {
         $queryBuilder = $this->entityManager->getConnection()->createQueryBuilder();
         $queryBuilder
             ->update('NPERSONS', 'NP')
@@ -92,7 +114,13 @@ class PersonalRepository
             ->setParameter('PH', $newPerson->getPhone())
             ->setParameter('EMAIL', $newPerson->getEmail())
             ->setParameter('MSN', $newPerson->getMessenger())
-            ->setParameter('PERSONID', $newPerson->getUoid());
+            ->setParameter('PERSONID', $userOid);
+
         $queryBuilder->execute();
+    }
+
+    public function getProfileImage(string $personId) {
+        // TODO: implement
+        return "";
     }
 }

@@ -3,16 +3,16 @@
 namespace App\Controller;
 
 use App\Exception\DataAccessException;
-use App\Exception\ResourceNotFoundException;
 use App\Model\Grouping\Day;
 use App\Model\Grouping\Week;
 use App\Model\Mapping\TimetableItem;
+use App\Model\Request\Education;
+use App\Model\Request\Semester;
 use App\Model\Response\ExamsTimetable;
 use App\Model\Response\Timetable;
 use App\Repository\PersonalRepository;
 use App\Repository\TimetableRepository;
-use App\Service\Validation\EducationValidationService;
-use App\Service\Validation\SemesterValidationService;
+use Doctrine\DBAL\Exception;
 use JMS\Serializer\SerializerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -27,14 +27,13 @@ use Nelmio\ApiDocBundle\Annotation\Security;
  * @package App\Controller
  * @Route("/api/v1/student/timetable")
  */
-class TimetableController extends AbstractController
+class TimetableController extends AbstractRestController
 {
-    private $serializer;
     private $timetableRepository;
 
     public function __construct(SerializerInterface $serializer, TimetableRepository $timetableRepository)
     {
-        $this->serializer = $serializer;
+        parent::__construct($serializer);
         $this->timetableRepository = $timetableRepository;
     }
 
@@ -42,86 +41,55 @@ class TimetableController extends AbstractController
      * @Route("/", name="lesson_timetable", methods={"GET"})
      */
     public function lessonTimetable(
-        Request $request,
-        PersonalRepository $personalRepository,
-        EducationValidationService $educationValidationService,
-        SemesterValidationService $semesterValidationService
-    ): JsonResponse {
-        $week = $request->query->get('week');
-
-        $education = $request->query->get('edu');
-        $educationValidationService->validate($education, 'edu');
-
-        $semester = $request->query->get('sem');
-        $semesterValidationService->validate($semester, 'sem');
-
-        $timetableWeekTranslate = [
-            'green' => 'Зеленая',
-            'white' => 'Белая',
-        ];
-
+        \App\Model\Request\Week $week,
+        Education $education,
+        Semester $semester,
+        PersonalRepository $personalRepository
+    ): JsonResponse
+    {
         try {
-            $groupId = $personalRepository->getGroupByContingent($education);
+            $groupId = $personalRepository->getGroupByContingent($education->getEducationId());
 
             if($week) {
-                $weekCode = $this->timetableRepository->getWeekByName($timetableWeekTranslate[$week]);
-                $timetable = $this->timetableRepository->getTimetable($groupId, $semester, $weekCode);
+                $weekCode = $this->timetableRepository->getWeekByName($week->getWeekName());
+                $timetable = $this->timetableRepository->getTimetable($groupId, $semester->getSemesterId(), $weekCode);
             } else {
-                $timetable = $this->timetableRepository->getTimetable($groupId, $semester);
+                $timetable = $this->timetableRepository->getTimetable($groupId, $semester->getSemesterId());
             }
 
-        } catch (ResourceNotFoundException $e) {
-            throw $e;
-        } catch (\Exception $e) {
-            throw new DataAccessException('Group');
+        } catch (Exception $e) {
+            throw new DataAccessException();
         }
 
-        return new JsonResponse(
-            $this->serializer->serialize($timetable, 'json'),
-            Response::HTTP_OK,
-            [],
-            true
-        );
+        return $this->responseSuccessWithObject($timetable);
     }
 
     /**
      * @Route("/exams", name="exams_timetable", methods={"GET"})
      *
-     * @param Request $request
+     * @param \App\Model\Request\Education $education
+     * @param \App\Model\Request\Semester $semester
      * @param PersonalRepository $personalRepository
      * @return JsonResponse
-     * @throws \Exception
+     * @throws \App\Exception\DataAccessException
      */
     public function examsTimetable(
-        Request $request,
-        PersonalRepository $personalRepository,
-        EducationValidationService $educationValidationService,
-        SemesterValidationService $semesterValidationService
+        Education $education,
+        Semester $semester,
+        PersonalRepository $personalRepository
     ): JsonResponse {
-        $education = $request->query->get('edu');
-        $educationValidationService->validate($education, 'edu');
-
-        $semester = $request->query->get('sem');
-        $semesterValidationService->validate($semester, 'sem');
-
         try {
-            $groupId = $personalRepository->getGroupByContingent($education);
-            $exams = $this->timetableRepository->getExamsTimetable($groupId, $semester);
-
-        } catch (\Exception $e) {
-            throw new DataAccessException('Exams');
+            $groupId = $personalRepository->getGroupByContingent($education->getEducationId());
+            $exams = $this->timetableRepository->getExamsTimetable($groupId, $semester->getSemesterId());
+        } catch (Exception $e) {
+            throw new DataAccessException($e);
         }
 
         $examsTimetable = new ExamsTimetable();
-        $examsTimetable->setEdu($education);
-        $examsTimetable->setSem($semester);
+        $examsTimetable->setEdu($education->getEducationId());
+        $examsTimetable->setSem($semester->getSemesterId());
         $examsTimetable->setExams($exams);
 
-        return new JsonResponse(
-            $this->serializer->serialize($examsTimetable, 'json'),
-            Response::HTTP_OK,
-            [],
-            true
-        );
+        return $this->responseSuccessWithObject($examsTimetable);
     }
 }

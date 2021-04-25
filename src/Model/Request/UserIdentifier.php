@@ -10,19 +10,23 @@ class UserIdentifier
 {
     /**
      * @JMS\Type("string")
-     * @Assert\NotBlank(message="Username field is blank")
+     * @Assert\NotBlank(message="Username field can not be blank")
+     * @Assert\NotNull(message="Username value was not found")
      */
     private $username;
 
     /**
      * @JMS\Type("string")
-     * @Assert\NotBlank()
+     * @Assert\NotNull(message="Document value was not found")
+     * @Assert\NotBlank(message="Document field can not be blank")
      * @Assert\Regex(pattern="/^\d+$/", message="Document number can only contain digits")
      */
     private $zBookNumber;
 
     /**
      * @JMS\Type("int")
+     * @Assert\NotNull(message="Enter year field was not found")
+     * @Assert\NotBlank(message="Enter year field can not be blank")
      */
     private $enteredYear;
 

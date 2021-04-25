@@ -33,14 +33,15 @@ class UserRepository
     /**
      * @param string $oid
      * @return User
-     * @throws ValidationException
+     * @throws \App\Exception\DuplicateValueException
+     * @throws \Doctrine\ODM\MongoDB\MongoDBException
      */
     public function persistIdentifiedUser(string $oid): User
     {
         // При получении дублирующегося OID валидация не проходит по unique entity dbOid
         $existingSameOid = $this->documentManager->getRepository(User::class)->findOneBy(['dbOid' => $oid]);
         if($existingSameOid) {
-            throw new DuplicateValueException(['oid'], 'This user has already registered');
+            throw new DuplicateValueException("Person");
         }
 
         $user = new User();
@@ -50,11 +51,7 @@ class UserRepository
         $user->setPassword($this->passwordEncoder->encodePassword($user, uniqid('password', true)));
         $this->documentManager->persist($user);
 
-        try {
-            $this->documentManager->flush();
-        } catch (MongoDBException $e) {
-            throw new InheritedSystemException($e, "Unable to persist identified user");
-        }
+        $this->documentManager->flush();
         return $user;
     }
 
@@ -62,32 +59,25 @@ class UserRepository
      * @param User $currentUser
      * @param RegisterCredentials $registerCredentials
      * @return User
-     * @throws InheritedSystemException
-     * @throws ResourceNotFoundException
+     * @throws \Doctrine\ODM\MongoDB\MongoDBException
+     * @throws \App\Exception\DuplicateValueException
      */
     public function persistRegistration(
         User $currentUser,
         RegisterCredentials $registerCredentials
     ): User {
-        if (!$currentUser || !in_array('ROLE_IDENTIFIED', $currentUser->getRoles(), true)) {
-            throw new ResourceNotFoundException(User::class, 'User was not found');
-        }
 
         $existingSameEmail = $this->documentManager->getRepository(User::class)
             ->findOneBy(['email' => $registerCredentials->getUsername()]);
         if($existingSameEmail) {
-            throw new DuplicateValueException(['email'], 'This email has already used');
+            throw new DuplicateValueException('User');
         }
 
         $currentUser->setEmail($registerCredentials->getUsername());
         $currentUser->setPassword($this->passwordEncoder->encodePassword($currentUser, $registerCredentials->getPassword()));
         $currentUser->setRoles(['ROLE_STUDENT']);
 
-        try {
-            $this->documentManager->flush();
-        } catch (MongoDBException $e) {
-            throw new InheritedSystemException($e, "Unable to persist identified user");
-        }
+        $this->documentManager->flush();
 
         return $currentUser;
     }

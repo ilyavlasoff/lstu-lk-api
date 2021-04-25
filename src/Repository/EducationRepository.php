@@ -2,6 +2,7 @@
 
 namespace App\Repository;
 
+use App\Exception\NotFoundException;
 use App\Model\Grouping\Day;
 use App\Model\Mapping\Discipline;
 use App\Model\Mapping\Education;
@@ -24,6 +25,11 @@ class EducationRepository
         $this->stringConverter = $stringConverter;
     }
 
+    /**
+     * @param string $education
+     * @return bool
+     * @throws \Doctrine\DBAL\Exception
+     */
     public function isEducationExists(string $education): bool {
         $edu = $this->entityManager->getConnection()->createQueryBuilder()
             ->select('EC.OID')
@@ -36,6 +42,11 @@ class EducationRepository
         return count($edu) === 1;
     }
 
+    /**
+     * @param string $semester
+     * @return bool
+     * @throws \Doctrine\DBAL\Exception
+     */
     public function isSemesterExists(string $semester): bool {
         $sem = $this->entityManager->getConnection()->createQueryBuilder()
             ->select('ES.OID')
@@ -48,6 +59,11 @@ class EducationRepository
         return count($sem) === 1;
     }
 
+    /**
+     * @param string $personOid
+     * @return array
+     * @throws \Doctrine\DBAL\Exception
+     */
     public function getLstuEducationListByPerson(string $personOid): array
     {
         $queryBuilder = $this->entityManager->getConnection()->createQueryBuilder();
@@ -82,7 +98,12 @@ class EducationRepository
         return $educationList;
     }
 
-    public function getCurrentSemester(string $groupId)
+    /**
+     * @param string $groupId
+     * @return \App\Model\Mapping\Semester
+     * @throws \Doctrine\DBAL\Exception
+     */
+    public function getCurrentSemester(string $groupId): Semester
     {
         $queryBuilder = $this->entityManager->getConnection()->createQueryBuilder();
         $result = $queryBuilder
@@ -99,7 +120,7 @@ class EducationRepository
 
         $semesters = $result->fetchAll();
         if(count($semesters) !== 1) {
-            throw new \Exception('Semester not found');
+            throw new NotFoundException('Semester');
         }
 
         $currentSemester = new Semester();
@@ -108,6 +129,11 @@ class EducationRepository
         return $currentSemester;
     }
 
+    /**
+     * @param string $groupId
+     * @return array
+     * @throws \Doctrine\DBAL\Exception
+     */
     public function getSemesterList(string $groupId): array
     {
         $queryBuilder = $this->entityManager->getConnection()->createQueryBuilder();
@@ -136,6 +162,11 @@ class EducationRepository
         return $semesterList;
     }
 
+    /**
+     * @param string $person
+     * @return array
+     * @throws \Doctrine\DBAL\Exception
+     */
     public function getUserEducationsIdList(string $person): array {
         $queryBuilder = $this->entityManager->getConnection()->createQueryBuilder();
         $result = $queryBuilder
@@ -145,6 +176,7 @@ class EducationRepository
             ->where('NP.OID = :PERSON')
             ->setParameter('PERSON', $person)
             ->execute();
+
         return $result->fetchAll(FetchMode::COLUMN);
     }
 

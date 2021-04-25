@@ -3,21 +3,17 @@
 namespace App\Controller;
 
 use App\Exception\DataAccessException;
-use App\Exception\ResourceNotFoundException;
+use App\Model\Mapping\Semester;
+use App\Model\Request\Person;
 use App\Model\Response\EducationsList;
 use App\Model\Response\SemestersList;
 use App\Repository\EducationRepository;
 use App\Repository\PersonalRepository;
-use App\Service\Validation\EducationValidationService;
-use App\Service\Validation\PersonValidationService;
+use Doctrine\DBAL\Exception;
 use Nelmio\ApiDocBundle\Annotation\Model;
 use Nelmio\ApiDocBundle\Annotation\Security;
-use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\Request;
-use JMS\Serializer\SerializationContext;
 use JMS\Serializer\SerializerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use App\Model\Mapping\Education;
 use OpenApi\Annotations as OA;
@@ -27,14 +23,13 @@ use OpenApi\Annotations as OA;
  * @package App\Controller
  * @Route("/api/v1/student/edu")
  */
-class EducationController extends AbstractController
+class EducationController extends AbstractRestController
 {
     private $educationRepository;
-    private $serializer;
 
     public function __construct(SerializerInterface $serializer, EducationRepository $educationRepository)
     {
-        $this->serializer = $serializer;
+        parent::__construct($serializer);
         $this->educationRepository = $educationRepository;
     }
 
@@ -56,32 +51,23 @@ class EducationController extends AbstractController
      *          @OA\JsonContent(type="array", @OA\Items(ref=@Model(type=Education::class, groups={"Default"})))
      *     )
      * )
-     * @param Request $request
+     * @param \App\Model\Request\Person $person
      * @return JsonResponse
+     * @throws \App\Exception\DataAccessException
      */
-    public function educationList(
-        Request $request,
-        PersonValidationService $personValidationService
-    ): JsonResponse {
-        $personId = $request->query->get('p');
-        $personValidationService->validate($personId, 'p');
-
+    public function educationList(Person $person): JsonResponse
+    {
         try {
-            $educations = $this->educationRepository->getLstuEducationListByPerson($personId);
-        } catch (\Exception $e) {
-            throw new DataAccessException('Education');
+            $educations = $this->educationRepository->getLstuEducationListByPerson($person->getPersonId());
+        } catch (Exception $e) {
+            throw new DataAccessException($e);
         }
 
         $educationList = new EducationsList();
-        $educationList->setPerson($personId);
+        $educationList->setPerson($person->getPersonId());
         $educationList->setEducations($educations);
 
-        return new JsonResponse(
-            $this->serializer->serialize($educationList, 'json'),
-            Response::HTTP_OK,
-            [],
-            true
-        );
+        return $this->responseSuccessWithObject($educationList);
     }
 
     /**
@@ -102,33 +88,25 @@ class EducationController extends AbstractController
      *          @OA\JsonContent(type="array", @OA\Items(ref=@Model(type=Semester::class, groups={"Default"})))
      *     )
      * )
-     * @param Request $request
+     * @param \App\Model\Request\Education $education
      * @param PersonalRepository $personalRepository
      * @return JsonResponse
-     * @throws \Exception
      */
-    public function semesterList(
-        Request $request,
-        PersonalRepository $personalRepository,
-        EducationValidationService $educationValidationService
-    ): JsonResponse {
-        $education = $request->query->get('edu');
-        $educationValidationService->validate($education, 'edu');
-
-        $groupId = $personalRepository->getGroupByContingent($education);
-        $semesters = $this->educationRepository->getSemesterList($groupId);
+    public function semesterList(\App\Model\Request\Education $education, PersonalRepository $personalRepository): JsonResponse
+    {
+        try {
+            $groupId = $personalRepository->getGroupByContingent($education->getEducationId());
+            $semesters = $this->educationRepository->getSemesterList($groupId);
+        } catch (Exception $e) {
+            throw new DataAccessException($e);
+        }
 
         $semesterList = new SemestersList();
-        $semesterList->setEducation($education);
+        $semesterList->setEducation($education->getEducationId());
         $semesterList->setCurrent(false);
         $semesterList->setSemesters($semesters);
 
-        return new JsonResponse(
-            $this->serializer->serialize($semesterList, 'json'),
-            Response::HTTP_OK,
-            [],
-            true
-        );
+        return $this->responseSuccessWithObject($semesterList);
     }
 
     /**
@@ -151,31 +129,21 @@ class EducationController extends AbstractController
      *     )
      * )
      *
-     * @param Request $request
+     * @param \App\Model\Request\Education $education
+     * @param \App\Repository\PersonalRepository $personalRepository
+     * @return \Symfony\Component\HttpFoundation\JsonResponse
+     * @throws \App\Exception\DataAccessException
      */
-    public function currentSemester(
-        Request $request,
-        PersonalRepository $personalRepository,
-        EducationValidationService $educationValidationService
-    ): JsonResponse{
-        $education = $request->query->get('edu');
-        $educationValidationService->validate($education, 'edu');
-
+    public function currentSemester(\App\Model\Request\Education $education, PersonalRepository $personalRepository): JsonResponse
+    {
         try {
-            $groupId = $personalRepository->getGroupByContingent($education);
+            $groupId = $personalRepository->getGroupByContingent($education->getEducationId());
             $semester = $this->educationRepository->getCurrentSemester($groupId);
-        } catch (ResourceNotFoundException $e) {
-            throw $e;
-        } catch (\Exception $e) {
-            throw new DataAccessException('Semester', $e);
+        } catch (Exception $e) {
+            throw new DataAccessException($e);
         }
 
-        return new JsonResponse(
-            $this->serializer->serialize($semester, 'json'),
-            Response::HTTP_OK,
-            [],
-            true
-        );
+        return $this->responseSuccessWithObject($semester);
     }
 
 }

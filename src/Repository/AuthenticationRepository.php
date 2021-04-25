@@ -4,6 +4,7 @@ namespace App\Repository;
 
 use App\Exception\InheritedSystemException;
 use App\Exception\InvalidCredentialsException;
+use App\Exception\NotFoundException;
 use App\Exception\ResourceNotFoundException;
 use App\Model\Request\UserIdentifier;
 use Doctrine\DBAL\DBALException;
@@ -14,7 +15,7 @@ class AuthenticationRepository extends AbstractRepository
     /**
      * @param UserIdentifier $identifier
      * @return mixed
-     * @throws \App\Exception\InvalidCredentialsException
+     * @throws \Doctrine\DBAL\Exception
      */
     public function identifyUser(UserIdentifier $identifier)
     {
@@ -40,7 +41,7 @@ class AuthenticationRepository extends AbstractRepository
         $foundedUsers = $result->fetchAll(FetchMode::ASSOCIATIVE);
 
         if (count($foundedUsers) !== 1) {
-            throw new InvalidCredentialsException();
+            throw new NotFoundException('Person');
         }
         return $foundedUsers[0]['OID'];
     }

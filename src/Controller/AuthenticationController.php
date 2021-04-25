@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Exception\AbstractRestException;
 use App\Exception\DataAccessException;
 use App\Exception\InvalidCredentialsException;
 use App\Exception\ValidationException;
@@ -10,6 +11,7 @@ use App\Model\Request\RegisterCredentials;
 use App\Model\Request\UserIdentifier;
 use App\Repository\AuthenticationRepository;
 use App\Repository\UserRepository;
+use Doctrine\ODM\MongoDB\MongoDBException;
 use Gesdinet\JWTRefreshTokenBundle\Service\RefreshToken;
 use Gesdinet\JWTRefreshTokenBundle\Model\RefreshTokenManagerInterface;
 use JMS\Serializer\Serializer;
@@ -31,12 +33,10 @@ use OpenApi\Annotations as OA;
  * @package App\Controller
  * @Route("/api/v1")
  */
-class AuthenticationController extends AbstractController
+class AuthenticationController extends AbstractRestController
 {
-    private $serializer;
-
     public function __construct(SerializerInterface $serializer) {
-        $this->serializer = $serializer;
+        parent::__construct($serializer);
     }
 
     /**
@@ -65,36 +65,24 @@ class AuthenticationController extends AbstractController
      *     )
      * )
      *
-     * @param Request $request
-     * @param SerializerInterface $serializer
-     * @param ValidatorInterface $validator
+     * @param \App\Model\Request\UserIdentifier $userIdentifier
      * @param AuthenticationRepository $authenticationRepository
      * @param UserRepository $userRepository
      * @param JWTTokenManagerInterface $tokenManager
      * @return \Symfony\Component\HttpFoundation\JsonResponse
      * @throws \App\Exception\DataAccessException
-     * @throws \App\Exception\ValidationException
      */
     public function identify(
-        Request $request,
-        SerializerInterface $serializer,
-        ValidatorInterface $validator,
+        UserIdentifier $userIdentifier,
         AuthenticationRepository $authenticationRepository,
         UserRepository $userRepository,
         JWTTokenManagerInterface $tokenManager
-    ):JsonResponse {
-        $userIdentifier = $serializer->deserialize($request->getContent(), UserIdentifier::class, 'json');
-        if (count($validationErrors = $validator->validate($userIdentifier)) > 0) {
-            throw new ValidationException($validationErrors, 'UserIdentifier');
-        }
-
+    ): JsonResponse {
         try {
             $oid = $authenticationRepository->identifyUser($userIdentifier);
             $user = $userRepository->persistIdentifiedUser($oid);
-        } catch (InvalidCredentialsException $e) {
-            throw $e;
-        } catch (\Exception $e) {
-            throw new DataAccessException('User', $e);
+        } catch (\Doctrine\DBAL\Exception | MongoDBException $e) {
+            throw new DataAccessException($e);
         }
 
         $jwt = $tokenManager->create($user);
@@ -102,12 +90,7 @@ class AuthenticationController extends AbstractController
         $authenticationData->setRoles($user->getRoles());
         $authenticationData->setJwtToken($jwt);
 
-        return new JsonResponse(
-            $this->serializer->serialize($authenticationData, 'json'),
-            Response::HTTP_OK,
-            [],
-            true
-        );
+        return $this->responseSuccessWithObject($authenticationData);
     }
 
     /**
@@ -128,35 +111,26 @@ class AuthenticationController extends AbstractController
      *     )
      * )
      *
-     * @param Request $request
-     * @param SerializerInterface $serializer
-     * @param ValidatorInterface $validator
+     * @param \App\Model\Request\RegisterCredentials $credentials
      * @param JWTTokenManagerInterface $tokenManager
      * @param UserRepository $userRepository
      * @param ParameterBagInterface $parameterBag
      * @return \Symfony\Component\HttpFoundation\JsonResponse
      */
     public function register(
-        Request $request,
-        SerializerInterface $serializer,
-        ValidatorInterface $validator,
+        RegisterCredentials $credentials,
         JWTTokenManagerInterface $tokenManager,
         UserRepository $userRepository,
         //RefreshTokenManagerInterface $refreshTokenManager,
         ParameterBagInterface $parameterBag
     ): JsonResponse {
-        $registerCredentials = $serializer->deserialize($request->getContent(), RegisterCredentials::class, 'json');
-        if (count($credentialsValidationErrors = $validator->validate($registerCredentials))) {
-            throw new ValidationException($credentialsValidationErrors, 'RegisterCredentials');
-        }
-
         /** @var \App\Document\User $user */
         $user = $this->getUser();
 
         try {
-            $user = $userRepository->persistRegistration($user, $registerCredentials);
-        } catch (\Exception $e) {
-            throw new DataAccessException('User', $e);
+            $user = $userRepository->persistRegistration($user, $credentials);
+        } catch (MongoDBException $e) {
+            throw new DataAccessException($e);
         }
 
         $jwtToken = $tokenManager->create($user);
@@ -175,12 +149,7 @@ class AuthenticationController extends AbstractController
         $authenticationData->setJwtToken($jwtToken);
         $authenticationData->setRoles($user->getRoles());
 
-        return new JsonResponse(
-            $this->serializer->serialize($authenticationData, 'json'),
-            Response::HTTP_CREATED,
-            [],
-            true
-        );
+        return $this->responseSuccessWithObject($authenticationData);
     }
 
     /**

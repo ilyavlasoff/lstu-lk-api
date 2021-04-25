@@ -5,12 +5,13 @@ namespace App\Controller;
 use App\Exception\DataAccessException;
 use App\Model\Mapping\Achievement;
 use App\Model\Mapping\Publication;
+use App\Model\Request\Paginator;
+use App\Model\Request\Person;
 use App\Model\Response\AchievementList;
 use App\Model\Response\AchievementSummary;
 use App\Model\Response\PublicationList;
 use App\Repository\AchievementRepository;
-use App\Service\Validation\PaginationValidationService;
-use App\Service\Validation\PersonValidationService;
+use Doctrine\DBAL\Exception;
 use JMS\Serializer\SerializationContext;
 use JMS\Serializer\SerializerInterface;
 use Nelmio\ApiDocBundle\Annotation\Model;
@@ -28,19 +29,16 @@ use Nelmio\ApiDocBundle\Annotation\Security;
  * @package App\Controller
  * @Route("/api/v1/person")
  */
-class AchievementController extends AbstractController
+class AchievementController extends AbstractRestController
 {
     private $achievementsRepository;
-    private $serializer;
 
     public function __construct(
         SerializerInterface $serializer,
-        AchievementRepository $achievementRepository,
-        PersonValidationService $personValidationService,
-        PaginationValidationService $paginationValidationService
+        AchievementRepository $achievementRepository
     )
     {
-        $this->serializer = $serializer;
+        parent::__construct($serializer);
         $this->achievementsRepository = $achievementRepository;
     }
 
@@ -76,36 +74,28 @@ class AchievementController extends AbstractController
      *     )
      * )
      *
-     * @param \Symfony\Component\HttpFoundation\Request $request
-     * @param \App\Service\Validation\PersonValidationService $personValidationService
+     * @param Person $person
      * @return JsonResponse
-     * @throws \App\Exception\DataAccessException
-     * @throws \App\Exception\ResourceNotFoundException
+     * @throws DataAccessException|\Exception
      */
-    public function achievementsSummary(
-        Request $request,
-        PersonValidationService $personValidationService
-    ): JsonResponse {
-        $personId = $request->query->get('p');
-        $personValidationService->validate($personId, 'p');
-
-        $achievementsSummary = new AchievementSummary();
+    public function achievementsSummary(Person $person): JsonResponse {
 
         try {
-            $achievementsSummary->setAchievementList($this->achievementsRepository->getAchievements($personId, 0, 3));
-            $achievementsSummary->setPublicationsList($this->achievementsRepository->getPublications($personId, 0, 3));
-            $achievementsSummary->setAchievementsTotalCount($this->achievementsRepository->getTotalAchievementCount($personId));
-            $achievementsSummary->setPublicationsTotalCount($this->achievementsRepository->getTotalPublicationsCount($personId));
-        } catch (\Exception $e) {
-            throw new DataAccessException('Person');
+            $achievementList = $this->achievementsRepository->getAchievements($person->getPersonId(), 0, 3);
+            $publicationsList = $this->achievementsRepository->getPublications($person->getPersonId(), 0, 3);
+            $achievementCount = $this->achievementsRepository->getTotalAchievementCount($person->getPersonId());
+            $publicationsCount = $this->achievementsRepository->getTotalPublicationsCount($person->getPersonId());
+        } catch (Exception $e) {
+            throw new DataAccessException($e);
         }
 
-        return new JsonResponse(
-            $this->serializer->serialize($achievementsSummary, 'json'),
-            Response::HTTP_OK,
-            [],
-            true
-        );
+        $achievementsSummary = new AchievementSummary();
+        $achievementsSummary->setAchievementList($achievementList);
+        $achievementsSummary->setPublicationsList($publicationsList);
+        $achievementsSummary->setAchievementsTotalCount($achievementCount);
+        $achievementsSummary->setPublicationsTotalCount($publicationsCount);
+
+        return $this->responseSuccessWithObject($achievementsSummary);
     }
 
     /**
@@ -148,52 +138,37 @@ class AchievementController extends AbstractController
      *     )
      * )
      *
-     * @param \Symfony\Component\HttpFoundation\Request $request
+     * @param \App\Model\Request\Person $person
+     * @param \App\Model\Request\Paginator $paginator
      * @return JsonResponse
-     * @throws \App\Exception\DataAccessException
-     * @throws \App\Exception\ResourceNotFoundException
+     * @throws \Exception
      */
     public function achievementsList(
-        Request $request,
-        PersonValidationService $personValidationService,
-        PaginationValidationService $paginationValidationService
+        Person $person,
+        Paginator $paginator
     ): JsonResponse {
-        $personId = $request->query->get('p');
-        $personValidationService->validate($personId, 'p');
+        $offset = $paginator->getOffset();
+        $count = $paginator->getCount();
 
-        $offset = $request->query->get('of');
-        $count = $request->query->get('c');
+        try {
+            /** @var Achievement[] $achievements */
+            $achievements = $this->achievementsRepository->getAchievements(
+                $person->getPersonId(),
+                $offset != null && is_numeric($offset) && $offset >= 0 ? $offset : -1,
+                $count !== null && is_numeric($count) && $count > 0 ? $count : -1
+            );
 
-        $paginationValidationService->valueConstraints = [
-            new Assert\GreaterThanOrEqual(0, null, 'Offset value must be above or equals to zero')
-        ];
-        $paginationValidationService->validate($offset, 'of');
-
-        $paginationValidationService->valueConstraints = [
-            new Assert\GreaterThan(0, null, 'Offset value must be above zero')
-        ];
-        $paginationValidationService->validate($count, 'c');
-
-        /** @var Achievement[] $achievements */
-        $achievements = $this->achievementsRepository->getAchievements(
-            $personId,
-            $offset != null && is_numeric($offset) && $offset >= 0 ? $offset : -1,
-            $count !== null && is_numeric($count) && $count > 0 ? $count : -1
-        );
-
-        $totalAchievements = $this->achievementsRepository->getTotalAchievementCount($personId);
+            $totalAchievements = $this->achievementsRepository->getTotalAchievementCount($person->getPersonId());
+        } catch (Exception $e) {
+            throw new DataAccessException($e);
+        }
 
         $achievementList = new AchievementList();
-        $achievementList->setPerson($personId);
+        $achievementList->setPerson($person->getPersonId());
         $achievementList->setAchievements($achievements);
         $achievementList->setRemain($totalAchievements - $offset - count($achievements));
 
-        return new JsonResponse(
-            $this->serializer->serialize($achievementList, 'json'),
-            Response::HTTP_OK,
-            [],
-            true
-        );
+        return $this->responseSuccessWithObject($achievementList);
     }
 
     /**
@@ -236,53 +211,33 @@ class AchievementController extends AbstractController
      *     )
      * )
      *
-     * @param \Symfony\Component\HttpFoundation\Request $request
-     * @param \App\Service\Validation\PersonValidationService $personValidationService
-     * @param \App\Service\Validation\PaginationValidationService $paginationValidationService
+     * @param \App\Model\Request\Person $person
+     * @param \App\Model\Request\Paginator $paginator
      * @return JsonResponse
-     * @throws \App\Exception\DataAccessException
-     * @throws \App\Exception\ResourceNotFoundException
      */
-    public function publicationsList(
-        Request $request,
-        PersonValidationService $personValidationService,
-        PaginationValidationService $paginationValidationService
-    ): JsonResponse {
-        $personId = $request->query->get('p');
-        $personValidationService->validate($personId, 'p');
+    public function publicationsList(Person $person, Paginator $paginator): JsonResponse
+    {
+        $offset = $paginator->getOffset();
+        $count = $paginator->getCount();
 
-        $offset = $request->query->get('of');
-        $count = $request->query->get('c');
+        try {
+            /** @var Publication[] $publications */
+            $publications = $this->achievementsRepository->getPublications(
+                $person->getPersonId(),
+                $offset !== null && is_numeric($offset) && $offset >= 0 ? $offset : -1,
+                $count !== null && is_numeric($count) && $count > 0 ? $count : -1
+            );
 
-        $paginationValidationService->valueConstraints = [
-            new Assert\GreaterThanOrEqual(0, null, 'Offset value must be above or equals to zero')
-        ];
-        $paginationValidationService->validate($offset, 'of');
-
-        $paginationValidationService->valueConstraints = [
-            new Assert\GreaterThan(0, null, 'Offset value must be above zero')
-        ];
-        $paginationValidationService->validate($count, 'c');
-
-        /** @var Publication[] $publications */
-        $publications = $this->achievementsRepository->getPublications(
-            $personId,
-            $offset !== null && is_numeric($offset) && $offset >= 0 ? $offset : -1,
-            $count !== null && is_numeric($count) && $count > 0 ? $count : -1
-        );
-
-        $totalPublications = $this->achievementsRepository->getTotalPublicationsCount($personId);
+            $totalPublications = $this->achievementsRepository->getTotalPublicationsCount($person->getPersonId());
+        } catch (Exception $e) {
+            throw new DataAccessException($e);
+        }
 
         $publicationsList = new PublicationList();
-        $publicationsList->setPerson($personId);
+        $publicationsList->setPerson($person->getPersonId());
         $publicationsList->setPublications($publications);
         $publicationsList->setRemain($totalPublications - $offset - count($publications));
 
-        return new JsonResponse(
-            $this->serializer->serialize($publicationsList, 'json'),
-            Response::HTTP_OK,
-            [],
-            true
-        );
+        return $this->responseSuccessWithObject($publicationsList);
     }
 }

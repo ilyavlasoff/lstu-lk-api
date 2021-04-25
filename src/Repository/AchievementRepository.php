@@ -17,6 +17,9 @@ class AchievementRepository
         $this->entityManager = $entityManager;
     }
 
+    /**
+     * @throws \Doctrine\DBAL\Exception
+     */
     public function getTotalAchievementCount(string $person): int
     {
         $achievements = $this->entityManager->getConnection()->createQueryBuilder()
@@ -30,6 +33,9 @@ class AchievementRepository
         return $achievements[0]['CNT'];
     }
 
+    /**
+     * @throws \Doctrine\DBAL\Exception
+     */
     public function getTotalPublicationsCount(string $person): int
     {
         $publications = $this->entityManager->getConnection()->createQueryBuilder()
@@ -42,6 +48,10 @@ class AchievementRepository
         return $publications[0]['CNT'];
     }
 
+    /**
+     * @throws \Doctrine\DBAL\Exception
+     * @throws \Exception
+     */
     public function getAchievements(string $person, int $offset = -1, int $count = -1, bool $lastFirst = true): array {
         $queryBuilder = $this->entityManager->getConnection()->createQueryBuilder();
 
@@ -87,6 +97,9 @@ class AchievementRepository
         return $achievementList;
     }
 
+    /**
+     * @throws \Doctrine\DBAL\Exception
+     */
     public function getPublications(string $person, int $offset = -1, int $count = -1): array {
         $queryBuilder = $this->entityManager->getConnection()->createQueryBuilder();
 

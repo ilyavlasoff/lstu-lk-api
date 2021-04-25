@@ -2,6 +2,7 @@
 
 namespace App\Repository;
 
+use App\Exception\NotFoundException;
 use App\Model\Grouping\Day;
 use App\Model\Grouping\Week;
 use App\Model\Mapping\Discipline;
@@ -25,6 +26,15 @@ class TimetableRepository
         $this->stringConverter = $stringConverter;
     }
 
+    /**
+     * @param string $group
+     * @param string $semester
+     * @param string|null $weekColor
+     * @param string|null $discipline
+     * @param string|null $teacher
+     * @return \App\Model\Response\Timetable
+     * @throws \Doctrine\DBAL\Exception
+     */
     public function getTimetable(
         string $group,
         string $semester,
@@ -150,6 +160,11 @@ class TimetableRepository
         return $timetable;
     }
 
+    /**
+     * @param string $dayId
+     * @return \App\Model\Grouping\Day
+     * @throws \Doctrine\DBAL\Exception
+     */
     public function getDayById(string $dayId): Day
     {
         $queryBuilder = $this->entityManager->getConnection()->createQueryBuilder();
@@ -161,7 +176,7 @@ class TimetableRepository
             ->fetchAll();
 
         if(!count($result)) {
-            throw new \Exception('Day not found');
+            throw new NotFoundException('Day');
         }
 
         $day = $result[0];
@@ -173,6 +188,11 @@ class TimetableRepository
         return $weekDay;
     }
 
+    /**
+     * @param string $weekName
+     * @return mixed
+     * @throws \Doctrine\DBAL\Exception
+     */
     public function getWeekByName(string $weekName)
     {
         $result = $this->entityManager->getConnection()->createQueryBuilder()
@@ -181,15 +201,22 @@ class TimetableRepository
             ->where('WC.NAME = :WEEKNAME')
             ->setParameter('WEEKNAME', $weekName)
             ->execute();
+
         $weekData = $result->fetchAll();
 
         if(!$weekData) {
-            throw new \Exception('Incorrect value');
+            throw new NotFoundException('Week');
         }
 
         return $weekData[0]['CODE'];
     }
 
+    /**
+     * @param string $groupId
+     * @param string $semesterId
+     * @return array
+     * @throws \Doctrine\DBAL\Exception
+     */
     public function getExamsTimetable(string $groupId, string $semesterId): array
     {
         $queryBuilder = $this->entityManager->getConnection()->createQueryBuilder();
