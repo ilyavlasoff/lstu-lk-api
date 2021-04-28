@@ -2,7 +2,7 @@
 
 namespace App\Model\Mapping;
 
-class DiscussionExternalLink
+class ExternalLink
 {
     /**
      * @var string | null
@@ -12,7 +12,7 @@ class DiscussionExternalLink
     /**
      * @var string | null
      */
-    private $linkLocation;
+    private $linkContent;
 
     /**
      * @return string|null
@@ -33,17 +33,17 @@ class DiscussionExternalLink
     /**
      * @return string|null
      */
-    public function getLinkLocation(): ?string
+    public function getLinkContent(): ?string
     {
-        return $this->linkLocation;
+        return $this->linkContent;
     }
 
     /**
-     * @param string|null $linkLocation
+     * @param string|null $linkContent
      */
-    public function setLinkLocation(?string $linkLocation): void
+    public function setLinkContent(?string $linkContent): void
     {
-        $this->linkLocation = $linkLocation;
+        $this->linkContent = $linkContent;
     }
 
 }

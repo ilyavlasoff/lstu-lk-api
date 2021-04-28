@@ -4,54 +4,52 @@ namespace App\ArgumentResolver;
 
 use App\Exception\DataAccessException;
 use App\Exception\NotFoundException;
-use App\Exception\ResourceNotFoundException;
 use App\Exception\ValidationException;
-use App\Model\Request\Discipline;
-use App\Repository\DisciplineRepository;
+use App\Model\Request\Dialog;
+use App\Repository\PrivateMessageRepository;
 use Doctrine\DBAL\Exception;
-use JMS\Serializer\SerializerInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Controller\ArgumentValueResolverInterface;
 use Symfony\Component\HttpKernel\ControllerMetadata\ArgumentMetadata;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
-class DisciplineValueResolver implements ArgumentValueResolverInterface
+class DialogValueResolver implements ArgumentValueResolverInterface
 {
     private $validator;
 
-    private $disciplineRepository;
+    private $privateMessageRepository;
 
-    public function __construct(ValidatorInterface $validator, DisciplineRepository $disciplineRepository)
+    public function __construct(ValidatorInterface $validator, PrivateMessageRepository $privateMessageRepository)
     {
         $this->validator = $validator;
-        $this->disciplineRepository = $disciplineRepository;
+        $this->privateMessageRepository = $privateMessageRepository;
     }
 
     public function supports(Request $request, ArgumentMetadata $argument)
     {
-        return Discipline::class === $argument->getType();
+        return Dialog::class === $argument->getType();
     }
 
     public function resolve(Request $request, ArgumentMetadata $argument)
     {
-        $discipline = new Discipline();
-        $discipline->setDisciplineId($request->query->get('dis'));
+        $dialog = new Dialog();
+        $dialog->setDialogId($request->query->get('dialog'));
 
-        $errors = $this->validator->validate($discipline);
+        $errors = $this->validator->validate($dialog);
         if(count($errors) > 0) {
             throw new ValidationException($errors);
         }
 
         try {
-            $disciplineExistence = $this->disciplineRepository->isDisciplineExists($discipline->getDisciplineId());
+            $isExists = $this->privateMessageRepository->getDialogExists($dialog->getDialogId());
         } catch (Exception $e) {
             throw new DataAccessException($e);
         }
 
-        if(!$disciplineExistence) {
-            throw new NotFoundException('Discipline');
+        if(!$isExists) {
+            throw new NotFoundException('Dialog');
         }
 
-        yield $discipline;
+        yield $dialog;
     }
 }

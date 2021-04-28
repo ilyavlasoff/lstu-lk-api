@@ -34,5 +34,7 @@ class RegisterCredentialsValueResolver implements ArgumentValueResolverInterface
         if (count($credentialsValidationErrors = $this->validator->validate($registerCredentials))) {
             throw new ValidationException($credentialsValidationErrors);
         }
+
+        yield $registerCredentials;
     }
 }

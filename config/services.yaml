@@ -7,6 +7,7 @@ parameters:
     env(MONGODB_URL): ''
     env(MONGODB_DB): ''
     expires_seconds: 86400
+    images_path: '%kernel.project_dir%/public/media/pics/'
 
 services:
     # default configuration for services in *this* file

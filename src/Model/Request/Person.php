@@ -3,7 +3,6 @@
 namespace App\Model\Request;
 
 use Symfony\Component\Validator\Constraints as Assert;
-use JMS\Serializer\Annotation as JMS;
 
 class Person
 {
@@ -11,8 +10,6 @@ class Person
      * @var string
      * @Assert\NotNull(message="Person identifier is was not found")
      * @Assert\NotBlank(message="Person identifier is empty")
-     * @JMS\SerializedName("p")
-     * @JMS\Type("string")
      */
     private $personId;
 

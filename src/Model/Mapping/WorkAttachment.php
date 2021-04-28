@@ -9,12 +9,6 @@ class WorkAttachment
      */
     private $attachmentId;
 
-    // TODO: Add student field
-    /*
-     * @var string | null
-     */
-    //private $student;
-
     /**
      * @var int | null
      */

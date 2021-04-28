@@ -16,15 +16,12 @@ use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 class SemesterValueResolver implements ArgumentValueResolverInterface
 {
-    private $serializer;
-
     private $validator;
 
     private $educationRepository;
 
-    public function __construct(SerializerInterface $serializer, ValidatorInterface $validator, EducationRepository $educationRepository)
+    public function __construct(ValidatorInterface $validator, EducationRepository $educationRepository)
     {
-        $this->serializer = $serializer;
         $this->validator = $validator;
         $this->educationRepository = $educationRepository;
     }
@@ -36,8 +33,8 @@ class SemesterValueResolver implements ArgumentValueResolverInterface
 
     public function resolve(Request $request, ArgumentMetadata $argument)
     {
-        /** @var  Semester $semester */
-        $semester = $this->serializer->deserialize($request->getContent(), Semester::class, 'json');
+        $semester = new Semester();
+        $semester->setSemesterId($request->query->get('sem'));
 
         $errors = $this->validator->validate($semester);
         if(count($errors) > 0) {

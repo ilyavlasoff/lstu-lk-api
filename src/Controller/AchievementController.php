@@ -7,9 +7,8 @@ use App\Model\Mapping\Achievement;
 use App\Model\Mapping\Publication;
 use App\Model\Request\Paginator;
 use App\Model\Request\Person;
-use App\Model\Response\AchievementList;
 use App\Model\Response\AchievementSummary;
-use App\Model\Response\PublicationList;
+use App\Model\Response\ListedResponse;
 use App\Repository\AchievementRepository;
 use Doctrine\DBAL\Exception;
 use JMS\Serializer\SerializationContext;
@@ -163,10 +162,17 @@ class AchievementController extends AbstractRestController
             throw new DataAccessException($e);
         }
 
-        $achievementList = new AchievementList();
-        $achievementList->setPerson($person->getPersonId());
-        $achievementList->setAchievements($achievements);
-        $achievementList->setRemain($totalAchievements - $offset - count($achievements));
+        $achievementList = new ListedResponse();
+        $achievementList->setCount(count($achievements));
+        $achievementList->setOffset($paginator->getOffset());
+        $achievementList->setPayload($achievements);
+
+        $remains = $totalAchievements - $offset - count($achievements);
+        $achievementList->setRemains($remains);
+
+        if($remains) {
+            $achievementList->setNextOffset($paginator->getCount());
+        }
 
         return $this->responseSuccessWithObject($achievementList);
     }
@@ -233,10 +239,18 @@ class AchievementController extends AbstractRestController
             throw new DataAccessException($e);
         }
 
-        $publicationsList = new PublicationList();
-        $publicationsList->setPerson($person->getPersonId());
-        $publicationsList->setPublications($publications);
-        $publicationsList->setRemain($totalPublications - $offset - count($publications));
+        $publicationsList = new ListedResponse();
+        $publicationsList->setPayload($publications);
+
+        $pblCount = count($publications);
+        $publicationsList->setOffset($offset);
+        $publicationsList->setCount($pblCount);
+
+        $remains = $totalPublications - $offset - $pblCount;
+        $publicationsList->setRemains($remains);
+        if($remains > 0) {
+            $publicationsList->setNextOffset($offset + $pblCount);
+        }
 
         return $this->responseSuccessWithObject($publicationsList);
     }

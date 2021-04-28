@@ -3,10 +3,10 @@
 namespace App\Repository;
 
 use App\Model\Mapping\AcademicSubject;
+use App\Model\Mapping\Attachment;
 use App\Model\Mapping\Discipline;
-use App\Model\Mapping\DiscussionAttachment;
-use App\Model\Mapping\DiscussionExternalLink;
 use App\Model\Mapping\DiscussionMessage;
+use App\Model\Mapping\ExternalLink;
 use App\Model\Mapping\Person;
 use App\Model\Mapping\StudentWork;
 use App\Model\Mapping\Teacher;
@@ -194,16 +194,15 @@ class DisciplineRepository
             $message->setSender($sender);
 
             if(($attachmentName = $messageRow['DOC_NAME']) && ($attachmentSize = $messageRow['DOC_KB'])) {
-                $attachment = new DiscussionAttachment();
-                $attachment->setAttachmentId($messageRow['MSG_ID']);
-                $attachment->setFileName($attachmentName);
-                $attachment->setFileSize($attachmentSize);
+                $attachment = new Attachment();
+                $attachment->setAttachmentName($attachmentName);
+                $attachment->setAttachmentSize($attachmentSize);
                 $message->setAttachments([$attachment]);
             }
 
             if(($externalLink = $messageRow['LINK_TEXT']) && ($externalLocation = $messageRow['LOCATION'])) {
-                $extLink = new DiscussionExternalLink();
-                $extLink->setLinkLocation($externalLocation);
+                $extLink = new ExternalLink();
+                $extLink->setLinkContent($externalLocation);
                 $extLink->setLinkText($externalLink);
                 $message->setExternalLinks([$extLink]);
             }

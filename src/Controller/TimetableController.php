@@ -8,7 +8,7 @@ use App\Model\Grouping\Week;
 use App\Model\Mapping\TimetableItem;
 use App\Model\Request\Education;
 use App\Model\Request\Semester;
-use App\Model\Response\ExamsTimetable;
+use App\Model\Response\ListedResponse;
 use App\Model\Response\Timetable;
 use App\Repository\PersonalRepository;
 use App\Repository\TimetableRepository;
@@ -85,10 +85,9 @@ class TimetableController extends AbstractRestController
             throw new DataAccessException($e);
         }
 
-        $examsTimetable = new ExamsTimetable();
-        $examsTimetable->setEdu($education->getEducationId());
-        $examsTimetable->setSem($semester->getSemesterId());
-        $examsTimetable->setExams($exams);
+        $examsTimetable = new ListedResponse();
+        $examsTimetable->setCount(count($exams));
+        $examsTimetable->setPayload($exams);
 
         return $this->responseSuccessWithObject($examsTimetable);
     }

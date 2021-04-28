@@ -3,7 +3,6 @@
 namespace App\Model\Request;
 
 use Symfony\Component\Validator\Constraints as Assert;
-use JMS\Serializer\Annotation as JMS;
 
 class Discipline
 {
@@ -11,8 +10,6 @@ class Discipline
      * @var string
      * @Assert\NotNull(message="Discipline field was not found")
      * @Assert\NotBlank(message="Disciplien field can not be blank")
-     * @JMS\Type("string")
-     * @JMS\SerializedName("dis")
      */
     private $disciplineId;
 

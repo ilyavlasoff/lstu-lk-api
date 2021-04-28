@@ -7,8 +7,11 @@ use App\Exception\DataAccessException;
 use App\Exception\SystemException;
 use App\Exception\ValidationException;
 use App\Model\Mapping\Person;
+use App\Model\Request\Paginator;
 use App\Model\Request\PersonProperties;
-use App\Model\Request\UserPic;
+use App\Model\Request\PictureSize;
+use App\Model\Request\TextQuery;
+use App\Model\Response\ListedResponse;
 use App\Model\Response\ProfilePicture;
 use App\Repository\PersonalRepository;
 use App\Service\ImageConverter;
@@ -16,6 +19,7 @@ use Doctrine\DBAL\Exception;
 use JMS\Serializer\SerializerInterface;
 use Nelmio\ApiDocBundle\Annotation\Model;
 use Nelmio\ApiDocBundle\Annotation\Security;
+use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
@@ -38,34 +42,23 @@ class PersonalController extends AbstractRestController
     }
 
     /**
-     * @Route("/props", name="get_person_props", methods={"GET"})
+     * @Route("/info", name="get_person_props", methods={"GET"})
      *
      * @OA\Get(
      *     tags={"Персона"},
-     *     summary="Список публикаций пользователя",
+     *     summary="Информация о заданной персоне",
      *     @Security(name="Bearer"),
      *     @OA\Parameter(
      *          in="query",
      *          required=true,
      *          name="p",
-     *          description="Идентификатор пользователя"
-     *     ),
-     *     @OA\Parameter(
-     *          in="query",
-     *          required=false,
-     *          name="of",
-     *          description="Номер первого отдаваемого объекта"
-     *     ),
-     *     @OA\Parameter(
-     *          in="query",
-     *          required=false,
-     *          name="c",
-     *          description="Максимальное количество отдаваемых объектов в ответе"
+     *          description="Идентификатор персоны",
+     *          example="5:93491220"
      *     ),
      *     @OA\Response(
      *          response="200",
-     *          description="Список объектов публикаций пользователя",
-     *          @OA\JsonContent(ref=@Model(type="App\Model\Response\PublicationList::class", groups={"Default"}))
+     *          description="Объект персоны",
+     *          @OA\JsonContent(ref=@Model(type="App\Model\Mapping\Person::class", groups={"Default"}))
      *     ),
      *     @OA\Response(
      *          response="400",
@@ -93,7 +86,39 @@ class PersonalController extends AbstractRestController
     }
 
     /**
-     * @Route("/props", name="edit_person_properties", methods={"POST"})
+     * @Route("/info", name="edit_person_properties", methods={"POST"})
+     *
+     * @OA\Post(
+     *     tags={"Персона"},
+     *     summary="Редактирование информации о пользователе",
+     *     @Security(name="Bearer"),
+     *     @OA\RequestBody(
+     *          description="Объект обновленной информации о пользователе",
+     *          @OA\JsonContent(ref=@Model(type="App\Model\Request\PersonProperties::class", groups={"Default"}))
+     *     ),
+     *     @OA\Response(
+     *          response="200",
+     *          description="Список объектов публикаций пользователя",
+     *          @OA\JsonContent(
+     *              @OA\Schema(
+     *                  @OA\Property (
+     *                      property="success",
+     *                      description="Флаг успешности операции",
+     *                      type="bool",
+     *                      example="true"
+     *                  )
+     *              )
+     *          )
+     *     ),
+     *     @OA\Response(
+     *          response="400",
+     *          description="Некорректные параметры вызова"
+     *     ),
+     *     @OA\Response(
+     *          response="500",
+     *          description="Внутренняя ошибка"
+     *     )
+     * )
      *
      * @param \App\Model\Request\PersonProperties $personProperties
      * @return \Symfony\Component\HttpFoundation\JsonResponse
@@ -113,33 +138,57 @@ class PersonalController extends AbstractRestController
     }
 
     /**
-     * @Route("/whoami", name="get_current_person", methods={"GET"})
+     * @Route("/pic", name="get_adapted_userpic", methods={"GET"})
      *
-     * @return \Symfony\Component\HttpFoundation\JsonResponse
-     */
-    public function currentPersonId(): JsonResponse
-    {
-        /** @var User $currentUser */
-        $currentUser = $this->getUser();
-
-        $person = new Person();
-        $person->setUoid($currentUser->getDbOid());
-
-        return $this->responseSuccessWithObject($person);
-    }
-
-    /**
-     * @Route("/userpic", name="get_adapted_userpic")
+     * @OA\Get(
+     *     tags={"Персона"},
+     *     summary="Изображение профиля пользователя ЛК ЛГТУ",
+     *     @Security(name="Bearer"),
+     *     @OA\Parameter(
+     *          in="query",
+     *          required=true,
+     *          name="p",
+     *          description="Идентификатор персоны",
+     *          example="5:93491220"
+     *     ),
+     *     @OA\Parameter(
+     *          in="query",
+     *          required=false,
+     *          name="size",
+     *          description="Константа размера изображения",
+     *          example="md"
+     *     ),
+     *     @OA\Response(
+     *          response="200",
+     *          description="Объект изображения",
+     *          @OA\JsonContent(ref=@Model(type="App\Model\Response\ProfilePicture::class", groups={"Default"}))
+     *     ),
+     *     @OA\Response(
+     *          response="400",
+     *          description="Некорректные параметры вызова"
+     *     ),
+     *     @OA\Response(
+     *          response="500",
+     *          description="Внутренняя ошибка"
+     *     )
+     * )
      *
-     * @param \App\Model\Request\UserPic $userPicRequest
+     * @param \App\Model\Request\PictureSize $userPicRequest
+     * @param \App\Model\Request\Person $person
      * @param \App\Service\ImageConverter $imageConverter
      * @param \App\Repository\PersonalRepository $personalRepository
+     * @param \Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface $parameterBag
      * @return \Symfony\Component\HttpFoundation\JsonResponse
-     * @throws \App\Exception\SystemException
      */
-    public function getProfilePicture(UserPic $userPicRequest, ImageConverter $imageConverter, PersonalRepository $personalRepository): JsonResponse
+    public function getProfilePicture(
+        PictureSize $userPicRequest,
+        \App\Model\Request\Person $person,
+        ImageConverter $imageConverter,
+        PersonalRepository $personalRepository,
+        ParameterBagInterface $parameterBag
+    ): JsonResponse
     {
-        $image = $personalRepository->getProfileImage($userPicRequest->getPersonId());
+        $image = $personalRepository->getProfileImage($person->getPersonId());
 
         $imagick = new \Imagick();
 
@@ -147,7 +196,7 @@ class PersonalController extends AbstractRestController
             if($image) {
                 $imagick->readImageBlob($image);
             } else {
-                $imagick->readImage('default_userpic.png');
+                $imagick->readImage($parameterBag->get('images_path') . 'user_default.png');
             }
 
             $imageConverter->convert($imagick, $userPicRequest->getImageSize());
@@ -158,10 +207,50 @@ class PersonalController extends AbstractRestController
         }
 
         $profilePicture = new ProfilePicture();
-        $profilePicture->setPerson($userPicRequest->getPersonId());
+        $profilePicture->setPerson($person->getPersonId());
         $profilePicture->setProfilePicture(base64_encode($convertedImageBlob));
 
         return $this->responseSuccessWithObject($profilePicture);
+    }
+
+    /**
+     * @Route("/list", name="get_persons_list", methods={"GET"})
+     */
+    public function getPersonList(TextQuery $query, Paginator $paginator, PersonalRepository $personalRepository): JsonResponse
+    {
+        /** @var \App\Document\User $user */
+        $user = $this->getUser();
+
+        if($paginator->getOffset() === null) {
+            $paginator->setOffset(0);
+        }
+
+        if($paginator->getCount() === null) {
+            $paginator->setCount(100);
+        }
+
+        try {
+            $foundedUsers = $personalRepository->getProfileUsers(
+                $user->getDbOid(), $query->getQueryString(), $paginator->getOffset(), $paginator->getCount());
+
+            $totalFoundedCount = $personalRepository->getCountOfPersons($query->getQueryString());
+        } catch (Exception $e) {
+            throw new DataAccessException($e);
+        }
+
+        $personList = new ListedResponse();
+        $personList->setOffset($paginator->getOffset());
+        $personList->setCount(count($foundedUsers));
+
+        $remains = $totalFoundedCount - count($foundedUsers) - $paginator->getOffset();
+        $personList->setRemains($remains);
+
+        if($remains) {
+            $personList->setNextOffset($paginator->getOffset() + count($foundedUsers));
+        }
+        $personList->setPayload($foundedUsers);
+
+        return $this->responseSuccessWithObject($personList);
     }
 
 }

@@ -5,8 +5,7 @@ namespace App\Controller;
 use App\Exception\DataAccessException;
 use App\Model\Mapping\Semester;
 use App\Model\Request\Person;
-use App\Model\Response\EducationsList;
-use App\Model\Response\SemestersList;
+use App\Model\Response\ListedResponse;
 use App\Repository\EducationRepository;
 use App\Repository\PersonalRepository;
 use Doctrine\DBAL\Exception;
@@ -63,9 +62,9 @@ class EducationController extends AbstractRestController
             throw new DataAccessException($e);
         }
 
-        $educationList = new EducationsList();
-        $educationList->setPerson($person->getPersonId());
-        $educationList->setEducations($educations);
+        $educationList = new ListedResponse();
+        $educationList->setCount(count($educations));
+        $educationList->setPayload($educations);
 
         return $this->responseSuccessWithObject($educationList);
     }
@@ -101,10 +100,9 @@ class EducationController extends AbstractRestController
             throw new DataAccessException($e);
         }
 
-        $semesterList = new SemestersList();
-        $semesterList->setEducation($education->getEducationId());
-        $semesterList->setCurrent(false);
-        $semesterList->setSemesters($semesters);
+        $semesterList = new ListedResponse();
+        $semesterList->setCount(count($semesters));
+        $semesterList->setPayload($semesters);
 
         return $this->responseSuccessWithObject($semesterList);
     }

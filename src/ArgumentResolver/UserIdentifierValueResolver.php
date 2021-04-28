@@ -35,6 +35,8 @@ class UserIdentifierValueResolver implements ArgumentValueResolverInterface
             throw new ValidationException($validationErrors, 'UserIdentifier');
         }
 
+        yield $userIdentifier;
+
         // TODO: Check user already registered
     }
 }

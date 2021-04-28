@@ -17,15 +17,12 @@ use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 class EducationValueResolver implements ArgumentValueResolverInterface
 {
-    private $serializer;
-
     private $validator;
 
     private $educationRepository;
 
-    public function __construct(SerializerInterface $serializer, ValidatorInterface $validator, EducationRepository $educationRepository)
+    public function __construct(ValidatorInterface $validator, EducationRepository $educationRepository)
     {
-        $this->serializer = $serializer;
         $this->validator = $validator;
         $this->educationRepository = $educationRepository;
     }
@@ -37,8 +34,8 @@ class EducationValueResolver implements ArgumentValueResolverInterface
 
     public function resolve(Request $request, ArgumentMetadata $argument)
     {
-        /** @var Education $education */
-        $education = $this->serializer->deserialize($request->getContent(), Education::class, 'json');
+        $education = new Education();
+        $education->setEducationId($request->query->get('edu'));
 
         $errors = $this->validator->validate($education);
         if(count($errors) > 0) {

@@ -3,14 +3,13 @@
 namespace App\ArgumentResolver;
 
 use App\Exception\ValidationException;
-use App\Model\Request\Paginator;
-use JMS\Serializer\SerializerInterface;
+use App\Model\Request\TextQuery;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Controller\ArgumentValueResolverInterface;
 use Symfony\Component\HttpKernel\ControllerMetadata\ArgumentMetadata;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
-class PaginatorValueResolver implements ArgumentValueResolverInterface
+class TextQueryValueResolver implements ArgumentValueResolverInterface
 {
     private $validator;
 
@@ -21,20 +20,19 @@ class PaginatorValueResolver implements ArgumentValueResolverInterface
 
     public function supports(Request $request, ArgumentMetadata $argument)
     {
-        return Paginator::class === $argument->getType();
+        return TextQuery::class === $argument->getType();
     }
 
     public function resolve(Request $request, ArgumentMetadata $argument)
     {
-        $paginator = new Paginator();
-        $paginator->setOffset($request->query->get('of'));
-        $paginator->setCount($request->query->get('c'));
+        $query = new TextQuery();
+        $query->setQueryString($request->query->get('q'));
 
-        $errors = $this->validator->validate($paginator);
+        $errors = $this->validator->validate($query);
         if(count($errors) > 0) {
             throw new ValidationException($errors);
         }
 
-        yield $paginator;
+        yield $query;
     }
 }

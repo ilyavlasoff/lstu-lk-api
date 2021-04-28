@@ -2,10 +2,12 @@
 
 namespace App\Controller;
 
+use App\Document\User;
 use App\Exception\AbstractRestException;
 use App\Exception\DataAccessException;
 use App\Exception\InvalidCredentialsException;
 use App\Exception\ValidationException;
+use App\Model\Mapping\Person;
 use App\Model\Response\AuthenticationData;
 use App\Model\Request\RegisterCredentials;
 use App\Model\Request\UserIdentifier;
@@ -27,6 +29,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 use OpenApi\Annotations as OA;
+use Nelmio\ApiDocBundle\Annotation\Security;
 
 /**
  * Class AuthenticationController
@@ -184,5 +187,43 @@ class AuthenticationController extends AbstractRestController
     {
         return new JsonResponse();
         //return $refreshService->refresh($request);
+    }
+
+    /**
+     * @Route("/whoami", name="get_current_person", methods={"GET"})
+     *
+     * @OA\Get(
+     *     tags={"Персона"},
+     *     summary="Идентификатор текущего пользователя",
+     *     @Security (name="Bearer"),
+     *     @OA\Response(
+     *          response="200",
+     *          description="Список объектов публикаций пользователя",
+     *          @OA\JsonContent(
+     *              @OA\Property(
+     *                  property="uoid",
+     *                  type="string",
+     *                  description="Идентификатор персоны текущеего пользователя",
+     *                  example="5:93491220"
+     *              )
+     *          )
+     *     ),
+     *     @OA\Response(
+     *          response="500",
+     *          description="Внутренняя ошибка"
+     *     )
+     * )
+     *
+     * @return \Symfony\Component\HttpFoundation\JsonResponse
+     */
+    public function currentPersonId(): JsonResponse
+    {
+        /** @var User $currentUser */
+        $currentUser = $this->getUser();
+
+        $person = new Person();
+        $person->setUoid($currentUser->getDbOid());
+
+        return $this->responseSuccessWithObject($person);
     }
 }

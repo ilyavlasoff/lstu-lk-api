@@ -36,5 +36,7 @@ class WeekValueResolver implements ArgumentValueResolverInterface
         if(count($errors) > 0) {
             throw new ValidationException($errors);
         }
+
+        yield $week;
     }
 }

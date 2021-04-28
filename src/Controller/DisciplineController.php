@@ -13,8 +13,7 @@ use App\Model\Request\Discipline;
 use App\Model\Request\Education;
 use App\Model\Request\Paginator;
 use App\Model\Request\Semester;
-use App\Model\Response\DiscussionChatList;
-use App\Model\Response\StudentWorkList;
+use App\Model\Response\ListedResponse;
 use App\Model\Response\Timetable;
 use App\Repository\DisciplineRepository;
 use App\Repository\EducationRepository;
@@ -182,18 +181,15 @@ class DisciplineController extends AbstractRestController
 
         $remainsCount = $totalMessageCount - $paginator->getOffset() - count($disciplineChatMessages);
 
-        $discussionChatList = new DiscussionChatList();
-        $discussionChatList->setEducation($education->getEducationId());
-        $discussionChatList->setDiscipline($discipline->getDisciplineId());
-        $discussionChatList->setSemester($semester->getSemesterId());
+        $discussionChatList = new ListedResponse();
+        $discussionChatList->setPayload($disciplineChatMessages);
         $discussionChatList->setOffset($paginator->getOffset());
+        $discussionChatList->setCount(count($disciplineChatMessages));
         $discussionChatList->setRemains($remainsCount);
 
         if($remainsCount > 0) {
             $discussionChatList->setNextOffset($paginator->getOffset() + count($disciplineChatMessages));
         }
-
-        $discussionChatList->setMessages($disciplineChatMessages);
 
         return $this->responseSuccessWithObject($discussionChatList);
     }
@@ -245,11 +241,9 @@ class DisciplineController extends AbstractRestController
             throw new DataAccessException($e);
         }
 
-        $workListAnswer = new StudentWorkList();
-        $workListAnswer->setSemester($semester->getSemesterId());
-        $workListAnswer->setDiscipline($discipline->getDisciplineId());
-        $workListAnswer->setEducation($education->getEducationId());
-        $workListAnswer->setTasks($workList);
+        $workListAnswer = new ListedResponse();
+        $workListAnswer->setCount(count($workList));
+        $workListAnswer->setPayload($workList);
 
         return $this->responseSuccessWithObject($workListAnswer);
     }

@@ -3,7 +3,6 @@
 namespace App\Model\Request;
 
 use Symfony\Component\Validator\Constraints as Assert;
-use JMS\Serializer\Annotation as JMS;
 
 class Semester
 {
@@ -11,8 +10,6 @@ class Semester
      * @var string
      * @Assert\NotNull(message="Semester field was not found")
      * @Assert\NotBlank(message="Semester field can not be empty")
-     * @JMS\SerializedName("sem")
-     * @JMS\Type("string")
      */
     private $semesterId;
 

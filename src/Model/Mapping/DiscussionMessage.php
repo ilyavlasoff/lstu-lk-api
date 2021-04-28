@@ -28,12 +28,12 @@ class DiscussionMessage
     private $msg;
 
     /**
-     * @var DiscussionAttachment[]
+     * @var \App\Model\Mapping\Attachment[]
      */
     private $attachments;
 
     /**
-     * @var DiscussionExternalLink[]
+     * @var \App\Model\Mapping\ExternalLink[]
      */
     private $externalLinks;
 
@@ -54,7 +54,7 @@ class DiscussionMessage
     }
 
     /**
-     * @return Person
+     * @return \App\Model\Mapping\Person
      */
     public function getSender(): Person
     {
@@ -62,7 +62,7 @@ class DiscussionMessage
     }
 
     /**
-     * @param Person $sender
+     * @param \App\Model\Mapping\Person $sender
      */
     public function setSender(Person $sender): void
     {
@@ -102,7 +102,7 @@ class DiscussionMessage
     }
 
     /**
-     * @return DiscussionAttachment[]
+     * @return \App\Model\Mapping\Attachment[]
      */
     public function getAttachments(): array
     {
@@ -110,7 +110,7 @@ class DiscussionMessage
     }
 
     /**
-     * @param DiscussionAttachment[] $attachments
+     * @param \App\Model\Mapping\Attachment[] $attachments
      */
     public function setAttachments(array $attachments): void
     {
@@ -118,7 +118,7 @@ class DiscussionMessage
     }
 
     /**
-     * @return DiscussionExternalLink[]
+     * @return \App\Model\Mapping\ExternalLink[]
      */
     public function getExternalLinks(): array
     {
@@ -126,7 +126,7 @@ class DiscussionMessage
     }
 
     /**
-     * @param DiscussionExternalLink[] $externalLinks
+     * @param \App\Model\Mapping\ExternalLink[] $externalLinks
      */
     public function setExternalLinks(array $externalLinks): void
     {

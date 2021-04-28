@@ -16,15 +16,12 @@ use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 class PersonValueResolver implements ArgumentValueResolverInterface
 {
-    private $serializer;
-
     private $validator;
 
     private $personalRepository;
 
-    public function __construct(SerializerInterface $serializer, ValidatorInterface $validator, PersonalRepository $personalRepository)
+    public function __construct(ValidatorInterface $validator, PersonalRepository $personalRepository)
     {
-        $this->serializer = $serializer;
         $this->validator = $validator;
         $this->personalRepository = $personalRepository;
     }
@@ -36,8 +33,8 @@ class PersonValueResolver implements ArgumentValueResolverInterface
 
     public function resolve(Request $request, ArgumentMetadata $argument)
     {
-        /** @var Person $person */
-        $person = $this->serializer->deserialize($request->getContent(), Person::class, 'json');
+        $person = new Person();
+        $person->setPersonId($request->query->get('p'));
 
         $errors = $this->validator->validate($person);
         if(count($errors) > 0) {

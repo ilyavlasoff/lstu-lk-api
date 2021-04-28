@@ -7,7 +7,7 @@ class ImageConverter
     /**
      * @throws \ImagickException
      */
-    public function convert(\Imagick $image, string $type): \Imagick
+    public function convert(\Imagick $image, ?string $type): \Imagick
     {
         if($type === 'original') {
             return $image;

@@ -4,6 +4,7 @@ ENV LD_LIBRARY_PATH=/opt/oracle/instantclient_12_1/
 
 RUN apt-get update && apt-get install -qqy git unzip libfreetype6-dev \
         libjpeg62-turbo-dev \
+        libmagickwand-dev \
         libpng-dev \
         libaio1 wget && apt-get clean autoclean && apt-get autoremove --yes &&  rm -rf /var/lib/{apt,dpkg,cache,log}/ 
 
@@ -70,10 +71,12 @@ RUN apt-get update -y && apt-get upgrade -y && apt-get install -y \
     gcc zip \
     && pecl install mcrypt-1.0.1 \
     && pecl install mongodb \
+    && pecl install imagick \
     && docker-php-ext-enable mongodb \
     && docker-php-ext-install -j$(nproc) intl bcmath soap zip mbstring exif opcache\
     && docker-php-ext-install -j$(nproc) gd \
-    && docker-php-ext-enable mcrypt opcache
+    && docker-php-ext-enable mcrypt opcache \
+    && docker-php-ext-enable imagick
 
 RUN pecl install xdebug-3.0.0 && docker-php-ext-enable xdebug
 

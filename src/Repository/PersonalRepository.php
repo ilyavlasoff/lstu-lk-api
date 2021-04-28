@@ -107,20 +107,117 @@ class PersonalRepository
         $queryBuilder = $this->entityManager->getConnection()->createQueryBuilder();
         $queryBuilder
             ->update('NPERSONS', 'NP')
-            ->set('NP.MASSAGER', ':MSN')
-            ->set('NP.TELEPHONS', ':PH')
-            ->set('NP.EMAIL', ':EMAIL')
             ->where('NP.OID = :PERSONID')
-            ->setParameter('PH', $newPerson->getPhone())
-            ->setParameter('EMAIL', $newPerson->getEmail())
-            ->setParameter('MSN', $newPerson->getMessenger())
             ->setParameter('PERSONID', $userOid);
+
+        if($updatedEmail = $newPerson->getEmail()) {
+            $queryBuilder
+                ->set('NP.EMAIL', ':EMAIL')
+                ->setParameter('EMAIL', $updatedEmail);
+        };
+
+        if($updatedPhone = $newPerson->getPhone()) {
+            $queryBuilder
+                ->set('NP.TELEPHONS', ':PH')
+                ->setParameter('PH', $updatedPhone);
+        };
+
+        if($updatedMessenger = $newPerson->getMessenger()) {
+            $queryBuilder
+                ->set('NP.MASSAGER', ':MSN')
+                ->setParameter('MSN', $updatedMessenger);
+        };
 
         $queryBuilder->execute();
     }
 
     public function getProfileImage(string $personId) {
-        // TODO: implement
-        return "";
+        $queryBuilder = $this->entityManager->getConnection()->createQueryBuilder();
+        $result = $queryBuilder
+            ->select('NP.PHOTO AS PH')
+            ->from('NPERSONS', 'NP')
+            ->where('NP.OID = :PERSONID')
+            ->setParameter('PERSONID', $personId)
+            ->execute();
+
+        $photoData = $result->fetchAll();
+
+        if(count($photoData) !== 1) {
+            throw new NotFoundException('Photo');
+        }
+
+        return $photoData[0]['PH'];
+    }
+
+    /**
+     * @param string $personId
+     * @param string|null $query
+     * @param int $offset
+     * @param int $limit
+     * @return Person[]
+     * @throws \Doctrine\DBAL\Exception
+     */
+    public function getProfileUsers(string $personId, ?string $query, ?int $offset, ?int $limit): array
+    {
+        $queryBuilder = $this->entityManager->getConnection()->createQueryBuilder();
+        $queryBuilder
+            ->select('NP.OID AS ID, NP.FNAME, NP.FAMILY AS LNAME, NP.MNAME AS PTR, TP.NAME AS POST')
+            ->from('NPERSONS', 'NP')
+            ->leftJoin('NP','T_POSITIONS', 'TP', 'NP.POSITION = TP.OID');
+
+        if($query) {
+            $queryBuilder
+                ->where('LOWER(NP.NAME) LIKE LOWER(:QUERY)')
+                ->setParameter('QUERY', "%$query%");
+        }
+
+        if($limit !== null) {
+            $queryBuilder
+                ->setMaxResults($limit);
+        }
+
+        if($offset !== null) {
+            $queryBuilder
+                ->setFirstResult($offset);
+        }
+        $result = $queryBuilder->execute();
+
+        $foundedPersons = [];
+        while($personData = $result->fetch()) {
+            $person = new Person();
+            $person->setUoid($personData['ID']);
+            $person->setFname($this->stringConverter->capitalize($personData['FNAME']));
+            $person->setLname($this->stringConverter->capitalize($personData['LNAME']));
+            $person->setPatronymic($this->stringConverter->capitalize($personData['PTR']));
+            $person->setPost($personData['POST']);
+            $foundedPersons[] = $person;
+        }
+
+        return $foundedPersons;
+    }
+
+    /**
+     * @param string|null $query
+     * @return mixed
+     * @throws \Doctrine\DBAL\Exception
+     */
+    public function getCountOfPersons(?string $query) {
+        $queryBuilder = $this->entityManager->getConnection()->createQueryBuilder();
+
+        $queryBuilder = $queryBuilder
+            ->select('COUNT(*) CNT')
+            ->from('NPERSONS', 'NP');
+
+        if($query) {
+            $queryBuilder
+                ->where('LOWER(NP.NAME) LIKE LOWER(:QUERY)')
+                ->setParameter('QUERY', "%$query%");
+        }
+
+        $result = $queryBuilder
+            ->execute()
+            ->fetchAll();
+
+        return $result[0]['CNT'];
     }
 }
