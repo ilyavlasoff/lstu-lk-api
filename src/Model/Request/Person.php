@@ -7,24 +7,24 @@ use Symfony\Component\Validator\Constraints as Assert;
 class Person
 {
     /**
-     * @var string
+     * @var string | null
      * @Assert\NotNull(message="Person identifier is was not found")
      * @Assert\NotBlank(message="Person identifier is empty")
      */
     private $personId;
 
     /**
-     * @return string
+     * @return string|null
      */
-    public function getPersonId(): string
+    public function getPersonId(): ?string
     {
         return $this->personId;
     }
 
     /**
-     * @param string $personId
+     * @param string|null $personId
      */
-    public function setPersonId(string $personId): void
+    public function setPersonId(?string $personId): void
     {
         $this->personId = $personId;
     }

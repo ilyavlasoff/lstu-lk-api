@@ -7,24 +7,24 @@ use Symfony\Component\Validator\Constraints as Assert;
 class Discipline
 {
     /**
-     * @var string
+     * @var string | null
      * @Assert\NotNull(message="Discipline field was not found")
      * @Assert\NotBlank(message="Disciplien field can not be blank")
      */
     private $disciplineId;
 
     /**
-     * @return string
+     * @return string|null
      */
-    public function getDisciplineId(): string
+    public function getDisciplineId(): ?string
     {
         return $this->disciplineId;
     }
 
     /**
-     * @param string $disciplineId
+     * @param string|null $disciplineId
      */
-    public function setDisciplineId(string $disciplineId): void
+    public function setDisciplineId(?string $disciplineId): void
     {
         $this->disciplineId = $disciplineId;
     }

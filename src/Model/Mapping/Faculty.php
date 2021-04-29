@@ -4,7 +4,7 @@ namespace App\Model\Mapping;
 
 use JMS\Serializer\Annotation as JMS;
 
-class Teacher
+class Faculty
 {
     /**
      * @var string | null
@@ -12,15 +12,14 @@ class Teacher
     private $id;
 
     /**
-     * @var Person | null
-     * @JMS\Type("App\Model\Mapping\Person")
+     * @var string | null
      */
-    private $person;
+    private $facCode;
 
     /**
      * @var string | null
      */
-    private $position;
+    private $facName;
 
     /**
      * @return string|null
@@ -39,35 +38,35 @@ class Teacher
     }
 
     /**
-     * @return Person|null
+     * @return string|null
      */
-    public function getPerson(): ?Person
+    public function getFacCode(): ?string
     {
-        return $this->person;
+        return $this->facCode;
     }
 
     /**
-     * @param Person|null $person
+     * @param string|null $facCode
      */
-    public function setPerson(?Person $person): void
+    public function setFacCode(?string $facCode): void
     {
-        $this->person = $person;
+        $this->facCode = $facCode;
     }
 
     /**
      * @return string|null
      */
-    public function getPosition(): ?string
+    public function getFacName(): ?string
     {
-        return $this->position;
+        return $this->facName;
     }
 
     /**
-     * @param string|null $position
+     * @param string|null $facName
      */
-    public function setPosition(?string $position): void
+    public function setFacName(?string $facName): void
     {
-        $this->position = $position;
+        $this->facName = $facName;
     }
 
 }

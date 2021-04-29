@@ -17,6 +17,16 @@ class Discipline
     public $name;
 
     /**
+     * @var \App\Model\Mapping\Chair | null
+     */
+    private $chair;
+
+    /**
+     * @var string | null
+     */
+    private $category;
+
+    /**
      * @return string
      */
     public function getId(): string
@@ -46,6 +56,38 @@ class Discipline
     public function setName(string $name): void
     {
         $this->name = $name;
+    }
+
+    /**
+     * @return \App\Model\Mapping\Chair|null
+     */
+    public function getChair(): ?Chair
+    {
+        return $this->chair;
+    }
+
+    /**
+     * @param \App\Model\Mapping\Chair|null $chair
+     */
+    public function setChair(?Chair $chair): void
+    {
+        $this->chair = $chair;
+    }
+
+    /**
+     * @return string|null
+     */
+    public function getCategory(): ?string
+    {
+        return $this->category;
+    }
+
+    /**
+     * @param string|null $category
+     */
+    public function setCategory(?string $category): void
+    {
+        $this->category = $category;
     }
 
 }

@@ -18,7 +18,6 @@ class Achievement
 
     /**
      * @var \DateTime | null
-     * @JMS\Type("DateTime<'Y-m-d\TH:i:s.uT'>")
      */
     private $achievedDate;
 

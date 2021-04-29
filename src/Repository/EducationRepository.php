@@ -7,7 +7,9 @@ use App\Model\Grouping\Day;
 use App\Model\Mapping\Discipline;
 use App\Model\Mapping\Education;
 use App\Model\Mapping\Exam;
+use App\Model\Mapping\Group;
 use App\Model\Mapping\Semester;
+use App\Model\Mapping\Speciality;
 use App\Model\Mapping\Teacher;
 use App\Model\Mapping\TimetableItem;
 use App\Service\StringConverter;
@@ -87,11 +89,19 @@ class EducationRepository
             $educationItem = new Education();
             $educationItem->setId($education['EDU_ID']);
             $educationItem->setStatus($education['EDU_STATUS']);
-            $educationItem->setStart($education['EDU_START'] ? new \DateTime($education['EDU_START']) : null);
-            $educationItem->setEnd($education['EDU_END'] ? new \DateTime($education['EDU_END']) : null);
-            $educationItem->setName($education['EDU_NAME']);
-            $educationItem->setForm($education['EDU_FORM']);
-            $educationItem->setQualification($education['EDU_QLFC']);
+
+            $educateGroup = new Group();
+            $educateGroup->setAdmission($education['EDU_START'] ? new \DateTime($education['EDU_START']) : null);
+            $educateGroup->setGraduation($education['EDU_END'] ? new \DateTime($education['EDU_END']) : null);
+
+            $speciality = new Speciality();
+            $speciality->setSpecName($education['EDU_NAME']);
+            $speciality->setForm($education['EDU_FORM']);
+            $speciality->setQualification($education['EDU_QLFC']);
+
+            $educateGroup->setSpeciality($speciality);
+            $educationItem->setGroup($educateGroup);
+
             $educationList[] = $educationItem;
         }
 
@@ -111,7 +121,7 @@ class EducationRepository
             ->from('ET_GROUPS', 'EG')
             ->innerJoin('EG', 'ET_RCONTINGENTS', 'ER', 'EG.OID = ER.G')
             ->innerJoin('ER', 'ET_CSEMESTERS', 'EC', 'ER.CSEMESTER = EC.OID')
-            ->innerJoin('EC', 'T_SEMKINDS', 'TC', 'EC.SEMKIND = TS.OID')
+            ->innerJoin('EC', 'T_SEMKINDS', 'TS', 'EC.SEMKIND = TS.OID')
             ->where('EG.OID = :GRP')
             ->andWhere('TS.VALUE = CASE WHEN EXTRACT(MONTH FROM CURRENT_DATE) BETWEEN 2 AND 8 THEN \'Весна\' ELSE \'Осень\' END')
             ->andWhere('SUBSTR(EC.NAME, 0, 4) = EXTRACT(YEAR FROM CURRENT_DATE)')
@@ -124,7 +134,7 @@ class EducationRepository
         }
 
         $currentSemester = new Semester();
-        $currentSemester->setOid($semesters[0]['SEMID']);
+        $currentSemester->setId($semesters[0]['SEMID']);
 
         return $currentSemester;
     }
@@ -153,7 +163,7 @@ class EducationRepository
         $semesterList = [];
         while($semester = $result->fetch()) {
             $semesterItem = new Semester();
-            $semesterItem->setOid($semester['SEM_OID']);
+            $semesterItem->setId($semester['SEM_OID']);
             $semesterItem->setYear($semester['YEAR']);
             $semesterItem->setSeason($semester['SEASON']);
             $semesterList[] = $semesterItem;

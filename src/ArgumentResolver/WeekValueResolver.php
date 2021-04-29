@@ -12,14 +12,11 @@ use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 class WeekValueResolver implements ArgumentValueResolverInterface
 {
-    private $serializer;
-
     private $validator;
 
-    public function __construct(SerializerInterface $serializer, ValidatorInterface $validator)
+    public function __construct(ValidatorInterface $validator)
     {
         $this->validator = $validator;
-        $this->serializer = $serializer;
     }
 
     public function supports(Request $request, ArgumentMetadata $argument)
@@ -29,8 +26,8 @@ class WeekValueResolver implements ArgumentValueResolverInterface
 
     public function resolve(Request $request, ArgumentMetadata $argument)
     {
-        /** @var \App\Model\Request\Week $week */
-        $week = $this->serializer->deserialize($request->getContent(), Week::class, 'json');
+        $week = new Week();
+        $week->setWeekName($request->query->get('week'));
 
         $errors = $this->validator->validate($week);
         if(count($errors) > 0) {

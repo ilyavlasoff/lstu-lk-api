@@ -10,9 +10,14 @@ class WorkAnswer
     private $score;
 
     /**
-     * @var WorkAttachment[]
+     * @var \App\Model\Mapping\Attachment[]
      */
     private $attachments;
+
+    /**
+     * @var \App\Model\Mapping\ExternalLink[]
+     */
+    private $extLinks;
 
     /**
      * @return float
@@ -31,7 +36,7 @@ class WorkAnswer
     }
 
     /**
-     * @return WorkAttachment[]
+     * @return \App\Model\Mapping\Attachment[]
      */
     public function getAttachments(): array
     {
@@ -39,7 +44,7 @@ class WorkAnswer
     }
 
     /**
-     * @param WorkAttachment[] $attachments
+     * @param \App\Model\Mapping\Attachment[] $attachments
      */
     public function setAttachments(array $attachments): void
     {
@@ -47,10 +52,35 @@ class WorkAnswer
     }
 
     /**
-     * @param WorkAttachment $attachment
+     * @param \App\Model\Mapping\Attachment $attachment
      */
-    public function addAttachment(WorkAttachment $attachment): void
+    public function addAttachment(Attachment $attachment): void
     {
         $this->attachments[] = $attachment;
     }
+
+    /**
+     * @return \App\Model\Mapping\ExternalLink[]
+     */
+    public function getExtLinks(): array
+    {
+        return $this->extLinks;
+    }
+
+    /**
+     * @param \App\Model\Mapping\ExternalLink[] $extLinks
+     */
+    public function setExtLinks(array $extLinks): void
+    {
+        $this->extLinks = $extLinks;
+    }
+
+    /**
+     * @param \App\Model\Mapping\ExternalLink $extLink
+     */
+    public function addExtLink(ExternalLink $extLink): void
+    {
+        $this->extLinks[] = $extLink;
+    }
+
 }

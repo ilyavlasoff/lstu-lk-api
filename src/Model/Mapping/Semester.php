@@ -8,37 +8,33 @@ class Semester
 {
     /**
      * @var string
-     * @JMS\Type("string")
-     * @JMS\Groups("Default", "idOnly")
      */
-    private $oid;
+    private $id;
 
     /**
      * @var string|null
-     * @JMS\Type("string")
      */
     private $year;
 
     /**
      * @var string|null
-     * @JMS\Type("string")
      */
     private $season;
 
     /**
      * @return string
      */
-    public function getOid(): string
+    public function getId(): string
     {
-        return $this->oid;
+        return $this->id;
     }
 
     /**
-     * @param string $oid
+     * @param string $id
      */
-    public function setOid(string $oid): void
+    public function setId(string $id): void
     {
-        $this->oid = $oid;
+        $this->id = $id;
     }
 
     /**

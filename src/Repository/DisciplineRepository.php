@@ -2,17 +2,18 @@
 
 namespace App\Repository;
 
-use App\Model\Mapping\AcademicSubject;
+use App\Exception\NotFoundException;
 use App\Model\Mapping\Attachment;
+use App\Model\Mapping\Chair;
 use App\Model\Mapping\Discipline;
 use App\Model\Mapping\DiscussionMessage;
 use App\Model\Mapping\ExternalLink;
+use App\Model\Mapping\Faculty;
 use App\Model\Mapping\Person;
 use App\Model\Mapping\StudentWork;
 use App\Model\Mapping\Teacher;
 use App\Model\Mapping\TimetableItem;
 use App\Model\Mapping\WorkAnswer;
-use App\Model\Mapping\WorkAttachment;
 use App\Service\StringConverter;
 use Doctrine\DBAL\FetchMode;
 use Doctrine\ORM\EntityManagerInterface;
@@ -43,6 +44,60 @@ class DisciplineRepository
             ->fetchAll(FetchMode::COLUMN);
 
         return count($dis) === 1;
+    }
+
+    /**
+     * @param string $discipline
+     * @return \App\Model\Mapping\Discipline
+     * @throws \Doctrine\DBAL\Exception
+     */
+    public function getDiscipline(string $discipline): Discipline
+    {
+        $queryBuilder = $this->entityManager->getConnection()->createQueryBuilder();
+
+        $disciplineRows = $queryBuilder
+            ->select('EDIS.OID AS DIS_ID, 
+                EDIS.NAME AS DIS_NAME, 
+                EDISCAT.NAME AS DISCAT_NAME, 
+                ECH.OID AS CH_ID, 
+                ECH.VALUE AS CH_NAME,
+                ED.OID AS FAC_ID,
+                ED.NAME AS FAC_ABBR,
+                ED.VALUE AS FAC_NAME
+            ')
+            ->from('ET_DISCIPLINES', 'EDIS')
+            ->leftJoin('EDIS', 'ET_CHAIRS', 'ECH', 'EDIS.CHAIR = ECH.OID')
+            ->leftJoin('ECH', 'ET_DEANS', 'ED', 'ECH.FACULTY = ED.OID')
+            ->leftJoin('EDIS', 'ET_DISCATEGORIES', 'EDISCAT', 'EDIS.DISCATEGORY = EDISCAT.OID')
+            ->where('EDIS.OID = :DISCIPLINE')
+            ->setParameter('DISCIPLINE', $discipline)
+            ->execute()
+            ->fetchAll();
+
+        if(count($disciplineRows) !== 1) {
+            throw new NotFoundException('Discipline');
+        }
+
+        $disciplineData = $disciplineRows[0];
+
+        $discipline = new Discipline();
+        $discipline->setId($disciplineData['DIS_ID']);
+        $discipline->setName($disciplineData['DIS_NAME']);
+        $discipline->setCategory($disciplineData['DISCAT_NAME']);
+
+        $chair = new Chair();
+        $chair->setId($disciplineData['CH_ID']);
+        $chair->setChairName($disciplineData['CH_NAME']);
+
+        $faculty = new Faculty();
+        $faculty->setId($disciplineData['FAC_ID']);
+        $faculty->setFacName($disciplineData['FAC_NAME']);
+        $faculty->setFacCode($disciplineData['FAC_ABBR']);
+
+        $chair->setFaculty($faculty);
+        $discipline->setChair($chair);
+
+        return $discipline;
     }
 
     /**
@@ -349,14 +404,18 @@ class DisciplineRepository
                 $work->setAnswer($answer);
             }
 
-            if($workRow['ATT_ID'] || $workRow['ATT_DOC_KB'] || $workRow['ATT_FILENAME'] || $workRow['ATT_TITLE'] || $workRow['ATT_EXT']) {
-                $workAttachment = new WorkAttachment();
-                $workAttachment->setAttachmentId($workRow['ATT_ID']);
-                $workAttachment->setFileSize($workRow['ATT_DOC_KB']);
-                $workAttachment->setFileName($workRow['ATT_FILENAME']);
-                $workAttachment->setDisplayedName($workRow['ATT_TITLE']);
-                $workAttachment->setExternalLink($workRow['ATT_EXT']);
+            if($workRow['ATT_DOC_KB'] || $workRow['ATT_FILENAME']) {
+                $workAttachment = new Attachment();
+                $workAttachment->setAttachmentSize($workRow['ATT_DOC_KB']);
+                $workAttachment->setAttachmentName($workRow['ATT_FILENAME']);
                 $work->getAnswer()->addAttachment($workAttachment);
+            }
+
+            if($workRow['ATT_TITLE'] || $workRow['ATT_EXT']) {
+                $externalLink = new ExternalLink();
+                $externalLink->setLinkText($workRow['ATT_TITLE']);
+                $externalLink->setLinkContent($workRow['ATT_EXT']);
+                $work->getAnswer()->addExtLink($externalLink);
             }
         }
 
@@ -372,14 +431,15 @@ class DisciplineRepository
     public function getDisciplinesBySemester(string $groupId, string $semesterId): array
     {
         $queryBuilder = $this->entityManager->getConnection()->createQueryBuilder();
-        $result = $queryBuilder->select('EDIS.OID as DISCIPLINE_ID, EDIS.NAME AS DISCIPLINE_NAME, ECH.VALUE AS CHAIR_NAME')
+        //$result = $queryBuilder->select('EDIS.OID as DISCIPLINE_ID, EDIS.NAME AS DISCIPLINE_NAME, ECH.VALUE AS CHAIR_NAME')
+        $result = $queryBuilder->select('EDIS.OID as DISCIPLINE_ID, EDIS.NAME AS DISCIPLINE_NAME')
             ->from('ET_RCONTINGENTS', 'ER')
             ->innerJoin('ER', 'ET_GROUPS', 'EG', 'ER.G = EG.OID')
             ->innerJoin('ER', 'ET_CSEMESTERS', 'ECSEM', 'ER.CSEMESTER = ECSEM.OID')
             ->innerJoin('ER', 'ET_CURRICULUMS', 'EC', 'ER.PLAN = EC.OID')
             ->innerJoin('EC', 'ET_DSPLANS', 'ED', $queryBuilder->expr()->andX('EC.OID = ED.EPLAN', 'ED.SEMESTER = ER.SEMESTER'))
             ->innerJoin('ED', 'ET_DISCIPLINES', 'EDIS', 'ED.DISCIPLINE = EDIS.OID')
-            ->leftJoin('ED', 'ET_CHAIRS', 'ECH', 'ED.CHAIR = ECH.OID')
+            //->leftJoin('ED', 'ET_CHAIRS', 'ECH', 'ED.CHAIR = ECH.OID')
             ->where('EG.OID = :GROUPID')
             ->andWhere('ECSEM.OID = :SEMESTERID')
             ->setParameter('GROUPID', $groupId)
@@ -389,12 +449,12 @@ class DisciplineRepository
         $subjectList = [];
         while($subject = $result->fetch())
         {
-            $subjectItem = new AcademicSubject();
-            $subjectItem->setSubjectName($subject['DISCIPLINE_NAME'] ?
+            $subjectItem = new Discipline();
+            $subjectItem->setName($subject['DISCIPLINE_NAME'] ?
                 $this->stringConverter->capitalize($subject['DISCIPLINE_NAME']) : null);
-            $subjectItem->setChairName($subject['CHAIR_NAME'] ?
-                $this->stringConverter->capitalize($subject['CHAIR_NAME']) : null);
-            $subjectItem->setSubjectId($subject['DISCIPLINE_ID']);
+            /*$subjectItem->setChairName($subject['CHAIR_NAME'] ?
+                $this->stringConverter->capitalize($subject['CHAIR_NAME']) : null);*/
+            $subjectItem->setId($subject['DISCIPLINE_ID']);
             $subjectList[] = $subjectItem;
         }
 

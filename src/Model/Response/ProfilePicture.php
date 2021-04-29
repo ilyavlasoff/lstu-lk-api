@@ -8,13 +8,11 @@ class ProfilePicture
 {
     /**
      * @var string
-     * @JMS\Type("string")
      */
     private $person;
 
     /**
      * @var string
-     * @JMS\Type("string")
      */
     private $profilePicture;
 

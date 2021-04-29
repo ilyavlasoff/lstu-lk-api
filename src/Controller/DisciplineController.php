@@ -7,7 +7,6 @@ use App\Exception\AccessDeniedException;
 use App\Exception\DataAccessException;
 use App\Model\Grouping\Day;
 use App\Model\Grouping\Week;
-use App\Model\Mapping\AcademicSubject;
 use App\Model\Mapping\TimetableItem;
 use App\Model\Request\Discipline;
 use App\Model\Request\Education;
@@ -90,15 +89,17 @@ class DisciplineController extends AbstractRestController
      *     )
      * )
      * @param \App\Model\Request\Discipline $discipline
-     * @param \App\Model\Request\Education $education
-     * @param \App\Model\Request\Semester $semester
      * @return \Symfony\Component\HttpFoundation\JsonResponse
      */
-    public function discipline(Discipline $discipline, Education $education, Semester $semester): JsonResponse
+    public function discipline(Discipline $discipline): JsonResponse
     {
-        // TODO: Needs to implement
+        try {
+            $discipline = $this->disciplineRepository->getDiscipline($discipline->getDisciplineId());
+        } catch (Exception $e) {
+            throw new DataAccessException($e);
+        }
 
-        return $this->responseSuccessWithObject([]);
+        return $this->responseSuccessWithObject($discipline);
     }
 
     /**
@@ -118,7 +119,11 @@ class DisciplineController extends AbstractRestController
             throw new DataAccessException($e);
         }
 
-        return $this->responseSuccessWithObject($teachersDiscipline);
+        $disciplineTeachersList = new ListedResponse();
+        $disciplineTeachersList->setCount(count($teachersDiscipline));
+        $disciplineTeachersList->setPayload($teachersDiscipline);
+
+        return $this->responseSuccessWithObject($disciplineTeachersList);
     }
 
     /**
@@ -278,7 +283,7 @@ class DisciplineController extends AbstractRestController
      *     @OA\Response(
      *          response="200",
      *          description="Массив объектов семестра",
-     *          @OA\JsonContent(type="array", @OA\Items(ref=@Model(type=AcademicSubject::class, groups={"Default"}))))
+     *          @OA\JsonContent(type="array", @OA\Items(ref=@Model(type=Discipline::class, groups={"Default"}))))
      *     )
      * )
      *
@@ -301,6 +306,10 @@ class DisciplineController extends AbstractRestController
             throw new DataAccessException($e);
         }
 
-        return $this->responseSuccessWithObject($semesterSubjects);
+        $disciplineList = new ListedResponse();
+        $disciplineList->setCount(count($semesterSubjects));
+        $disciplineList->setPayload($semesterSubjects);
+
+        return $this->responseSuccessWithObject($disciplineList);
     }
 }

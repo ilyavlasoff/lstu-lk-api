@@ -50,8 +50,9 @@ class TimetableController extends AbstractRestController
         try {
             $groupId = $personalRepository->getGroupByContingent($education->getEducationId());
 
-            if($week) {
-                $weekCode = $this->timetableRepository->getWeekByName($week->getWeekName());
+            $weekName = $week->getWeekName();
+            if($weekName) {
+                $weekCode = $this->timetableRepository->getWeekByName($weekName);
                 $timetable = $this->timetableRepository->getTimetable($groupId, $semester->getSemesterId(), $weekCode);
             } else {
                 $timetable = $this->timetableRepository->getTimetable($groupId, $semester->getSemesterId());

@@ -8,19 +8,16 @@ class AuthenticationData
 {
     /**
      * @var string
-     * @JMS\Type("string")
      */
     private $jwtToken;
 
     /**
      * @var string
-     * @JMS\Type("string")
      */
     private $refreshToken;
 
     /**
      * @var array
-     * @JMS\Type("array")
      */
     private $roles;
 

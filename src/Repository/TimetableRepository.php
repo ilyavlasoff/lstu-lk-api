@@ -97,21 +97,6 @@ class TimetableRepository
 
         $timetableUnmapped = [];
         while($timetableItem = $result->fetch()) {
-            $discipline = new Discipline();
-            $discipline->setId($timetableItem['DISCIPLINE_OID']);
-            $discipline->setName($this->stringConverter->capitalize($timetableItem['DISCIPLINE']));
-
-            $teacherPerson = new Person();
-            $teacherPerson->setUoid($timetableItem['TCH_PERSON']);
-            $teacherPerson->setLname($this->stringConverter->capitalize($timetableItem['TCH_LNAME']));
-            $teacherPerson->setFname($this->stringConverter->capitalize($timetableItem['TCH_FNAME']));
-            $teacherPerson->setPatronymic($this->stringConverter->capitalize($timetableItem['TTCH_PTR']));
-
-            $teacher = new Teacher();
-            $teacher->setId($timetableItem['TEACHER_OID']);
-            $teacher->setPerson($teacherPerson);
-            $teacher->setPosition($timetableItem['TCH_POST']);
-
             $tti = new TimetableItem();
             $tti->setLessonNumber($timetableItem['LESSON_NUM']);
             $tti->setBeginTime($timetableItem['TIME_START']);
@@ -119,8 +104,25 @@ class TimetableRepository
             $tti->setCampus($timetableItem['CAMPUS']);
             $tti->setRoom($timetableItem['ROOM']);
             $tti->setLessonType($timetableItem['CLASS_TYPE']);
+
+            $discipline = new Discipline();
+            $discipline->setId($timetableItem['DISCIPLINE_OID']);
+            $discipline->setName($this->stringConverter->capitalize($timetableItem['DISCIPLINE']));
             $tti->setDiscipline($discipline);
-            $tti->setTeacher($teacher);
+
+            if($timetableItem['TEACHER_OID']) {
+                $teacherPerson = new Person();
+                $teacherPerson->setUoid($timetableItem['TCH_PERSON']);
+                $teacherPerson->setLname($this->stringConverter->capitalize($timetableItem['TCH_LNAME']));
+                $teacherPerson->setFname($this->stringConverter->capitalize($timetableItem['TCH_FNAME']));
+                $teacherPerson->setPatronymic($this->stringConverter->capitalize($timetableItem['TTCH_PTR']));
+
+                $teacher = new Teacher();
+                $teacher->setId($timetableItem['TEACHER_OID']);
+                $teacher->setPerson($teacherPerson);
+                $teacher->setPosition($timetableItem['TCH_POST']);
+                $tti->setTeacher($teacher);
+            }
 
             $week = $timetableItem['WEEK'];
             $weekday = $timetableItem['WEEKDAY'];
