@@ -199,7 +199,7 @@ class PersonalController extends AbstractRestController
                 $imagick->readImage($parameterBag->get('images_path') . 'user_default.png');
             }
 
-            $imageConverter->convert($imagick, $userPicRequest->getImageSize());
+            $imageConverter->convert($imagick, $userPicRequest->getImageSize(), true);
 
             $convertedImageBlob = $imagick->getImagesBlob();
         } catch (\ImagickException $e) {

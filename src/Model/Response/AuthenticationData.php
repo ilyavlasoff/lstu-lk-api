@@ -8,6 +8,7 @@ class AuthenticationData
 {
     /**
      * @var string
+     * @JMS\SerializedName("token")
      */
     private $jwtToken;
 

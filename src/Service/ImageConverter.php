@@ -7,7 +7,7 @@ class ImageConverter
     /**
      * @throws \ImagickException
      */
-    public function convert(\Imagick $image, ?string $type): \Imagick
+    public function convert(\Imagick $image, ?string $type, bool $cropToSquare): \Imagick
     {
         if($type === 'original') {
             return $image;
@@ -19,21 +19,27 @@ class ImageConverter
             'lg' => 800
         ];
 
-        $maxSize = array_key_exists($type, $sizing) ? $sizing[$type] : 800;
+        $resizedWidth = $resizedHeight = array_key_exists($type, $sizing) ? $sizing[$type] : 800;
 
         $height = $image->getImageHeight();
         $width = $image->getImageWidth();
-        if($height === $width) {
-            $resizedWidth = $resizedHeight = $maxSize;
-        } elseif($height > $width) {
-            $resizedHeight = $maxSize;
-            $resizedWidth = floor(($width * $resizedHeight) / $height);
+
+        $dl = $height - $width;
+        if($cropToSquare) {
+            if($dl > 0) {
+                $image->cropImage($width, $width, 0, $dl / 2);
+            } elseif($dl < 0) {
+                $image->cropImage($height, $height, $dl / 2, 0);
+            }
         } else {
-            $resizedWidth = $maxSize;
-            $resizedHeight = floor(($resizedWidth * $height) / $width);
+            if ($dl > 0) {
+                $resizedWidth = floor(($width * $resizedHeight) / $height);
+            } elseif($dl < 0) {
+                $resizedHeight = floor(($resizedWidth * $height) / $width);
+            }
         }
 
-        $image->resizeImage($resizedWidth, $resizedHeight, \Imagick::FILTER_GAUSSIAN, 0);
+        $image->resizeImage($resizedWidth, $resizedHeight, \Imagick::FILTER_LANCZOS, 0.9, false);
 
         return $image;
     }
