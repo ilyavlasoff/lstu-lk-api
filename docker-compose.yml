@@ -34,6 +34,8 @@ services:
     restart: always
     links:
       - mongodb
+    depends_on:
+      - rabbitmq
   mongodb:
     container_name: lk_mongo
     image: mongo
@@ -44,3 +46,17 @@ services:
     environment:
       MONGO_INITDB_ROOT_USERNAME: usr
       MONGO_INITDB_ROOT_PASSWORD: passwd
+  rabbitmq:
+    image: rabbitmq:3.5-management
+    container_name: rabbitmq
+    volumes:
+      - ./docker/rabbit/etc/:/etc/rabbitmq/
+      - ./docker/rabbit/data/:/var/lib/rabbitmq/
+      - ./docker/rabbit/logs/:/var/log/rabbitmq/
+    environment:
+      RABBITMQ_DEFAULT_USER: rabbit
+      RABBITMQ_DEFAULT_PASS: passwd
+    ports:
+      - 5672:5672
+      - 15672:15672
+
