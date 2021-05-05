@@ -111,17 +111,18 @@ class DisciplineRepository
     {
         $queryBuilder = $this->entityManager->getConnection()->createQueryBuilder();
         $result = $queryBuilder
-            ->select('TT.TEACHER AS TCH_OID, TTCH.FIRSTNAME AS FNAME, TTCH.SURNAME AS LNAME, 
+            ->select('TT.TEACHER AS TCH_OID, NP.OID AS TCH_PERSON, TTCH.FIRSTNAME AS FNAME, TTCH.SURNAME AS LNAME, 
             TTCH.PATRONYMIC AS PTR, ED.ABBR AS TEACHER_POST, EDIS.OID AS DIS_ID, EDIS.NAME AS DISCIPLINE, T.VALUE AS LESSON_TYPE')
             ->from('T_TIMETABLE', 'TT')
             ->innerJoin('TT', 'ET_DISCIPLINES', 'EDIS', 'TT.DISCIPLINE = EDIS.OID')
             ->leftJoin('TT', 'T_TKINDS', 'T', 'TT.TKIND = T.OID')
             ->innerJoin('TT', 'T_TEACHERS', 'TTCH', 'TT.TEACHER = TTCH.OID')
+            ->innerJoin('TTCH', 'NPERSONS', 'NP', 'TTCH.C_OID = NP.OID')
             ->leftJoin('TTCH', 'ET_DOLTIMETABLE', 'ED', 'TTCH.DOLTIMETABLE = ED.OID')
             ->where('TT.CSEMESTER = :SEMESTER')
             ->andWhere('TT.G = :GROUP')
             ->andWhere('TT.DISCIPLINE = :DISCIPLINE')
-            ->groupBy('TT.TEACHER, TTCH.FIRSTNAME, TTCH.SURNAME, TTCH.PATRONYMIC, ED.ABBR, EDIS.OID, EDIS.NAME, T.VALUE')
+            ->groupBy('TT.TEACHER, TTCH.FIRSTNAME, NP.OID, TTCH.SURNAME, TTCH.PATRONYMIC, ED.ABBR, EDIS.OID, EDIS.NAME, T.VALUE')
             ->setParameter('SEMESTER', $semester)
             ->setParameter('GROUP', $group)
             ->setParameter('DISCIPLINE', $discipline)
@@ -134,6 +135,7 @@ class DisciplineRepository
             $discipline->setName($this->stringConverter->capitalize($teacherRow['DISCIPLINE']));
 
             $teacherPerson = new Person();
+            $teacherPerson->setUoid($teacherRow['TCH_PERSON']);
             $teacherPerson->setFname($teacherRow['FNAME']);
             $teacherPerson->setLname($teacherRow['LNAME']);
             $teacherPerson->setPatronymic($teacherRow['PTR']);
