@@ -4,7 +4,7 @@ namespace App\Exception;
 
 use Symfony\Component\HttpFoundation\Response;
 
-class SystemException extends AbstractRestException
+class SystemException extends RestException
 {
     public function __construct(\Throwable $previous = null)
     {

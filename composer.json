@@ -7,8 +7,10 @@
         "php": ">=7.2.5",
         "ext-ctype": "*",
         "ext-iconv": "*",
+        "ext-imagick": "*",
         "ext-json": "*",
         "ext-mysql_xdevapi": "*",
+        "ext-sockets": "*",
         "composer/package-versions-deprecated": "1.11.99.1",
         "doctrine/annotations": "^1.12",
         "doctrine/doctrine-bundle": "^2.3",
@@ -18,6 +20,7 @@
         "jms/serializer-bundle": "^3.9",
         "lexik/jwt-authentication-bundle": "^2.11",
         "nelmio/api-doc-bundle": "^4.2",
+        "php-amqplib/php-amqplib": "^3.0",
         "symfony/asset": "5.2.*",
         "symfony/console": "5.2.*",
         "symfony/dotenv": "5.2.*",
@@ -30,8 +33,7 @@
         "symfony/yaml": "5.2.*",
         "twig/extra-bundle": "^2.12|^3.0",
         "twig/twig": "^2.12|^3.0",
-        "zircote/swagger-php": "^3.1",
-      "ext-imagick": "*"
+        "zircote/swagger-php": "^3.1"
     },
     "config": {
         "optimize-autoloader": true,

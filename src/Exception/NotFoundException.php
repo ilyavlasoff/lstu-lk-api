@@ -4,7 +4,7 @@ namespace App\Exception;
 
 use Symfony\Component\HttpFoundation\Response;
 
-class NotFoundException extends AbstractRestException
+class NotFoundException extends RestException
 {
     public function __construct(string $objectName = "")
     {

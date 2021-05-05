@@ -2,46 +2,40 @@
 
 namespace App\EventListener;
 
-use App\Exception\ISystemException;
-use App\Exception\IUserException;
-use App\Model\Response\Exception\SystemExceptionWarning;
+use App\Exception\RestException;
+use JMS\Serializer\SerializationContext;
 use JMS\Serializer\SerializerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Event\ExceptionEvent;
-use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
+use Symfony\Component\HttpKernel\KernelInterface;
 
 class ExceptionListener
 {
     private $serializer;
+    private $environment;
 
-    public function __construct(SerializerInterface $serializer) {
+    public function __construct(SerializerInterface $serializer, KernelInterface $kernel) {
         $this->serializer = $serializer;
+        $this->environment = $kernel->getEnvironment();
     }
 
-    public function onExceptionJsonResponse(ExceptionEvent $exceptionEvent) {
+    public function onKernelException(ExceptionEvent $exceptionEvent) {
         $exception = $exceptionEvent->getThrowable();
 
-        $jsonResponse = new JsonResponse();
-
-        if ($exception instanceof ISystemException) {
-            $errorData = $exception->toSystemExceptionWarning();
-        }
-        elseif ($exception instanceof IUserException) {
-            $errorData = $exception->toUserExceptionWarning();
-        } else {
-            $errorData = new SystemExceptionWarning();
-            if($exception instanceof HttpExceptionInterface) {
-                $jsonResponse->setStatusCode($exception->getStatusCode());
-                $jsonResponse->headers->replace($exception->getHeaders());
+        if(!$exception instanceof RestException) {
+            if($this->environment === 'dev') {
+                $exception = new RestException('DEBUG_ERROR', $exception->getMessage());
             } else {
-                $jsonResponse->setStatusCode(Response::HTTP_INTERNAL_SERVER_ERROR);
-                $errorData->setError('ERR_INTERNAL');
-                $errorData->setMessage('Internal server error');
+                $exception = new RestException('ERR_INTERNAL', 'Internal server error');
             }
-
         }
 
-        $jsonResponse->setContent($this->serializer->serialize($errorData, 'json'));
+        $jsonResponse = new JsonResponse();
+        $errorData = $this->serializer->serialize(
+            $exception, 'json', (new SerializationContext())->setGroups('rest-response'));
+        $jsonResponse->setStatusCode($exception->getStatusCode());
+        $jsonResponse->setContent($errorData);
+        $exceptionEvent->setResponse($jsonResponse);
     }
 }

@@ -2,7 +2,7 @@
 
 namespace App\Repository;
 
-use App\Exception\AbstractRestException;
+use App\Exception\RestException;
 use App\Exception\DataAccessException;
 use App\Exception\DuplicateValueException;
 use App\Exception\NotFoundException;

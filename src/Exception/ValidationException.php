@@ -5,7 +5,7 @@ namespace App\Exception;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Validator\ConstraintViolationListInterface;
 
-class ValidationException extends AbstractRestException
+class ValidationException extends RestException
 {
     public function __construct(ConstraintViolationListInterface $violationList, string $objectName = "")
     {

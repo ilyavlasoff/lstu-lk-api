@@ -4,7 +4,7 @@ namespace App\Exception;
 
 use Symfony\Component\HttpFoundation\Response;
 
-class AccessDeniedException extends AbstractRestException
+class AccessDeniedException extends RestException
 {
     public function __construct(string $resourceName = "")
     {

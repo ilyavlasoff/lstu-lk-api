@@ -76,7 +76,9 @@ RUN apt-get update -y && apt-get upgrade -y && apt-get install -y \
     && docker-php-ext-install -j$(nproc) intl bcmath soap zip mbstring exif opcache\
     && docker-php-ext-install -j$(nproc) gd \
     && docker-php-ext-enable mcrypt opcache \
-    && docker-php-ext-enable imagick
+    && docker-php-ext-enable imagick \
+    && docker-php-ext-install sockets \
+    && docker-php-ext-enable sockets
 
 RUN pecl install xdebug-3.0.0 && docker-php-ext-enable xdebug
 

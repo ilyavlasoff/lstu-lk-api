@@ -3,7 +3,7 @@
 namespace App\Controller;
 
 use App\Document\User;
-use App\Exception\AbstractRestException;
+use App\Exception\RestException;
 use App\Exception\DataAccessException;
 use App\Exception\InvalidCredentialsException;
 use App\Exception\ValidationException;

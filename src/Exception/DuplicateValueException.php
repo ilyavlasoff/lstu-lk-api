@@ -4,7 +4,7 @@ namespace App\Exception;
 
 use Symfony\Component\HttpFoundation\Response;
 
-class DuplicateValueException extends AbstractRestException
+class DuplicateValueException extends RestException
 {
     public function __construct(string $resourceName = "")
     {
