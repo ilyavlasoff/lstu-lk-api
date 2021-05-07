@@ -7,11 +7,17 @@ use App\Exception\AccessDeniedException;
 use App\Exception\DataAccessException;
 use App\Model\Grouping\Day;
 use App\Model\Grouping\Week;
+use App\Model\Mapping\Attachment;
+use App\Model\Mapping\BinaryFile;
+use App\Model\Mapping\DiscussionMessage;
 use App\Model\Mapping\TimetableItem;
 use App\Model\Request\Discipline;
 use App\Model\Request\Education;
+use App\Model\Request\Message;
 use App\Model\Request\Paginator;
 use App\Model\Request\Semester;
+use App\Model\Request\SendingDiscussionMessage;
+use App\Model\Request\WithJsonFlag;
 use App\Model\Response\ListedResponse;
 use App\Model\Response\Timetable;
 use App\Repository\DisciplineRepository;
@@ -19,6 +25,7 @@ use App\Repository\EducationRepository;
 use App\Repository\PersonalRepository;
 use App\Repository\TimetableRepository;
 use Doctrine\DBAL\Exception;
+use Doctrine\DBAL\Types\BlobType;
 use JMS\Serializer\SerializationContext;
 use JMS\Serializer\SerializerInterface;
 use Nelmio\ApiDocBundle\Annotation\Model;
@@ -201,10 +208,86 @@ class DisciplineController extends AbstractRestController
 
     /**
      * @Route("/chat/add", name="discipline-chat-add", methods={"POST"})
+     *
+     * @param SendingDiscussionMessage $message
+     * @param Education $education
+     * @param Discipline $discipline
+     * @param Semester $semester
+     * @param PersonalRepository $personalRepository
+     * @return JsonResponse
      */
-    public function disciplineChatMessagesAdd(Request $request)
+    public function disciplineChatMessagesAdd(
+        SendingDiscussionMessage $message,
+        Education $education,
+        Discipline $discipline,
+        Semester $semester,
+        PersonalRepository $personalRepository
+    ): JsonResponse {
+        /** @var User $user */
+        $user = $this->getUser();
+
+        try {
+            $group = $personalRepository->getGroupByContingent($education->getEducationId());
+            $isAllowed = $this->disciplineRepository->isUserAllowedToSendMessageToDisciplineChat($user->getDbOid(), $semester->getSemesterId(), $group, $discipline->getDisciplineId());
+
+            if(!$isAllowed) {
+                throw new AccessDeniedException('Discipline chat');
+            }
+        } catch (Exception | \Doctrine\DBAL\Driver\Exception $e) {
+            throw new DataAccessException($e);
+        }
+
+        $messageText = $message->getMsg();
+        $attachments = array_map(function (Attachment $att) {
+            return $att->toBinary();
+        }, $message->getAttachments());
+        $links = $message->getExternalLinks();
+
+        try {
+            $msgId = $this->disciplineRepository->addNewDisciplineDiscussionMessage(
+                $messageText,
+                $attachments,
+                $links,
+                $user->getDbOid(),
+                $semester->getSemesterId(),
+                $discipline->getDisciplineId(),
+                $group
+            );
+        } catch (Exception $e) {
+            throw new DataAccessException($e);
+        }
+
+        $addedMessage = new DiscussionMessage();
+        $addedMessage->setId($msgId);
+
+        return $this->responseSuccessWithObject($addedMessage);
+    }
+
+    /**
+     * @Route("/chat/attachment", name="discipline-chat-add", methods={"POST"})
+     *
+     * @param BinaryFile $file
+     * @param Message $message
+     * @return JsonResponse
+     */
+    public function disciplineChatAttachmentAdd(BinaryFile $file, Message $message): JsonResponse
     {
-        // TODO: implement
+        /** @var User $user */
+        $user = $this->getUser();
+
+        try {
+            $isBelongs = $this->disciplineRepository->isMessageBelongsToUser($message->getMsg(), $user->getDbOid());
+
+            if(!$isBelongs) {
+                throw new AccessDeniedException('Message');
+            }
+
+            $this->disciplineRepository->addAttachmentToMessage($message->getMsg(), $file);
+        } catch (Exception $e) {
+            throw new DataAccessException($e);
+        }
+
+        return $this->responseSuccess();
     }
 
     /**
@@ -212,19 +295,19 @@ class DisciplineController extends AbstractRestController
      * @param Discipline $discipline
      * @param Education $education
      * @param Semester $semester
-     * @param DisciplineRepository $disciplineRepository
+     * @param WithJsonFlag $withJsonFlag
      * @return JsonResponse
      */
     public function disciplineMaterials(
         Discipline $discipline,
         Education $education,
         Semester$semester,
-        DisciplineRepository $disciplineRepository
+        WithJsonFlag $withJsonFlag
     ): JsonResponse
     {
         try {
-            $materials = $disciplineRepository->getDisciplineTeachingMaterials(
-                $discipline->getDisciplineId(), $education->getEducationId(), $semester->getSemesterId());
+            $materials = $this->disciplineRepository->getDisciplineTeachingMaterials(
+                $discipline->getDisciplineId(), $education->getEducationId(), $semester->getSemesterId(), $withJsonFlag->getWithJsonData());
         } catch (Exception $e) {
             throw new DataAccessException();
         }
@@ -234,6 +317,15 @@ class DisciplineController extends AbstractRestController
         $listedResponse->setPayload($materials);
 
         return $this->responseSuccessWithObject($listedResponse);
+    }
+
+    /**
+     * @Route("/materials/content", name="discipline-materials-content", methods={"GET"})
+     */
+    public function disciplineMaterialsFileDownload()
+    {
+        $att = $this->disciplineRepository->getTeachingMaterialsAttachment('5:93490744');
+        var_dump(gettype($att));
     }
 
     /**

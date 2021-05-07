@@ -20,9 +20,19 @@ class Attachment
     private $attachmentSize;
 
     /**
-     * @var resource
+     * @var string | null
      */
-    private $attachment;
+    private $b64attachment;
+
+    /**
+     * @return BinaryFile
+     */
+    public function toBinary(): BinaryFile {
+        $binaryFile = new BinaryFile();
+        $binaryFile->setFilename($this->attachmentName);
+        $binaryFile->setFileContent(base64_decode($this->b64attachment));
+        return $binaryFile;
+    }
 
     /**
      * @return string|null
@@ -73,19 +83,19 @@ class Attachment
     }
 
     /**
-     * @return resource
+     * @return string|null
      */
-    public function getAttachment()
+    public function getB64attachment(): ?string
     {
-        return $this->attachment;
+        return $this->b64attachment;
     }
 
     /**
-     * @param resource $attachment
+     * @param string|null $b64attachment
      */
-    public function setAttachment($attachment): void
+    public function setB64attachment(?string $b64attachment): void
     {
-        $this->attachment = $attachment;
+        $this->b64attachment = $b64attachment;
     }
 
 

@@ -4,6 +4,7 @@ namespace App\Repository;
 
 use App\Exception\NotFoundException;
 use App\Model\Mapping\Attachment;
+use App\Model\Mapping\BinaryFile;
 use App\Model\Mapping\Chair;
 use App\Model\Mapping\Discipline;
 use App\Model\Mapping\DiscussionMessage;
@@ -15,29 +16,31 @@ use App\Model\Mapping\Teacher;
 use App\Model\Mapping\TeachingMaterial;
 use App\Model\Mapping\TimetableItem;
 use App\Model\Mapping\WorkAnswer;
+use App\Model\Request\SendingDiscussionMessage;
 use App\Service\StringConverter;
+use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\FetchMode;
 use Doctrine\ORM\EntityManagerInterface;
-use function Doctrine\DBAL\Query\QueryBuilder;
+use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\Validator\Constraints\Json;
 
-class DisciplineRepository
+class DisciplineRepository extends AbstractRepository
 {
-    private $entityManager;
     private $stringConverter;
 
     public function __construct(EntityManagerInterface $entityManager, StringConverter $stringConverter)
     {
-        $this->entityManager = $entityManager;
+        parent::__construct($entityManager);
         $this->stringConverter = $stringConverter;
     }
 
     /**
      * @param string $discipline
      * @return bool
-     * @throws \Doctrine\DBAL\Exception
+     * @throws Exception
      */
     public function isDisciplineExists(string $discipline): bool {
-        $dis = $this->entityManager->getConnection()->createQueryBuilder()
+        $dis = $this->getEntityManager()->getConnection()->createQueryBuilder()
             ->select('EDIS.OID')
             ->from('ET_DISCIPLINES', 'EDIS')
             ->where('EDIS.OID = :DISCIPLINE')
@@ -51,11 +54,11 @@ class DisciplineRepository
     /**
      * @param string $discipline
      * @return \App\Model\Mapping\Discipline
-     * @throws \Doctrine\DBAL\Exception
+     * @throws Exception
      */
     public function getDiscipline(string $discipline): Discipline
     {
-        $queryBuilder = $this->entityManager->getConnection()->createQueryBuilder();
+        $queryBuilder = $this->getEntityManager()->getConnection()->createQueryBuilder();
 
         $disciplineRows = $queryBuilder
             ->select('EDIS.OID AS DIS_ID, 
@@ -107,11 +110,11 @@ class DisciplineRepository
      * @param string $group
      * @param string $semester
      * @return array
-     * @throws \Doctrine\DBAL\Exception
+     * @throws Exception
      */
     public function getTeachersByDiscipline(string $discipline, string $group, string $semester): array
     {
-        $queryBuilder = $this->entityManager->getConnection()->createQueryBuilder();
+        $queryBuilder = $this->getEntityManager()->getConnection()->createQueryBuilder();
         $result = $queryBuilder
             ->select('TT.TEACHER AS TCH_OID, NP.OID AS TCH_PERSON, TTCH.FIRSTNAME AS FNAME, TTCH.SURNAME AS LNAME, 
             TTCH.PATRONYMIC AS PTR, ED.ABBR AS TEACHER_POST, EDIS.OID AS DIS_ID, EDIS.NAME AS DISCIPLINE, T.VALUE AS LESSON_TYPE')
@@ -163,11 +166,11 @@ class DisciplineRepository
      * @param string $semester
      * @param string $discipline
      * @return int
-     * @throws \Doctrine\DBAL\Exception
+     * @throws Exception
      */
     public function getDisciplineChatMessagesCount(string $group, string $semester, string $discipline): int
     {
-        $queryBuilder = $this->entityManager->getConnection()->createQueryBuilder();
+        $queryBuilder = $this->getEntityManager()->getConnection()->createQueryBuilder();
         $result = $queryBuilder
             ->select('COUNT(EM.OID) AS COUNT')
             ->from('ET_MSG_LK', 'EM')
@@ -190,7 +193,7 @@ class DisciplineRepository
      * @param int $offset
      * @param int $limit
      * @return array
-     * @throws \Doctrine\DBAL\Exception
+     * @throws Exception
      */
     public function getDisciplineChatMessages(
         string $semester,
@@ -199,7 +202,7 @@ class DisciplineRepository
         int $offset,
         int $limit
     ): array {
-        $queryBuilder = $this->entityManager->getConnection()->createQueryBuilder();
+        $queryBuilder = $this->getEntityManager()->getConnection()->createQueryBuilder();
         $queryBuilder
             ->select("
                 EM.OID AS MSG_ID,
@@ -278,7 +281,7 @@ class DisciplineRepository
      * @param string $group
      * @param string $contingent
      * @return array
-     * @throws \Doctrine\DBAL\Exception
+     * @throws Exception
      */
     public function getStudentWorksList(
         string $semester,
@@ -287,7 +290,7 @@ class DisciplineRepository
         string $contingent
     ): array
     {
-        $queryBuilder = $this->entityManager->getConnection()->createQueryBuilder();
+        $queryBuilder = $this->getEntityManager()->getConnection()->createQueryBuilder();
         $queryBuilder
             ->select("
                 ESW.OID AS WORK_ID,
@@ -315,12 +318,12 @@ class DisciplineRepository
             ->leftJoin('ESW', 'T_TKINDS', 'T', 'ESW.STUDYTYPE = T.OID')
             ->leftJoin(
                 'ESW',
-                sprintf('(%s)', $this->entityManager->getConnection()->createQueryBuilder()
+                sprintf('(%s)', $this->getEntityManager()->getConnection()->createQueryBuilder()
                     ->select('ES.OID, ES.WORK, ES.FILE$DOC AS DOC_NAME, ES.NAME AS DOC_TITLE, ES.EXTLINK AS DOC_LINK, ROUND(DBMS_LOB.GETLENGTH(ES.DOC)/1024) AS DOC_SIZE, ESG.SCORE')
                     ->from('ET_SWATTACHMENT', 'ES')
                     ->leftJoin(
                         'ES',
-                        sprintf('(%s)', $this->entityManager->getConnection()->createQueryBuilder()
+                        sprintf('(%s)', $this->getEntityManager()->getConnection()->createQueryBuilder()
                             ->select('ISWG.BALL AS SCORE, ISWG.WORK, ISWG.CONTINGENT')
                             ->from('ET_SWGRADES', 'ISWG')
                             ->innerJoin(
@@ -430,11 +433,11 @@ class DisciplineRepository
      * @param string $groupId
      * @param string $semesterId
      * @return array
-     * @throws \Doctrine\DBAL\Exception
+     * @throws Exception
      */
     public function getDisciplinesBySemester(string $groupId, string $semesterId): array
     {
-        $queryBuilder = $this->entityManager->getConnection()->createQueryBuilder();
+        $queryBuilder = $this->getEntityManager()->getConnection()->createQueryBuilder();
         //$result = $queryBuilder->select('EDIS.OID as DISCIPLINE_ID, EDIS.NAME AS DISCIPLINE_NAME, ECH.VALUE AS CHAIR_NAME')
         $result = $queryBuilder->select('EDIS.OID as DISCIPLINE_ID, EDIS.NAME AS DISCIPLINE_NAME')
             ->from('ET_RCONTINGENTS', 'ER')
@@ -470,19 +473,19 @@ class DisciplineRepository
      * @param string $educationId
      * @param string $semesterId
      * @return array
-     * @throws \Doctrine\DBAL\Exception
+     * @throws Exception
      */
-    public function getDisciplineTeachingMaterials(string $disciplineId, string $educationId, string $semesterId)
+    public function getDisciplineTeachingMaterials(string $disciplineId, string $educationId, string $semesterId, ?bool $withFiles = false)
     {
-        $subq = $this->entityManager->getConnection()->createQueryBuilder()
+        $subQ = $this->getEntityManager()->getConnection()->createQueryBuilder()
             ->select('RC.PLAN')
             ->from('ET_RCONTINGENTS', 'RC')
             ->innerJoin('RC', 'ET_CONTINGENTS', 'EC2', 'EC2.G = RC.G')
             ->where('EC2.OID = :EDUCATION AND RC.CSEMESTER = :SEMESTER')
             ->getSQL();
 
-        $queryBuilder = $this->entityManager->getConnection()->createQueryBuilder();
-        $result = $queryBuilder
+        $queryBuilder = $this->getEntityManager()->getConnection()->createQueryBuilder();
+        $queryBuilder
             ->select('
                 ETM.OID AS MATERIAL_ID, 
                 ETM.NAME AS MATERIAL_NAME,
@@ -490,18 +493,23 @@ class DisciplineRepository
                 FILE$DOC AS ATT_NAME, 
                 ROUND(DBMS_LOB.GETLENGTH(ETM.DOC)/1024) AS DOC_KB,
                 ETM.EXTLINK AS FILE_LINK
-            ')
+            ');
+        if($withFiles) {
+            $queryBuilder->addSelect('ETM.DOC');
+        }
+        $queryBuilder
             ->from('ET_TEACHINGMATERIALS', 'ETM')
             ->leftJoin('ETM', 'ET_GROUPS', 'EG', 'ETM.G = EG.OID')
             ->leftJoin('EG', 'ET_CONTINGENTS', 'EC', 'EG.OID = EC.G')
             ->leftJoin('ETM', 'ET_MATCATEGORIES', 'ETMC', 'ETM.MATCATEGORY = ETMC.OID')
             ->where('ETM.DISCIPLINE = :DISCIPLINE')
             ->andWhere($queryBuilder->expr()->or('EC.OID = :EDUCATION', 'ETM.G IS NULL'))
-            ->andWhere($queryBuilder->expr()->or("ETM.CURRICULUM = ($subq)", 'ETM.CURRICULUM IS NULL'))
+            ->andWhere($queryBuilder->expr()->or("ETM.CURRICULUM = ($subQ)", 'ETM.CURRICULUM IS NULL'))
             ->setParameter('DISCIPLINE', $disciplineId)
             ->setParameter('EDUCATION', $educationId)
-            ->setParameter('SEMESTER', $semesterId)
-            ->execute();
+            ->setParameter('SEMESTER', $semesterId);
+
+        $result = $queryBuilder->execute();
 
         $teachingMaterials = [];
 
@@ -516,6 +524,9 @@ class DisciplineRepository
                 $attachment->setAttachmentSize($fileSize);
                 $attachment->setAttachmentName($materialRow['ATT_NAME']);
                 $teachingMaterial->setAttachment($attachment);
+                if($withFiles && $documentData = $materialRow['DOC']) {
+                    $attachment->setB64attachment(base64_encode($documentData));
+                }
             }
 
             if($link = $materialRow['FILE_LINK']) {
@@ -529,5 +540,185 @@ class DisciplineRepository
         }
 
         return $teachingMaterials;
+    }
+
+    /**
+     * @param string $personId
+     * @param string $semesterId
+     * @param string $groupId
+     * @param string $disciplineId
+     * @return bool
+     * @throws \Doctrine\DBAL\Driver\Exception
+     * @throws Exception
+     */
+    public function isUserAllowedToSendMessageToDisciplineChat(string $personId, string $semesterId, string $groupId, string $disciplineId): bool
+    {
+        $stmt = $this->getEntityManager()->getConnection()->prepare("
+            SELECT COUNT(*) AS IS_MEM FROM (
+                  SELECT DISTINCT TT2.C_OID AS MM_ID, TT2.NAME
+                  FROM T_TIMETABLE TT
+                           INNER JOIN T_TEACHERS TT2 ON TT.TEACHER = TT2.OID
+                  WHERE TT.G = :GROUP
+                    AND TT.DISCIPLINE = :DISCIPLINE
+                    AND TT.CSEMESTER = :SEMESTER
+                  UNION ALL
+                  SELECT EC.C_OID AS MM_ID, EC.NAME AS NAME
+                  FROM ET_CONTINGENTS EC
+                           INNER JOIN ET_GROUPS EG ON EC.G = EG.OID
+                           INNER JOIN ET_RCONTINGENTS ETR ON EG.OID = ETR.G
+                           INNER JOIN ET_CURRICULUMS ETCR ON ETR.PLAN = ETCR.OID
+                           INNER JOIN ET_DSPLANS EDSP ON ETCR.OID = EDSP.EPLAN
+                           INNER JOIN T_CONTSTATES TCN ON EC.ESTATE = TCN.OID
+                  WHERE EG.OID = :GROUP
+                    AND EDSP.DISCIPLINE = :DISCIPLINE
+                    AND ETR.CSEMESTER = :SEMESTER
+                    AND EC.C_OID IS NOT NULL
+                    AND TCN.NAME IN ('ИН', '2Г', 'УЧ', ' АК')
+              ) MMBR WHERE MMBR.MM_ID = :PERSON
+        ");
+            $stmt->bindParam('GROUP', $groupId);
+            $stmt->bindParam('DISCIPLINE', $disciplineId);
+            $stmt->bindParam('SEMESTER', $semesterId);
+            $stmt->bindParam('PERSON', $personId);
+            $stmt->execute();
+            $result = $stmt->fetchAll();
+
+        return (bool)$result[0]['IS_MEM'];
+    }
+
+    /**
+     * @param string $message
+     * @param BinaryFile[] $attachments
+     * @param ExternalLink[] $links
+     * @param string $senderId
+     * @param string $semesterId
+     * @param string $disciplineId
+     * @param string $groupId
+     * @return string
+     * @throws Exception
+     */
+    public function addNewDisciplineDiscussionMessage(
+        string $message,
+        array $attachments,
+        array $links,
+        string $senderId,
+        string $semesterId,
+        string $disciplineId,
+        string $groupId
+    ): string {
+        $queryBuilder = $this->getEntityManager()->getConnection()->createQueryBuilder();
+
+        $newOid = $this->getNewOid();
+        $queryBuilder
+            ->insert('ET_MSG_LK')
+            ->setParameter('OID', $newOid)
+            ->setParameter('AUTHOR', $senderId)
+            ->setParameter('CREATED', new \DateTime())
+            ->setParameter('CSEMESTER', $semesterId)
+            ->setParameter('DISCIPLINE', $disciplineId)
+            ->setParameter('G', $groupId)
+            ->setParameter('MSG', $message);
+        if(count($attachments) > 0) {
+            $queryBuilder
+                ->setParameter('DOC', $attachments[0]->getFileContent())
+                ->setParameter('FILE$DOC', $attachments[0]->getFilename());
+        }
+
+        if(count($links) > 0) {
+            $queryBuilder
+                ->setParameter('EXTLINK', $links[0]->getLinkContent())
+                ->setParameter('TEXTLINK', $links[0]->getLinkText());
+        }
+
+        $queryBuilder->execute();
+
+        return $newOid;
+    }
+
+    /**
+     * @param string $messageId
+     * @param BinaryFile $file
+     * @throws Exception
+     */
+    public function addAttachmentToMessage(string $messageId, BinaryFile $file)
+    {
+        $queryBuilder = $this->getEntityManager()->getConnection()->createQueryBuilder();
+
+        $queryBuilder
+            ->update('ET_MSG_LK', 'EM')
+            ->set('EM.DOC', ':FILE_DATA')
+            ->set('EM.FILE$DOC', ':FILE_NAME')
+            ->where('EM.OID = :MESSAGE_ID')
+            ->setParameter('FILE_DATA', $file->getFileContent())
+            ->setParameter('FILE_NAME', $file->getFilename())
+            ->setParameter('MESSAGE_ID', $messageId)
+            ->execute();
+    }
+
+    /**
+     * @param string $messageId
+     * @return bool
+     * @throws Exception
+     */
+    public function isMessageExists(string $messageId) : bool
+    {
+        $result = $this->getEntityManager()->getConnection()->createQueryBuilder()
+            ->select('COUNT(*) AS CNT')
+            ->from('ET_MSG_LK', 'EM')
+            ->where('EM.OID = :MESSAGE_ID')
+            ->setParameter('MESSAGE_ID', $messageId)
+            ->execute()
+            ->fetchAll();
+
+        return $result[0]['CNT'] === 1;
+    }
+
+    /**
+     * @param string $messageId
+     * @param string $userId
+     * @return bool
+     * @throws Exception
+     */
+    public function isMessageBelongsToUser(string $messageId, string $userId): bool
+    {
+        $result = $this->getEntityManager()->getConnection()->createQueryBuilder()
+            ->select('COUNT(*) AS CNT')
+            ->from('ET_MSG_LK', 'EM')
+            ->where('EM.OID = :MESSAGE_ID')
+            ->where('EM.AUTHOR = :AUTHOR')
+            ->setParameter('MESSAGE_ID', $messageId)
+            ->setParameter('AUTHOR', $userId)
+            ->execute()
+            ->fetchAll();
+
+        return $result[0]['CNT'] === 1;
+    }
+
+    /**
+     * @param string $materialId
+     * @return NotFoundException|mixed
+     * @throws Exception
+     */
+    public function getTeachingMaterialsAttachment(string $materialId)
+    {
+        /*$result = $this->getEntityManager()->getConnection()->createQueryBuilder()
+            ->select('ETM.DOC')
+            ->from('ET_TEACHINGMATERIALS', 'ETM')
+            ->where('ETM.OID = :MATERIAL_ID')
+            ->setParameter('MATERIAL_ID', $materialId)
+            ->execute()
+            ->fetchAll();*/
+        $stmt = $this->getEntityManager()->getConnection()->prepare('
+            SELECT ETM.DOC FROM ET_TEACHINGMATERIALS ETM WHERE ETM.OID = :MATERIAL_ID
+        ');
+        $stmt->bindValue('MATERIAL_ID', $materialId);
+        $stmt->execute();
+        $result = $stmt->fetch();
+
+        if(count($result) !== 1) {
+            return new NotFoundException('Material');
+        }
+
+        return $result[0]['DOC'];
     }
 }
