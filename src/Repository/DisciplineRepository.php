@@ -12,11 +12,13 @@ use App\Model\Mapping\Faculty;
 use App\Model\Mapping\Person;
 use App\Model\Mapping\StudentWork;
 use App\Model\Mapping\Teacher;
+use App\Model\Mapping\TeachingMaterial;
 use App\Model\Mapping\TimetableItem;
 use App\Model\Mapping\WorkAnswer;
 use App\Service\StringConverter;
 use Doctrine\DBAL\FetchMode;
 use Doctrine\ORM\EntityManagerInterface;
+use function Doctrine\DBAL\Query\QueryBuilder;
 
 class DisciplineRepository
 {
@@ -461,5 +463,71 @@ class DisciplineRepository
         }
 
         return $subjectList;
+    }
+
+    /**
+     * @param string $disciplineId
+     * @param string $educationId
+     * @param string $semesterId
+     * @return array
+     * @throws \Doctrine\DBAL\Exception
+     */
+    public function getDisciplineTeachingMaterials(string $disciplineId, string $educationId, string $semesterId)
+    {
+        $subq = $this->entityManager->getConnection()->createQueryBuilder()
+            ->select('RC.PLAN')
+            ->from('ET_RCONTINGENTS', 'RC')
+            ->innerJoin('RC', 'ET_CONTINGENTS', 'EC2', 'EC2.G = RC.G')
+            ->where('EC2.OID = :EDUCATION AND RC.CSEMESTER = :SEMESTER')
+            ->getSQL();
+
+        $queryBuilder = $this->entityManager->getConnection()->createQueryBuilder();
+        $result = $queryBuilder
+            ->select('
+                ETM.OID AS MATERIAL_ID, 
+                ETM.NAME AS MATERIAL_NAME,
+                ETMC.NAME AS MATERIAL_TYPE,
+                FILE$DOC AS ATT_NAME, 
+                ROUND(DBMS_LOB.GETLENGTH(ETM.DOC)/1024) AS DOC_KB,
+                ETM.EXTLINK AS FILE_LINK
+            ')
+            ->from('ET_TEACHINGMATERIALS', 'ETM')
+            ->leftJoin('ETM', 'ET_GROUPS', 'EG', 'ETM.G = EG.OID')
+            ->leftJoin('EG', 'ET_CONTINGENTS', 'EC', 'EG.OID = EC.G')
+            ->leftJoin('ETM', 'ET_MATCATEGORIES', 'ETMC', 'ETM.MATCATEGORY = ETMC.OID')
+            ->where('ETM.DISCIPLINE = :DISCIPLINE')
+            ->andWhere($queryBuilder->expr()->or('EC.OID = :EDUCATION', 'ETM.G IS NULL'))
+            ->andWhere($queryBuilder->expr()->or("ETM.CURRICULUM = ($subq)", 'ETM.CURRICULUM IS NULL'))
+            ->setParameter('DISCIPLINE', $disciplineId)
+            ->setParameter('EDUCATION', $educationId)
+            ->setParameter('SEMESTER', $semesterId)
+            ->execute();
+
+        $teachingMaterials = [];
+
+        while($materialRow = $result->fetch()) {
+            $teachingMaterial = new TeachingMaterial();
+            $teachingMaterial->setId($materialRow['MATERIAL_ID']);
+            $teachingMaterial->setMaterialName($materialRow['MATERIAL_NAME']);
+            $teachingMaterial->setMaterialType($materialRow['MATERIAL_TYPE']);
+
+            if($fileSize = $materialRow['DOC_KB']) {
+                $attachment = new Attachment();
+                $attachment->setAttachmentSize($fileSize);
+                $attachment->setAttachmentName($materialRow['ATT_NAME']);
+                $teachingMaterial->setAttachment($attachment);
+            }
+
+            if($link = $materialRow['FILE_LINK']) {
+                $externalLink = new ExternalLink();
+                $externalLink->setLinkContent($link);
+                $externalLink->setLinkText($materialRow['ATT_NAME']);
+                $teachingMaterial->setExternalLink($externalLink);
+            }
+
+            $teachingMaterials[] = $teachingMaterial;
+        }
+
+        return $teachingMaterials;
     }
 }

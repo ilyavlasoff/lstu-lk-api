@@ -88,8 +88,8 @@ class DisciplineController extends AbstractRestController
      *          description="Внутренняя ошибка"
      *     )
      * )
-     * @param \App\Model\Request\Discipline $discipline
-     * @return \Symfony\Component\HttpFoundation\JsonResponse
+     * @param Discipline $discipline
+     * @return JsonResponse
      */
     public function discipline(Discipline $discipline): JsonResponse
     {
@@ -208,14 +208,43 @@ class DisciplineController extends AbstractRestController
     }
 
     /**
+     * @Route("/materials/list", name="discipline-materials-list", methods={"GET"})
+     * @param Discipline $discipline
+     * @param Education $education
+     * @param Semester $semester
+     * @param DisciplineRepository $disciplineRepository
+     * @return JsonResponse
+     */
+    public function disciplineMaterials(
+        Discipline $discipline,
+        Education $education,
+        Semester$semester,
+        DisciplineRepository $disciplineRepository
+    ): JsonResponse
+    {
+        try {
+            $materials = $disciplineRepository->getDisciplineTeachingMaterials(
+                $discipline->getDisciplineId(), $education->getEducationId(), $semester->getSemesterId());
+        } catch (Exception $e) {
+            throw new DataAccessException();
+        }
+
+        $listedResponse = new ListedResponse();
+        $listedResponse->setCount(count($materials));
+        $listedResponse->setPayload($materials);
+
+        return $this->responseSuccessWithObject($listedResponse);
+    }
+
+    /**
      * @Route("/tasks", name="discipline-studwork", methods={"GET"})
      *
-     * @param \App\Model\Request\Discipline $discipline
-     * @param \App\Model\Request\Education $education
-     * @param \App\Model\Request\Semester $semester
-     * @param \App\Repository\EducationRepository $educationRepository
-     * @param \App\Repository\PersonalRepository $personalRepository
-     * @return \Symfony\Component\HttpFoundation\JsonResponse
+     * @param Discipline $discipline
+     * @param Education $education
+     * @param Semester $semester
+     * @param EducationRepository $educationRepository
+     * @param PersonalRepository $personalRepository
+     * @return JsonResponse
      */
     public function disciplineTasks(
         Discipline $discipline,
@@ -287,8 +316,8 @@ class DisciplineController extends AbstractRestController
      *     )
      * )
      *
-     * @param \App\Model\Request\Education $education
-     * @param \App\Model\Request\Semester $semester
+     * @param Education $education
+     * @param Semester $semester
      * @param PersonalRepository $personalRepository
      * @return JsonResponse
      * @throws \App\Exception\DataAccessException
