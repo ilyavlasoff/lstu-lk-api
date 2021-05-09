@@ -6,7 +6,7 @@ use App\Exception\InheritedSystemException;
 use App\Exception\InvalidCredentialsException;
 use App\Exception\NotFoundException;
 use App\Exception\ResourceNotFoundException;
-use App\Model\Request\UserIdentifier;
+use App\Model\QueryParam\UserIdentifier;
 use Doctrine\DBAL\DBALException;
 use Doctrine\DBAL\FetchMode;
 

@@ -3,7 +3,7 @@
 namespace App\ArgumentResolver;
 
 use App\Exception\ValidationException;
-use App\Model\Request\RegisterCredentials;
+use App\Model\QueryParam\RegisterCredentials;
 use JMS\Serializer\SerializerInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Controller\ArgumentValueResolverInterface;

@@ -3,15 +3,16 @@
 namespace App\Repository;
 
 use App\Exception\NotFoundException;
-use App\Model\Grouping\Day;
-use App\Model\Grouping\Week;
-use App\Model\Mapping\Discipline;
-use App\Model\Mapping\Exam;
-use App\Model\Mapping\Person;
-use App\Model\Mapping\Teacher;
-use App\Model\Mapping\TimetableItem;
-use App\Model\Response\Timetable;
+use App\Model\DTO\Day;
+use App\Model\DTO\Week;
+use App\Model\DTO\Discipline;
+use App\Model\DTO\Exam;
+use App\Model\DTO\Person;
+use App\Model\DTO\Teacher;
+use App\Model\DTO\TimetableItem;
+use App\Model\DTO\Timetable;
 use App\Service\StringConverter;
+use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\FetchMode;
 use Doctrine\ORM\EntityManagerInterface;
 
@@ -32,8 +33,8 @@ class TimetableRepository
      * @param string|null $weekColor
      * @param string|null $discipline
      * @param string|null $teacher
-     * @return \App\Model\Response\Timetable
-     * @throws \Doctrine\DBAL\Exception
+     * @return Timetable
+     * @throws Exception
      */
     public function getTimetable(
         string $group,
@@ -165,7 +166,7 @@ class TimetableRepository
     /**
      * @param string $dayId
      * @return \App\Model\Grouping\Day
-     * @throws \Doctrine\DBAL\Exception
+     * @throws Exception
      */
     public function getDayById(string $dayId): Day
     {
@@ -193,7 +194,7 @@ class TimetableRepository
     /**
      * @param string $weekName
      * @return mixed
-     * @throws \Doctrine\DBAL\Exception
+     * @throws Exception
      */
     public function getWeekByName(string $weekName)
     {
@@ -217,7 +218,7 @@ class TimetableRepository
      * @param string $groupId
      * @param string $semesterId
      * @return array
-     * @throws \Doctrine\DBAL\Exception
+     * @throws Exception
      */
     public function getExamsTimetable(string $groupId, string $semesterId): array
     {

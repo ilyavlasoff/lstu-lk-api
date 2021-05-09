@@ -6,13 +6,13 @@ use App\Document\User;
 use App\Exception\DataAccessException;
 use App\Exception\SystemException;
 use App\Exception\ValidationException;
-use App\Model\Mapping\Person;
-use App\Model\Request\Paginator;
-use App\Model\Request\PersonProperties;
-use App\Model\Request\PictureSize;
-use App\Model\Request\TextQuery;
-use App\Model\Response\ListedResponse;
-use App\Model\Response\ProfilePicture;
+use App\Model\DTO\Person;
+use App\Model\QueryParam\Paginator;
+use App\Model\QueryParam\PersonProperties;
+use App\Model\QueryParam\PictureSize;
+use App\Model\QueryParam\TextQuery;
+use App\Model\DTO\ListedResponse;
+use App\Model\DTO\ProfilePicture;
 use App\Repository\PersonalRepository;
 use App\Service\ImageConverter;
 use Doctrine\DBAL\Exception;
@@ -42,7 +42,7 @@ class PersonalController extends AbstractRestController
     }
 
     /**
-     * @Route("/info", name="get_person_props", methods={"GET"})
+     * @Route("", name="person_props_get", methods={"GET"})
      *
      * @OA\Get(
      *     tags={"Персона"},
@@ -70,15 +70,15 @@ class PersonalController extends AbstractRestController
      *     )
      * )
      *
-     * @param \App\Model\Request\Person $person
+     * @param \App\Model\QueryParam\Person $person
      * @return JsonResponse
-     * @throws \App\Exception\DataAccessException
+     * @throws DataAccessException
      */
-    public function personProperties(\App\Model\Request\Person $person): JsonResponse
+    public function personProperties(\App\Model\QueryParam\Person $person): JsonResponse
     {
         try {
             $personalProps = $this->personalRepository->getPersonalProperties($person->getPersonId());
-        } catch (Exception $e) {
+        } catch (Exception | \Doctrine\DBAL\Driver\Exception | \Exception $e) {
             throw new DataAccessException($e);
         }
 
@@ -86,7 +86,7 @@ class PersonalController extends AbstractRestController
     }
 
     /**
-     * @Route("/info", name="edit_person_properties", methods={"POST"})
+     * @Route("/props", name="person_properties_edit", methods={"POST"})
      *
      * @OA\Post(
      *     tags={"Персона"},
@@ -120,8 +120,8 @@ class PersonalController extends AbstractRestController
      *     )
      * )
      *
-     * @param \App\Model\Request\PersonProperties $personProperties
-     * @return \Symfony\Component\HttpFoundation\JsonResponse
+     * @param PersonProperties $personProperties
+     * @return JsonResponse
      */
     public function personPropertiesEdit(PersonProperties $personProperties): JsonResponse
     {
@@ -138,7 +138,7 @@ class PersonalController extends AbstractRestController
     }
 
     /**
-     * @Route("/pic", name="get_adapted_userpic", methods={"GET"})
+     * @Route("/pic", name="adapted_userpic_get", methods={"GET"})
      *
      * @OA\Get(
      *     tags={"Персона"},
@@ -173,26 +173,31 @@ class PersonalController extends AbstractRestController
      *     )
      * )
      *
-     * @param \App\Model\Request\PictureSize $userPicRequest
-     * @param \App\Model\Request\Person $person
-     * @param \App\Service\ImageConverter $imageConverter
-     * @param \App\Repository\PersonalRepository $personalRepository
-     * @param \Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface $parameterBag
-     * @return \Symfony\Component\HttpFoundation\JsonResponse
+     * @param PictureSize $userPicRequest
+     * @param \App\Model\QueryParam\Person $person
+     * @param ImageConverter $imageConverter
+     * @param PersonalRepository $personalRepository
+     * @param ParameterBagInterface $parameterBag
+     * @return JsonResponse
+     *
      */
     public function getProfilePicture(
         PictureSize $userPicRequest,
-        \App\Model\Request\Person $person,
+        \App\Model\QueryParam\Person $person,
         ImageConverter $imageConverter,
         PersonalRepository $personalRepository,
         ParameterBagInterface $parameterBag
     ): JsonResponse
     {
-        $image = $personalRepository->getProfileImage($person->getPersonId());
-
-        $imagick = new \Imagick();
+        try {
+            $image = $personalRepository->getProfileImage($person->getPersonId());
+        } catch (Exception | \Doctrine\DBAL\Driver\Exception $e) {
+            throw new DataAccessException($e);
+        }
 
         try {
+            $imagick = new \Imagick();
+
             if($image) {
                 $imagick->readImageBlob($image);
             } else {
@@ -214,11 +219,21 @@ class PersonalController extends AbstractRestController
     }
 
     /**
-     * @Route("/list", name="get_persons_list", methods={"GET"})
+     * @Route("/list", name="persons_list_get", methods={"GET"})
+     *
+     * @param TextQuery $query
+     * @param Paginator $paginator
+     * @param PersonalRepository $personalRepository
+     * @return JsonResponse
+     * @throws \Doctrine\DBAL\Driver\Exception
      */
-    public function getPersonList(TextQuery $query, Paginator $paginator, PersonalRepository $personalRepository): JsonResponse
+    public function getPersonList(
+        TextQuery $query,
+        Paginator $paginator,
+        PersonalRepository $personalRepository
+    ): JsonResponse
     {
-        /** @var \App\Document\User $user */
+        /** @var User $user */
         $user = $this->getUser();
 
         if($paginator->getOffset() === null) {

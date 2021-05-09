@@ -3,9 +3,9 @@
 namespace App\Controller;
 
 use App\Exception\DataAccessException;
-use App\Model\Mapping\Semester;
-use App\Model\Request\Person;
-use App\Model\Response\ListedResponse;
+use App\Model\DTO\Semester;
+use App\Model\QueryParam\Person;
+use App\Model\DTO\ListedResponse;
 use App\Repository\EducationRepository;
 use App\Repository\PersonalRepository;
 use Doctrine\DBAL\Exception;
@@ -14,7 +14,7 @@ use Nelmio\ApiDocBundle\Annotation\Security;
 use JMS\Serializer\SerializerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Annotation\Route;
-use App\Model\Mapping\Education;
+use App\Model\DTO\Education;
 use OpenApi\Annotations as OA;
 
 /**
@@ -33,7 +33,7 @@ class EducationController extends AbstractRestController
     }
 
     /**
-     * @Route("/list", name="get_educations_list", methods={"GET"})
+     * @Route("/list", name="educations_list", methods={"GET"})
      * @OA\Get(
      *     tags={"Образование"},
      *     summary="Список периодов обучения студента",
@@ -50,15 +50,15 @@ class EducationController extends AbstractRestController
      *          @OA\JsonContent(type="array", @OA\Items(ref=@Model(type=Education::class, groups={"Default"})))
      *     )
      * )
-     * @param \App\Model\Request\Person $person
+     * @param Person $person
      * @return JsonResponse
-     * @throws \App\Exception\DataAccessException
+     * @throws DataAccessException
      */
     public function educationList(Person $person): JsonResponse
     {
         try {
             $educations = $this->educationRepository->getLstuEducationListByPerson($person->getPersonId());
-        } catch (Exception $e) {
+        } catch (Exception | \Doctrine\DBAL\Driver\Exception | \Exception $e) {
             throw new DataAccessException($e);
         }
 
@@ -70,7 +70,7 @@ class EducationController extends AbstractRestController
     }
 
     /**
-     * @Route("/semesters", name="get_semesters_list", methods={"GET"})
+     * @Route("/semesters/list", name="semesters_list", methods={"GET"})
      * @OA\Get(
      *     tags={"Образование"},
      *     summary="Список семестров указанного периода обучения",
@@ -87,16 +87,16 @@ class EducationController extends AbstractRestController
      *          @OA\JsonContent(type="array", @OA\Items(ref=@Model(type=Semester::class, groups={"Default"})))
      *     )
      * )
-     * @param \App\Model\Request\Education $education
+     * @param \App\Model\QueryParam\Education $education
      * @param PersonalRepository $personalRepository
      * @return JsonResponse
      */
-    public function semesterList(\App\Model\Request\Education $education, PersonalRepository $personalRepository): JsonResponse
+    public function semesterList(\App\Model\QueryParam\Education $education, PersonalRepository $personalRepository): JsonResponse
     {
         try {
             $groupId = $personalRepository->getGroupByContingent($education->getEducationId());
             $semesters = $this->educationRepository->getSemesterList($groupId);
-        } catch (Exception $e) {
+        } catch (Exception | \Doctrine\DBAL\Driver\Exception $e) {
             throw new DataAccessException($e);
         }
 
@@ -127,17 +127,17 @@ class EducationController extends AbstractRestController
      *     )
      * )
      *
-     * @param \App\Model\Request\Education $education
-     * @param \App\Repository\PersonalRepository $personalRepository
-     * @return \Symfony\Component\HttpFoundation\JsonResponse
-     * @throws \App\Exception\DataAccessException
+     * @param \App\Model\QueryParam\Education $education
+     * @param PersonalRepository $personalRepository
+     * @return JsonResponse
+     * @throws DataAccessException
      */
-    public function currentSemester(\App\Model\Request\Education $education, PersonalRepository $personalRepository): JsonResponse
+    public function currentSemester(\App\Model\QueryParam\Education $education, PersonalRepository $personalRepository): JsonResponse
     {
         try {
             $groupId = $personalRepository->getGroupByContingent($education->getEducationId());
             $semester = $this->educationRepository->getCurrentSemester($groupId);
-        } catch (Exception $e) {
+        } catch (Exception | \Doctrine\DBAL\Driver\Exception $e) {
             throw new DataAccessException($e);
         }
 

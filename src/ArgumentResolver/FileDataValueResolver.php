@@ -2,8 +2,8 @@
 
 namespace App\ArgumentResolver;
 
-use App\Model\Mapping\Attachment;
-use App\Model\Mapping\BinaryFile;
+use App\Model\DTO\Attachment;
+use App\Model\DTO\BinaryFile;
 use JMS\Serializer\SerializerInterface;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\Request;
@@ -38,7 +38,7 @@ class FileDataValueResolver implements ArgumentValueResolverInterface
             $uploadedFile = $request->files->get('attachment');
             $fileContent = new BinaryFile();
             $fileContent->setFilename($uploadedFile->getClientOriginalName());
-            $fileContent->setFileContent(file_get_contents($fileContent->getFilename()));
+            $fileContent->setFileContent(bin2hex(file_get_contents($uploadedFile->getPathname())));
         }
 
         yield $fileContent;

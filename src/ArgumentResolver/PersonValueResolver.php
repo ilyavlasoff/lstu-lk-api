@@ -5,7 +5,7 @@ namespace App\ArgumentResolver;
 use App\Exception\DataAccessException;
 use App\Exception\NotFoundException;
 use App\Exception\ValidationException;
-use App\Model\Request\Person;
+use App\Model\QueryParam\Person;
 use App\Repository\PersonalRepository;
 use Doctrine\DBAL\Exception;
 use JMS\Serializer\SerializerInterface;

@@ -5,7 +5,7 @@ namespace App\ArgumentResolver;
 use App\Exception\DataAccessException;
 use App\Exception\NotFoundException;
 use App\Exception\ValidationException;
-use App\Model\Request\Dialog;
+use App\Model\QueryParam\Dialog;
 use App\Repository\PrivateMessageRepository;
 use Doctrine\DBAL\Exception;
 use Symfony\Component\HttpFoundation\Request;

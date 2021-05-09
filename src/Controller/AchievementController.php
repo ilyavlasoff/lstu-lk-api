@@ -3,13 +3,14 @@
 namespace App\Controller;
 
 use App\Exception\DataAccessException;
-use App\Model\Mapping\Achievement;
-use App\Model\Mapping\Publication;
-use App\Model\Request\Paginator;
-use App\Model\Request\Person;
-use App\Model\Response\AchievementSummary;
-use App\Model\Response\ListedResponse;
+use App\Model\DTO\Achievement;
+use App\Model\DTO\Publication;
+use App\Model\QueryParam\Paginator;
+use App\Model\QueryParam\Person;
+use App\Model\DTO\AchievementSummary;
+use App\Model\DTO\ListedResponse;
 use App\Repository\AchievementRepository;
+use App\Repository\PublicationRepository;
 use Doctrine\DBAL\Exception;
 use JMS\Serializer\SerializationContext;
 use JMS\Serializer\SerializerInterface;
@@ -26,7 +27,7 @@ use Nelmio\ApiDocBundle\Annotation\Security;
 /**
  * Class AchievementController
  * @package App\Controller
- * @Route("/api/v1/person")
+ * @Route("/api/v1/person/achievements")
  */
 class AchievementController extends AbstractRestController
 {
@@ -42,7 +43,7 @@ class AchievementController extends AbstractRestController
     }
 
     /**
-     * @Route("/achievements-summary", name="achievements-summary", methods={"GET"})
+     * @Route("/summary", name="achievements_summary_get", methods={"GET"})
      *
      * @OA\Get(
      *     tags={"Персона"},
@@ -57,7 +58,7 @@ class AchievementController extends AbstractRestController
      *     @OA\Response(
      *          response="200",
      *          description="Итоговые значения по публикациям и достижениям",
-     *          @OA\JsonContent(ref=@Model(type="AchievementSummary::class", groups={"Default"}))
+     *          @OA\JsonContent(ref=@Model(type="App\Model\DTO\AchievementSummary::class", groups={"Default"}))
      *     ),
      *     @OA\Response(
      *          response="400",
@@ -74,17 +75,18 @@ class AchievementController extends AbstractRestController
      * )
      *
      * @param Person $person
+     * @param PublicationRepository $publicationRepository
      * @return JsonResponse
-     * @throws DataAccessException|\Exception
+     * @throws \Exception
      */
-    public function achievementsSummary(Person $person): JsonResponse {
+    public function achievementsSummary(Person $person, PublicationRepository $publicationRepository): JsonResponse {
 
         try {
             $achievementList = $this->achievementsRepository->getAchievements($person->getPersonId(), 0, 3);
-            $publicationsList = $this->achievementsRepository->getPublications($person->getPersonId(), 0, 3);
+            $publicationsList = $publicationRepository->getPublications($person->getPersonId(), 0, 3);
             $achievementCount = $this->achievementsRepository->getTotalAchievementCount($person->getPersonId());
-            $publicationsCount = $this->achievementsRepository->getTotalPublicationsCount($person->getPersonId());
-        } catch (Exception $e) {
+            $publicationsCount = $publicationRepository->getTotalPublicationsCount($person->getPersonId());
+        } catch (Exception | \Doctrine\DBAL\Driver\Exception $e) {
             throw new DataAccessException($e);
         }
 
@@ -98,7 +100,7 @@ class AchievementController extends AbstractRestController
     }
 
     /**
-     * @Route("/achievements", name="achievements-list", methods={"GET"})
+     * @Route("/list", name="achievements-list", methods={"GET"})
      *
      * @OA\Get(
      *     tags={"Персона"},
@@ -125,7 +127,7 @@ class AchievementController extends AbstractRestController
      *     @OA\Response(
      *          response="200",
      *          description="Список объектов достижений пользователя",
-     *          @OA\JsonContent(ref=@Model(type="AchievementList::class", groups={"Default"}))
+     *          @OA\JsonContent(ref=@Model(type="App\Model\DTO\ListedResponse::class", groups={"Default"}))
      *     ),
      *     @OA\Response(
      *          response="400",
@@ -137,8 +139,8 @@ class AchievementController extends AbstractRestController
      *     )
      * )
      *
-     * @param \App\Model\Request\Person $person
-     * @param \App\Model\Request\Paginator $paginator
+     * @param Person $person
+     * @param Paginator $paginator
      * @return JsonResponse
      * @throws \Exception
      */
@@ -160,6 +162,8 @@ class AchievementController extends AbstractRestController
             $totalAchievements = $this->achievementsRepository->getTotalAchievementCount($person->getPersonId());
         } catch (Exception $e) {
             throw new DataAccessException($e);
+        } catch (\Doctrine\DBAL\Driver\Exception $e) {
+            throw new DataAccessException($e);
         }
 
         $achievementList = new ListedResponse();
@@ -177,81 +181,4 @@ class AchievementController extends AbstractRestController
         return $this->responseSuccessWithObject($achievementList);
     }
 
-    /**
-     * @Route("/publications", name="publications-list", methods={"GET"})
-     *
-     * @OA\Get(
-     *     tags={"Персона"},
-     *     summary="Список публикаций пользователя",
-     *     @Security(name="Bearer"),
-     *     @OA\Parameter(
-     *          in="query",
-     *          required=true,
-     *          name="p",
-     *          description="Идентификатор пользователя"
-     *     ),
-     *     @OA\Parameter(
-     *          in="query",
-     *          required=false,
-     *          name="of",
-     *          description="Номер первого отдаваемого объекта"
-     *     ),
-     *     @OA\Parameter(
-     *          in="query",
-     *          required=false,
-     *          name="c",
-     *          description="Максимальное количество отдаваемых объектов в ответе"
-     *     ),
-     *     @OA\Response(
-     *          response="200",
-     *          description="Список объектов публикаций пользователя",
-     *          @OA\JsonContent(ref=@Model(type="PublicationList::class", groups={"Default"}))
-     *     ),
-     *     @OA\Response(
-     *          response="400",
-     *          description="Некорректные параметры вызова"
-     *     ),
-     *     @OA\Response(
-     *          response="500",
-     *          description="Внутренняя ошибка"
-     *     )
-     * )
-     *
-     * @param \App\Model\Request\Person $person
-     * @param \App\Model\Request\Paginator $paginator
-     * @return JsonResponse
-     */
-    public function publicationsList(Person $person, Paginator $paginator): JsonResponse
-    {
-        $offset = $paginator->getOffset();
-        $count = $paginator->getCount();
-
-        try {
-            /** @var Publication[] $publications */
-            $publications = $this->achievementsRepository->getPublications(
-                $person->getPersonId(),
-                $offset !== null && is_numeric($offset) && $offset >= 0 ? $offset : -1,
-                $count !== null && is_numeric($count) && $count > 0 ? $count : -1
-            );
-
-            $totalPublications = $this->achievementsRepository->getTotalPublicationsCount($person->getPersonId());
-        } catch (Exception $e) {
-            throw new DataAccessException($e);
-        }
-
-        $publicationsList = new ListedResponse();
-        $publicationsList->setPayload($publications);
-
-        $pblCount = count($publications);
-        $publicationsList->setOffset($offset);
-        $publicationsList->setCount($pblCount);
-
-        $remains = $totalPublications - $offset - $pblCount;
-        $publicationsList->setRemains($remains);
-        if($remains > 0) {
-            $publicationsList->setNextOffset($offset + $pblCount);
-        }
-
-        return $this->responseSuccessWithObject($publicationsList);
-    }
 }

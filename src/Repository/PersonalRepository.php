@@ -3,49 +3,74 @@
 namespace App\Repository;
 
 use App\Exception\NotFoundException;
-use App\Model\Mapping\Person;
-use App\Model\Request\PersonProperties;
+use App\Model\DTO\Person;
+use App\Model\QueryParam\PersonProperties;
 use App\Service\StringConverter;
+use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\FetchMode;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
-class PersonalRepository
+class PersonalRepository extends AbstractRepository
 {
-    private $entityManager;
     private $stringConverter;
 
     public function __construct(EntityManagerInterface $entityManager, StringConverter $stringConverter)
     {
-        $this->entityManager = $entityManager;
+        parent::__construct($entityManager);
         $this->stringConverter = $stringConverter;
     }
 
     /**
      * @param string $personId
      * @return bool
-     * @throws \Doctrine\DBAL\Exception
+     * @throws Exception
+     * @throws \Doctrine\DBAL\Driver\Exception
      */
     public function isPersonExists(string $personId): bool {
-        $prs = $this->entityManager->getConnection()->createQueryBuilder()
-            ->select('NP.OID')
+        $result = $this->getEntityManager()->getConnection()->createQueryBuilder()
+            ->select('COUNT(NP.OID) AS CNT')
             ->from('NPERSONS', 'NP')
             ->where('NP.OID = :PERSON')
             ->setParameter('PERSON', $personId)
             ->execute()
-            ->fetchAll(FetchMode::COLUMN);
+            ->fetchAllAssociative();
 
-        return count($prs) === 1;
+        return $result[0]['CNT'] == 1;
+    }
+
+    /**
+     * @param string $educationId
+     * @param string $personId
+     * @return bool
+     * @throws Exception
+     * @throws \Doctrine\DBAL\Driver\Exception
+     */
+    public function isEducationBelongsToUser(string $educationId, string $personId): bool
+    {
+        $result = $this->getEntityManager()->getConnection()->createQueryBuilder()
+            ->select('COUNT(*) AS CNT')
+            ->from('NPERSONS', 'NP')
+            ->innerJoin('NP', 'ET_CONTINGENTS', 'ETC', 'ETC.C_OID = NP.OID')
+            ->where('ETC.OID = :EDUCATION AND NP.OID = :PERSON')
+            ->setParameter('EDUCATION', $educationId)
+            ->setParameter('PERSON', $personId)
+            ->execute()
+            ->fetchAllAssociative();
+
+        return $result[0]['CNT'] == 1;
     }
 
     /**
      * @param string $nPersonId
-     * @return \App\Model\Mapping\Person
-     * @throws \Doctrine\DBAL\Exception
+     * @return Person
+     * @throws Exception
+     * @throws \Doctrine\DBAL\Driver\Exception
+     * @throws \Exception
      */
     public function getPersonalProperties(string $nPersonId): Person
     {
-        $queryBuilder = $this->entityManager->getConnection()->createQueryBuilder();
+        $queryBuilder = $this->getEntityManager()->getConnection()->createQueryBuilder();
         $result = $queryBuilder->select('NP.OID UOID, NP.FAMILY AS LNAME,NP.FNAME, NP.MNAME AS PATRONYMIC, 
             NP.CREATED AS BDAY, TS.VALUE AS SEX, NP.TELEPHONS AS PHONE, NP.EMAIL, NP.MASSAGER AS MSNGR, TP.NAME AS POST')
             ->from('NPERSONS', 'NP')
@@ -55,7 +80,7 @@ class PersonalRepository
             ->setParameter('OID', $nPersonId)
             ->execute();
 
-        $personalPropertiesDataList = $result->fetchAll();
+        $personalPropertiesDataList = $result->fetchAllAssociative();
         if (count($personalPropertiesDataList) !== 1) {
             throw new NotFoundException('Person');
         }
@@ -79,18 +104,19 @@ class PersonalRepository
     /**
      * @param string $contingentId
      * @return string
-     * @throws \Doctrine\DBAL\Exception
+     * @throws Exception
+     * @throws \Doctrine\DBAL\Driver\Exception
      */
     public function getGroupByContingent(string $contingentId): string
     {
-        $result = $this->entityManager->getConnection()->createQueryBuilder()
+        $result = $this->getEntityManager()->getConnection()->createQueryBuilder()
             ->select('EC.G AS GRP')
             ->from('ET_CONTINGENTS', 'EC')
             ->where('EC.OID = :CONTINGENT_OID')
             ->setParameter('CONTINGENT_OID', $contingentId)
             ->execute();
 
-        $groupsList = $result->fetchAll();
+        $groupsList = $result->fetchAllAssociative();
         if (count($groupsList) !== 1) {
             throw new NotFoundException('Group');
         }
@@ -99,12 +125,12 @@ class PersonalRepository
     }
 
     /**
-     * @param \App\Model\Request\PersonProperties $newPerson
+     * @param PersonProperties $newPerson
      * @param string $userOid
-     * @throws \Doctrine\DBAL\Exception
+     * @throws Exception
      */
     public function updatePerson(PersonProperties $newPerson, string $userOid) {
-        $queryBuilder = $this->entityManager->getConnection()->createQueryBuilder();
+        $queryBuilder = $this->getEntityManager()->getConnection()->createQueryBuilder();
         $queryBuilder
             ->update('NPERSONS', 'NP')
             ->where('NP.OID = :PERSONID')
@@ -131,8 +157,14 @@ class PersonalRepository
         $queryBuilder->execute();
     }
 
+    /**
+     * @param string $personId
+     * @return mixed
+     * @throws Exception
+     * @throws \Doctrine\DBAL\Driver\Exception
+     */
     public function getProfileImage(string $personId) {
-        $queryBuilder = $this->entityManager->getConnection()->createQueryBuilder();
+        $queryBuilder = $this->getEntityManager()->getConnection()->createQueryBuilder();
         $result = $queryBuilder
             ->select('NP.PHOTO AS PH')
             ->from('NPERSONS', 'NP')
@@ -140,7 +172,7 @@ class PersonalRepository
             ->setParameter('PERSONID', $personId)
             ->execute();
 
-        $photoData = $result->fetchAll();
+        $photoData = $result->fetchAllAssociative();
 
         if(count($photoData) !== 1) {
             throw new NotFoundException('Photo');
@@ -155,11 +187,12 @@ class PersonalRepository
      * @param int $offset
      * @param int $limit
      * @return Person[]
-     * @throws \Doctrine\DBAL\Exception
+     * @throws Exception
+     * @throws \Doctrine\DBAL\Driver\Exception
      */
     public function getProfileUsers(string $personId, ?string $query, ?int $offset, ?int $limit): array
     {
-        $queryBuilder = $this->entityManager->getConnection()->createQueryBuilder();
+        $queryBuilder = $this->getEntityManager()->getConnection()->createQueryBuilder();
         $queryBuilder
             ->select('NP.OID AS ID, NP.FNAME, NP.FAMILY AS LNAME, NP.MNAME AS PTR, TP.NAME AS POST')
             ->from('NPERSONS', 'NP')
@@ -183,7 +216,7 @@ class PersonalRepository
         $result = $queryBuilder->execute();
 
         $foundedPersons = [];
-        while($personData = $result->fetch()) {
+        while($personData = $result->fetchAssociative()) {
             $person = new Person();
             $person->setUoid($personData['ID']);
             $person->setFname($this->stringConverter->capitalize($personData['FNAME']));
@@ -199,10 +232,11 @@ class PersonalRepository
     /**
      * @param string|null $query
      * @return mixed
-     * @throws \Doctrine\DBAL\Exception
+     * @throws Exception
+     * @throws \Doctrine\DBAL\Driver\Exception
      */
     public function getCountOfPersons(?string $query) {
-        $queryBuilder = $this->entityManager->getConnection()->createQueryBuilder();
+        $queryBuilder = $this->getEntityManager()->getConnection()->createQueryBuilder();
 
         $queryBuilder = $queryBuilder
             ->select('COUNT(*) CNT')
@@ -216,7 +250,7 @@ class PersonalRepository
 
         $result = $queryBuilder
             ->execute()
-            ->fetchAll();
+            ->fetchAllAssociative();
 
         return $result[0]['CNT'];
     }

@@ -5,7 +5,7 @@ namespace App\ArgumentResolver;
 use App\Exception\DataAccessException;
 use App\Exception\NotFoundException;
 use App\Exception\ValidationException;
-use App\Model\Request\Semester;
+use App\Model\QueryParam\Semester;
 use App\Repository\EducationRepository;
 use Doctrine\DBAL\Exception;
 use JMS\Serializer\SerializerInterface;

@@ -2,12 +2,20 @@
 
 namespace App\Controller;
 
+use App\Document\User;
+use App\Exception\AccessDeniedException;
 use App\Exception\DataAccessException;
-use App\Model\Request\Dialog;
-use App\Model\Request\Paginator;
-use App\Model\Request\Person;
-use App\Model\Response\ListedResponse;
+use App\Model\DTO\Attachment;
+use App\Model\DTO\BinaryFile;
+use App\Model\QueryParam\Dialog;
+use App\Model\QueryParam\Paginator;
+use App\Model\QueryParam\Person;
+use App\Model\DTO\ListedResponse;
+use App\Model\QueryParam\PrivateMessage;
+use App\Model\QueryParam\SendingPrivateMessage;
+use App\Model\QueryParam\WithJsonFlag;
 use App\Repository\PrivateMessageRepository;
+use Doctrine\DBAL\ConnectionException;
 use Doctrine\DBAL\Exception;
 use JMS\Serializer\SerializerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -29,18 +37,18 @@ class PrivateMessagesController extends AbstractRestController
     }
 
     /**
-     * @Route("/dialog/list", name="get_dialog_list", methods={"GET"})
+     * @Route("/dialog/list", name="messenger_dialog_list", methods={"GET"})
      *
-     * @return \Symfony\Component\HttpFoundation\JsonResponse
+     * @return JsonResponse
      */
     public function getDialogList(): JsonResponse
     {
-        /** @var \App\Document\User $user */
+        /** @var User $user */
         $user = $this->getUser();
 
         try {
             $dialogs = $this->privateMessageRepository->getUserDialogs($user->getDbOid());
-        } catch (Exception $e) {
+        } catch (Exception | \Doctrine\DBAL\Driver\Exception $e) {
             throw new DataAccessException();
         }
 
@@ -52,35 +60,38 @@ class PrivateMessagesController extends AbstractRestController
     }
 
     /**
-     * @Route("/dialog", name="start_dialog", methods={"POST"})
+     * @Route("/dialog", name="messenger_dialog_add", methods={"POST"})
      *
-     * @param \App\Model\Request\Person $person
-     * @return \Symfony\Component\HttpFoundation\JsonResponse
+     * @param Person $person
+     * @return JsonResponse
      */
     public function startDialogWithUser(Person $person): JsonResponse
     {
-        /** @var \App\Document\User $user */
+        /** @var User $user */
         $user = $this->getUser();
 
         try {
-            $createdDialog = $this->privateMessageRepository->startDialog($user->getUsername(), $person->getPersonId());
-        } catch (Exception $e) {
+            $createdDialogId = $this->privateMessageRepository->startDialog($user->getUsername(), $person->getPersonId());
+        } catch (Exception | \Doctrine\DBAL\Driver\Exception $e) {
             throw new DataAccessException($e);
         }
+
+        $createdDialog = new \App\Model\DTO\Dialog();
+        $createdDialog->setId($createdDialogId);
 
         return $this->responseSuccessWithObject($createdDialog);
     }
 
     /**
-     * @Route("/history", name="private_messages_list", methods={"GET"})
+     * @Route("/list", name="private_messages_list", methods={"GET"})
      *
-     * @param \App\Model\Request\Dialog $dialog
-     * @param \App\Model\Request\Paginator $paginator
-     * @return \Symfony\Component\HttpFoundation\JsonResponse
+     * @param Dialog $dialog
+     * @param Paginator $paginator
+     * @return JsonResponse
      */
     public function getPrivateMessageList(Dialog $dialog, Paginator $paginator): JsonResponse
     {
-        /** @var \App\Document\User $user */
+        /** @var User $user */
         $user = $this->getUser();
 
         $offset = $paginator->getOffset();
@@ -100,7 +111,7 @@ class PrivateMessagesController extends AbstractRestController
                 $user->getDbOid(), $dialog->getDialogId(), $offset, $count);
 
             //TODO: Add increasing read message
-        } catch (Exception $e) {
+        } catch (Exception | \Doctrine\DBAL\Driver\Exception $e) {
             throw new DataAccessException($e);
         }
 
@@ -120,10 +131,83 @@ class PrivateMessagesController extends AbstractRestController
     }
 
     /**
-     * @Route("/add", name="add_new_message", methods={"GET"})
+     * @Route("", name="private_messages_add", methods={"GET"})
+     * @param SendingPrivateMessage $privateMessage
+     * @param Dialog $dialog
+     * @param WithJsonFlag $jsonFlag
+     * @return JsonResponse
      */
-    public function addNewPrivateMessage()
+    public function addNewPrivateMessage(
+        SendingPrivateMessage $privateMessage,
+        Dialog $dialog,
+        WithJsonFlag $jsonFlag
+    ): JsonResponse
     {
+        /** @var User $user */
+        $user = $this->getUser();
 
+        try {
+            $dialogParticipants = $this->privateMessageRepository->getDialogParticipants($dialog->getDialogId());
+
+            if(!in_array($user->getDbOid(), $dialogParticipants)) {
+                throw new AccessDeniedException('Dialog');
+            }
+
+        } catch (Exception | \Doctrine\DBAL\Driver\Exception $e) {
+            throw new DataAccessException($e);
+        }
+
+        $attachments = [];
+        if($jsonFlag->getWithJsonData()) {
+            $attachments = array_map(function (Attachment $attachment) {
+                return $attachment->toBinary();
+            }, $privateMessage->getAttachments());
+        }
+
+        try {
+            $createdMessageId = $this->privateMessageRepository->addMessageToDialog(
+                $user->getDbOid(),
+                $dialog->getDialogId(),
+                $privateMessage->getMessage(),
+                $attachments,
+                $privateMessage->getExtLinks()
+            );
+        } catch (ConnectionException $e) {
+            throw new DataAccessException($e);
+        }
+
+        $createdMessage = new \App\Model\DTO\PrivateMessage();
+        $createdMessage->setId($createdMessageId);
+
+        return $this->responseSuccessWithObject($createdMessage);
+    }
+
+    /**
+     * @Route("/doc", name="private_message_attachment_add", methods={"POST"})
+     *
+     * @param BinaryFile $binaryFile
+     * @param PrivateMessage $privateMessage
+     * @return JsonResponse
+     */
+    public function addPrivateMessageAttachment(BinaryFile $binaryFile, PrivateMessage $privateMessage): JsonResponse
+    {
+        /** @var User $user */
+        $user = $this->getUser();
+
+        try {
+            $sender =  $this->privateMessageRepository->getMessageSender($privateMessage->getMsg());
+
+            if($user->getDbOid() !== $sender)
+            {
+                throw new AccessDeniedException('Message');
+            }
+
+            $this->privateMessageRepository->addPrivateMessageAttachment($binaryFile, $privateMessage->getMsg());
+
+        } catch (Exception | \Doctrine\DBAL\Driver\Exception $e) {
+            throw new DataAccessException($e);
+        }
+
+        return $this->responseSuccess();
     }
 }

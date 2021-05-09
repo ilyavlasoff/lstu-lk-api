@@ -3,7 +3,7 @@
 namespace App\ArgumentResolver;
 
 use App\Exception\ValidationException;
-use App\Model\Request\WithJsonFlag;
+use App\Model\QueryParam\WithJsonFlag;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Controller\ArgumentValueResolverInterface;
 use Symfony\Component\HttpKernel\ControllerMetadata\ArgumentMetadata;

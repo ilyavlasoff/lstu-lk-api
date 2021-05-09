@@ -3,7 +3,7 @@
 namespace App\ArgumentResolver;
 
 use App\Exception\ValidationException;
-use App\Model\Request\TextQuery;
+use App\Model\QueryParam\TextQuery;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Controller\ArgumentValueResolverInterface;
 use Symfony\Component\HttpKernel\ControllerMetadata\ArgumentMetadata;

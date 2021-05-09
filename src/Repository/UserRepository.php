@@ -7,7 +7,7 @@ use App\Exception\DuplicateValueException;
 use App\Exception\InheritedSystemException;
 use App\Exception\ValidationException;
 use App\Exception\ResourceNotFoundException;
-use App\Model\Request\RegisterCredentials;
+use App\Model\QueryParam\RegisterCredentials;
 use Doctrine\ODM\MongoDB\DocumentManager;
 use Doctrine\ODM\MongoDB\MongoDBException;
 use Symfony\Component\Security\Core\Encoder\UserPasswordEncoderInterface;

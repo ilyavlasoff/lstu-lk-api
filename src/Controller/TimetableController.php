@@ -3,13 +3,13 @@
 namespace App\Controller;
 
 use App\Exception\DataAccessException;
-use App\Model\Grouping\Day;
-use App\Model\Grouping\Week;
-use App\Model\Mapping\TimetableItem;
-use App\Model\Request\Education;
-use App\Model\Request\Semester;
-use App\Model\Response\ListedResponse;
-use App\Model\Response\Timetable;
+use App\Model\DTO\Day;
+use App\Model\DTO\Week;
+use App\Model\DTO\TimetableItem;
+use App\Model\QueryParam\Education;
+use App\Model\QueryParam\Semester;
+use App\Model\DTO\ListedResponse;
+use App\Model\DTO\Timetable;
 use App\Repository\PersonalRepository;
 use App\Repository\TimetableRepository;
 use Doctrine\DBAL\Exception;
@@ -38,10 +38,16 @@ class TimetableController extends AbstractRestController
     }
 
     /**
-     * @Route("/", name="lesson_timetable", methods={"GET"})
+     * @Route("", name="student_timetable_get", methods={"GET"})
+     *
+     * @param \App\Model\QueryParam\Week $week
+     * @param Education $education
+     * @param Semester $semester
+     * @param PersonalRepository $personalRepository
+     * @return JsonResponse
      */
     public function lessonTimetable(
-        \App\Model\Request\Week $week,
+        \App\Model\QueryParam\Week $week,
         Education $education,
         Semester $semester,
         PersonalRepository $personalRepository
@@ -58,7 +64,7 @@ class TimetableController extends AbstractRestController
                 $timetable = $this->timetableRepository->getTimetable($groupId, $semester->getSemesterId());
             }
 
-        } catch (Exception $e) {
+        } catch (Exception | \Doctrine\DBAL\Driver\Exception $e) {
             throw new DataAccessException();
         }
 
@@ -66,13 +72,13 @@ class TimetableController extends AbstractRestController
     }
 
     /**
-     * @Route("/exams", name="exams_timetable", methods={"GET"})
+     * @Route("/exams/list", name="exams_timetable", methods={"GET"})
      *
-     * @param \App\Model\Request\Education $education
-     * @param \App\Model\Request\Semester $semester
+     * @param Education $education
+     * @param Semester $semester
      * @param PersonalRepository $personalRepository
      * @return JsonResponse
-     * @throws \App\Exception\DataAccessException
+     * @throws DataAccessException
      */
     public function examsTimetable(
         Education $education,
@@ -82,7 +88,7 @@ class TimetableController extends AbstractRestController
         try {
             $groupId = $personalRepository->getGroupByContingent($education->getEducationId());
             $exams = $this->timetableRepository->getExamsTimetable($groupId, $semester->getSemesterId());
-        } catch (Exception $e) {
+        } catch (Exception | \Doctrine\DBAL\Driver\Exception $e) {
             throw new DataAccessException($e);
         }
 

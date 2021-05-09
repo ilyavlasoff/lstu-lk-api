@@ -6,11 +6,14 @@ use App\Exception\RestException;
 use App\Exception\DataAccessException;
 use App\Exception\DuplicateValueException;
 use App\Exception\NotFoundException;
-use App\Model\Mapping\Attachment;
-use App\Model\Mapping\Dialog;
-use App\Model\Mapping\ExternalLink;
-use App\Model\Mapping\Person;
-use App\Model\Mapping\PrivateMessage;
+use App\Model\DTO\Attachment;
+use App\Model\DTO\BinaryFile;
+use App\Model\DTO\Dialog;
+use App\Model\DTO\ExternalLink;
+use App\Model\DTO\Person;
+use App\Model\DTO\PrivateMessage;
+use Doctrine\DBAL\ConnectionException;
+use Doctrine\DBAL\Driver\Exception;
 
 class PrivateMessageRepository extends AbstractRepository
 {
@@ -19,6 +22,7 @@ class PrivateMessageRepository extends AbstractRepository
      * @param string $companion
      * @return array
      * @throws \Doctrine\DBAL\Exception
+     * @throws Exception
      */
     public function getExistingDialogId(string $person, string $companion): array
     {
@@ -30,7 +34,7 @@ class PrivateMessageRepository extends AbstractRepository
             ->setParameter('FIRST', $person)
             ->setParameter('SECOND', $companion)
             ->execute()
-            ->fetchAll();
+            ->fetchAllAssociative();
 
         $dialogs = [];
         foreach ($result as $dialog) {
@@ -44,6 +48,7 @@ class PrivateMessageRepository extends AbstractRepository
      * @param string $dialog
      * @return bool
      * @throws \Doctrine\DBAL\Exception
+     * @throws Exception
      */
     public function getDialogExists(string $dialog): bool
     {
@@ -53,18 +58,106 @@ class PrivateMessageRepository extends AbstractRepository
             ->where('EDCL.OID = :DIALOG')
             ->setParameter('DIALOG', $dialog)
             ->execute()
-            ->fetchAll();
+            ->fetchAllAssociative();
 
-        return $result[0]['CNT'];
+        return $result[0]['CNT'] == 1;
+    }
+
+    /**
+     * @param string $messageId
+     * @return bool
+     * @throws Exception
+     * @throws \Doctrine\DBAL\Exception
+     */
+    public function getMessageExists(string $messageId) {
+        $result = $this->getEntityManager()->getConnection()->createQueryBuilder()
+            ->select('COUNT(*) AS CNT')
+            ->from('ET_MSG_CHAT_LK', 'EMSG')
+            ->where('EMSG.OID = :MESSAGE_ID')
+            ->setParameter('MESSAGE_ID', $messageId)
+            ->execute()
+            ->fetchAllAssociative();
+
+        return $result[0]['CNT'] == 1;
+    }
+
+    /**
+     * @param string $dialogId
+     * @return array
+     * @throws Exception
+     * @throws \Doctrine\DBAL\Exception
+     */
+    public function getDialogParticipants(string $dialogId) {
+        $result = $this->getEntityManager()->getConnection()->createQueryBuilder()
+            ->select('EDL.MEMBER1, EDL.MEMBER2')
+            ->from('ET_DIALOG_CHAT_LK', 'EDL')
+            ->where('EDL.OID = :DIALOG_ID')
+            ->setParameter('DIALOG_ID', $dialogId)
+            ->execute()
+            ->fetchAllAssociative();
+
+        if(count($result) !== 1) {
+            throw new NotFoundException('Dialog');
+        }
+
+        return [
+            $result[0]['MEMBER1'],
+            $result[0]['MEMBER2']
+        ];
+    }
+
+    /**
+     * @param string $messageId
+     * @return mixed
+     * @throws Exception
+     * @throws \Doctrine\DBAL\Exception
+     */
+    public function getMessageSender(string $messageId) {
+        $result = $this->getEntityManager()->getConnection()->createQueryBuilder()
+            ->select('EMSG.AUTHOR')
+            ->from('ET_MSG_CHAT_LK', 'EMSG')
+            ->where('EMSG.OID = :MESSAGE_ID')
+            ->setParameter('MESSAGE_ID', $messageId)
+            ->execute()
+            ->fetchAllAssociative();
+
+        if(count($result) !== 1) {
+            throw new NotFoundException('Message');
+        }
+
+        return $result[0]['AUTHOR'];
+    }
+
+    /**
+     * @param string $messageId
+     * @return mixed
+     * @throws Exception
+     * @throws \Doctrine\DBAL\Exception
+     */
+    public function getDialogByMessage(string $messageId) {
+        $result = $this->getEntityManager()->getConnection()->createQueryBuilder()
+            ->select('EMSG.DIALOG')
+            ->from('ET_MSG_CHAT_LK', 'EMSG')
+            ->where('EMSG.OID = :MESSAGE_ID')
+            ->setParameter('MESSAGE_ID', $messageId)
+            ->execute()
+            ->fetchAllAssociative();
+
+        if(count($result) !== 1) {
+            throw new NotFoundException('Message');
+        }
+
+        return $result[0]['DIALOG'];
     }
 
     /**
      * @param string $person
      * @param string $companion
-     * @return \App\Model\Mapping\Dialog
+     * @return Dialog
      * @throws \Doctrine\DBAL\Exception
+     * @throws Exception
      */
-    public function startDialog(string $person, string $companion): Dialog
+    public function startDialog(string $person, string $companion): string
     {
         if($this->getExistingDialogId($person, $companion)) {
             throw new DuplicateValueException('Dialog');
@@ -85,18 +178,15 @@ class PrivateMessageRepository extends AbstractRepository
             ->setParameter('OID', $newOid)
             ->execute();
 
-        $createdDialog = $this->getUserDialogs($person, $newOid);
-        if(count($createdDialog) !== 1) {
-            throw new NotFoundException('Dialog');
-        }
-
-        return $createdDialog[0];
+        return $newOid;
     }
 
     /**
      * @param string|null $person
      * @return PrivateMessage[]
      * @throws \Doctrine\DBAL\Exception
+     * @throws Exception
+     * @throws \Exception
      */
     public function getUnreadMessages(?string $person): array
     {
@@ -154,7 +244,7 @@ class PrivateMessageRepository extends AbstractRepository
         $result = $qb->execute();
 
         $messagesList = [];
-        while ($messageRow = $result->fetch()) {
+        while ($messageRow = $result->fetchAssociative()) {
             $sender = new Person();
             $sender->setUoid($messageRow['SENDER_ID']);
             $sender->setFname($messageRow['SENDER_FNAME']);
@@ -185,6 +275,7 @@ class PrivateMessageRepository extends AbstractRepository
      * @param string|null $dialogId
      * @return Dialog[]
      * @throws \Doctrine\DBAL\Exception
+     * @throws Exception
      */
     public function getUserDialogs(string $person, ?string $dialogId = null): array
     {
@@ -242,7 +333,7 @@ class PrivateMessageRepository extends AbstractRepository
             ->execute();
 
         $loadedDialogs = [];
-        while ($dialogRow = $result->fetch()) {
+        while ($dialogRow = $result->fetchAssociative()) {
             $companion = new Person();
             $companion->setUoid($dialogRow['COMPANION_ID']);
             $companion->setFname($dialogRow['COMPANION_FNAME']);
@@ -299,6 +390,7 @@ class PrivateMessageRepository extends AbstractRepository
      * @param string $dialog
      * @return int
      * @throws \Doctrine\DBAL\Exception
+     * @throws Exception
      */
     public function getMessageCountInDialog(string $dialog): int
     {
@@ -308,7 +400,7 @@ class PrivateMessageRepository extends AbstractRepository
             ->where('EMCL.DIALOG = :DIALOG')
             ->setParameter('DIALOG', $dialog)
             ->execute()
-            ->fetchAll();
+            ->fetchAllAssociative();
 
         return $result[0]['CNT'];
     }
@@ -318,13 +410,15 @@ class PrivateMessageRepository extends AbstractRepository
      * @param string $dialog
      * @param int|null $offset
      * @param int|null $count
-     * @return PrivateMessage[]
+     * @return array
+     * @throws Exception
      * @throws \Doctrine\DBAL\Exception
      */
     public function getMessageList(string $person, string $dialog, ?int $offset, ?int $count): array
     {
         $queryBuilder = $this->getEntityManager()->getConnection()->createQueryBuilder();
-        $result = $queryBuilder
+
+        $queryBuilder
             ->select("EMCL.OID AS M_ID, EMCL.AUTHOR AS SENDER,
                CASE WHEN EMCL.AUTHOR = DM.PERSON THEN 1 ELSE 0 END AS ME_SENDER,
                CASE WHEN EMCL.AUTHOR <> DM.PERSON THEN CASE WHEN DM.COMPANION_LAST_READ IS NOT NULL 
@@ -352,11 +446,12 @@ class PrivateMessageRepository extends AbstractRepository
             ->setFirstResult($offset)
             ->setMaxResults($count)
             ->setParameter('DIALOG_ID', $dialog)
-            ->setParameter('PERSON_ID', $person)
-            ->execute();
+            ->setParameter('PERSON_ID', $person);
+
+        $result = $queryBuilder->execute();
 
         $messageList = [];
-        while($messageRow = $result->fetch()) {
+        while($messageRow = $result->fetchAllAssociative()) {
             $sender = new Person();
             $sender->setUoid($messageRow['SENDER']);
             $sender->setFname($messageRow['SENDER_FNAME']);
@@ -396,8 +491,17 @@ class PrivateMessageRepository extends AbstractRepository
         return $messageList;
     }
 
+    /**
+     * @param string $senderPerson
+     * @param string $dialog
+     * @param string $message
+     * @param BinaryFile[] $attachments
+     * @param ExternalLink[] $links
+     * @return String
+     * @throws ConnectionException
+     */
     public function addMessageToDialog(string $senderPerson,
-                                       string $dialog, string $message, string $doc, string $filename, string $link, string $linkText)
+                                       string $dialog, string $message, array $attachments, array $links)
     {
         $conn = $this->getEntityManager()->getConnection();
         $queryBuilder = $conn->createQueryBuilder();
@@ -419,20 +523,20 @@ class PrivateMessageRepository extends AbstractRepository
                     ->setParameter('MGS_TEXT', $message);
             }
 
-            if ($doc) {
+            if (count($attachments) > 0) {
                 $queryBuilder
                     ->setValue('DOC', ':DOCUMENT')
                     ->setValue('FILE$DOC', 'DOC_NAME')
-                    ->setParameter('DOCUMENT', $doc)
-                    ->setParameter('DOC_NAME', $filename);
+                    ->setParameter('DOCUMENT', $attachments[0]->getFileContent())
+                    ->setParameter('DOC_NAME', $attachments[0]->getFilename());
             }
 
-            if ($link) {
+            if (count($links) > 0) {
                 $queryBuilder
                     ->setValue('LINK', ':LINK')
                     ->setValue('TEXTLINK', ':LINK_TEXT')
-                    ->setParameter('LINK', $link)
-                    ->setParameter('LINK_TEXT', $linkText);
+                    ->setParameter('LINK', $links[0]->getLinkContent())
+                    ->setParameter('LINK_TEXT', $links[0]->getLinkText());
             }
 
             $queryBuilder
@@ -450,13 +554,59 @@ class PrivateMessageRepository extends AbstractRepository
             $conn->rollBack();
             throw new DataAccessException($e);
         }
+
+        return $newOid;
+    }
+
+    /**
+     * @param BinaryFile $binaryFile
+     * @param string $messageId
+     * @throws \Doctrine\DBAL\Exception
+     */
+    public function addPrivateMessageAttachment(BinaryFile $binaryFile, string $messageId)
+    {
+        $this->getEntityManager()->getConnection()->createQueryBuilder()
+            ->update('ET_MSG_CHAT_LK', 'EMSG')
+            ->setValue('EMSG.DOC', ':DOCUMENT')
+            ->setValue('EMSG.FILE$DOC', ':DOC_NAME')
+            ->where('EMSG.OID = :MESSAGE_ID')
+            ->setParameter('DOCUMENT', $binaryFile->getFileContent())
+            ->setParameter('DOC_NAME', $binaryFile->getFilename())
+            ->setParameter('MESSAGE_ID', $messageId)
+            ->execute();
+    }
+
+    /**
+     * @param string $messageId
+     * @return BinaryFile
+     * @throws Exception
+     * @throws \Doctrine\DBAL\Exception
+     */
+    public function getPrivateMessageAttachment(string $messageId): BinaryFile {
+        $result = $this->getEntityManager()->getConnection()->createQueryBuilder()
+            ->select('EMSG.DOC, EMSG.FILE$DOC AS DOC_NAME')
+            ->from('ET_MSG_CHAT_LK', 'EMSG')
+            ->where('EMSG.OID = :MESSAGE_ID')
+            ->setParameter('MESSAGE_ID', $messageId)
+            ->execute()
+            ->fetchAllAssociative();
+
+        if(count($result) !== 1 || !($result[0]['DOC'] && $result[0]['DOC_NAME'])) {
+            throw new NotFoundException('Message');
+        }
+
+        $file = new BinaryFile();
+        $file->setFilename($result[0]['DOC_NAME']);
+        $file->setFileContent($result[0]['DOC']);
+
+        return $file;
     }
 
     /**
      * @param string $dialog
      * @param string $person
      * @param string $value
-     * @return bool
+     * @return void
      * @throws \Doctrine\DBAL\Exception
      */
     public function updateLastViewedMessages(string $dialog, string $person, string $value)
@@ -471,7 +621,5 @@ class PrivateMessageRepository extends AbstractRepository
             ->setParameter('PERSON', $person)
             ->setParameter('VALUE', $value)
             ->execute();
-
-        return true;
     }
 }

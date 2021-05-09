@@ -3,7 +3,7 @@
 namespace App\ArgumentResolver;
 
 use App\Exception\ValidationException;
-use App\Model\Request\Week;
+use App\Model\QueryParam\Week;
 use JMS\Serializer\SerializerInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Controller\ArgumentValueResolverInterface;

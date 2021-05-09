@@ -4,15 +4,16 @@ namespace App\Repository;
 
 use App\Exception\NotFoundException;
 use App\Model\Grouping\Day;
-use App\Model\Mapping\Discipline;
-use App\Model\Mapping\Education;
-use App\Model\Mapping\Exam;
-use App\Model\Mapping\Group;
-use App\Model\Mapping\Semester;
-use App\Model\Mapping\Speciality;
-use App\Model\Mapping\Teacher;
-use App\Model\Mapping\TimetableItem;
+use App\Model\DTO\Discipline;
+use App\Model\DTO\Education;
+use App\Model\DTO\Exam;
+use App\Model\DTO\Group;
+use App\Model\DTO\Semester;
+use App\Model\DTO\Speciality;
+use App\Model\DTO\Teacher;
+use App\Model\DTO\TimetableItem;
 use App\Service\StringConverter;
+use Doctrine\DBAL\Driver\Exception;
 use Doctrine\DBAL\FetchMode;
 use Doctrine\ORM\EntityManagerInterface;
 
@@ -65,6 +66,8 @@ class EducationRepository
      * @param string $personOid
      * @return array
      * @throws \Doctrine\DBAL\Exception
+     * @throws \Exception
+     * @throws Exception
      */
     public function getLstuEducationListByPerson(string $personOid): array
     {
@@ -85,7 +88,7 @@ class EducationRepository
             ->execute();
 
         $educationList = [];
-        while($education = $result->fetch()) {
+        while($education = $result->fetchAssociative()) {
             $educationItem = new Education();
             $educationItem->setId($education['EDU_ID']);
             $educationItem->setStatus($education['EDU_STATUS']);
@@ -110,8 +113,9 @@ class EducationRepository
 
     /**
      * @param string $groupId
-     * @return \App\Model\Mapping\Semester
+     * @return Semester
      * @throws \Doctrine\DBAL\Exception
+     * @throws Exception
      */
     public function getCurrentSemester(string $groupId): Semester
     {
@@ -128,7 +132,7 @@ class EducationRepository
             ->setParameter('GRP', $groupId)
             ->execute();
 
-        $semesters = $result->fetchAll();
+        $semesters = $result->fetchAllAssociative();
         if(count($semesters) !== 1) {
             throw new NotFoundException('Semester');
         }
@@ -143,6 +147,7 @@ class EducationRepository
      * @param string $groupId
      * @return array
      * @throws \Doctrine\DBAL\Exception
+     * @throws Exception
      */
     public function getSemesterList(string $groupId): array
     {
@@ -161,7 +166,7 @@ class EducationRepository
             ->execute();
 
         $semesterList = [];
-        while($semester = $result->fetch()) {
+        while($semester = $result->fetchAssociative()) {
             $semesterItem = new Semester();
             $semesterItem->setId($semester['SEM_OID']);
             $semesterItem->setYear($semester['YEAR']);
@@ -176,6 +181,7 @@ class EducationRepository
      * @param string $person
      * @return array
      * @throws \Doctrine\DBAL\Exception
+     * @throws Exception
      */
     public function getUserEducationsIdList(string $person): array {
         $queryBuilder = $this->entityManager->getConnection()->createQueryBuilder();
@@ -187,7 +193,7 @@ class EducationRepository
             ->setParameter('PERSON', $person)
             ->execute();
 
-        return $result->fetchAll(FetchMode::COLUMN);
+        return $result->fetchFirstColumn();
     }
 
 }

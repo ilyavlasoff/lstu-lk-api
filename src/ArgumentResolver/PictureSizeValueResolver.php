@@ -5,7 +5,7 @@ namespace App\ArgumentResolver;
 use App\Exception\DataAccessException;
 use App\Exception\NotFoundException;
 use App\Exception\ValidationException;
-use App\Model\Request\PictureSize;
+use App\Model\QueryParam\PictureSize;
 use App\Repository\PersonalRepository;
 use Doctrine\DBAL\Exception;
 use Symfony\Component\HttpFoundation\Request;

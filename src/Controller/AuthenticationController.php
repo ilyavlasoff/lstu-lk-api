@@ -5,12 +5,11 @@ namespace App\Controller;
 use App\Document\User;
 use App\Exception\RestException;
 use App\Exception\DataAccessException;
-use App\Exception\InvalidCredentialsException;
 use App\Exception\ValidationException;
-use App\Model\Mapping\Person;
-use App\Model\Response\AuthenticationData;
-use App\Model\Request\RegisterCredentials;
-use App\Model\Request\UserIdentifier;
+use App\Model\DTO\Person;
+use App\Model\DTO\AuthenticationData;
+use App\Model\QueryParam\RegisterCredentials;
+use App\Model\QueryParam\UserIdentifier;
 use App\Repository\AuthenticationRepository;
 use App\Repository\UserRepository;
 use Doctrine\ODM\MongoDB\MongoDBException;
@@ -68,12 +67,12 @@ class AuthenticationController extends AbstractRestController
      *     )
      * )
      *
-     * @param \App\Model\Request\UserIdentifier $userIdentifier
+     * @param UserIdentifier $userIdentifier
      * @param AuthenticationRepository $authenticationRepository
      * @param UserRepository $userRepository
      * @param JWTTokenManagerInterface $tokenManager
-     * @return \Symfony\Component\HttpFoundation\JsonResponse
-     * @throws \App\Exception\DataAccessException
+     * @return JsonResponse
+     * @throws DataAccessException
      */
     public function identify(
         UserIdentifier $userIdentifier,
@@ -114,11 +113,11 @@ class AuthenticationController extends AbstractRestController
      *     )
      * )
      *
-     * @param \App\Model\Request\RegisterCredentials $credentials
+     * @param RegisterCredentials $credentials
      * @param JWTTokenManagerInterface $tokenManager
      * @param UserRepository $userRepository
      * @param ParameterBagInterface $parameterBag
-     * @return \Symfony\Component\HttpFoundation\JsonResponse
+     * @return JsonResponse
      */
     public function register(
         RegisterCredentials $credentials,
@@ -127,7 +126,7 @@ class AuthenticationController extends AbstractRestController
         //RefreshTokenManagerInterface $refreshTokenManager,
         ParameterBagInterface $parameterBag
     ): JsonResponse {
-        /** @var \App\Document\User $user */
+        /** @var User $user */
         $user = $this->getUser();
 
         try {
@@ -173,10 +172,7 @@ class AuthenticationController extends AbstractRestController
      *     )
      * )
      */
-    public function authenticate(): void
-    {
-        // Implemented in LexicJWT
-    }
+    public function authenticate(): void {}
 
     /**
      * @Route("/token/refresh", name="app_jwt_refresh", methods={"POST"})
@@ -190,7 +186,7 @@ class AuthenticationController extends AbstractRestController
     }
 
     /**
-     * @Route("/whoami", name="get_current_person", methods={"GET"})
+     * @Route("/whoami", name="current_person_get", methods={"GET"})
      *
      * @OA\Get(
      *     tags={"Персона"},
@@ -214,7 +210,7 @@ class AuthenticationController extends AbstractRestController
      *     )
      * )
      *
-     * @return \Symfony\Component\HttpFoundation\JsonResponse
+     * @return JsonResponse
      */
     public function currentPersonId(): JsonResponse
     {

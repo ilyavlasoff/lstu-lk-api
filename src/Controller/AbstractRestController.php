@@ -30,4 +30,14 @@ abstract class AbstractRestController extends AbstractController
         return new JsonResponse(json_encode(['success' => true]), Response::HTTP_OK, [], true);
     }
 
+    protected function responseCreated($resource = null, SerializationContext $context = null): JsonResponse
+    {
+        return new JsonResponse(
+            $resource ? $this->serializer->serialize($resource, 'json', $context) : [],
+            Response::HTTP_CREATED,
+            [],
+            true
+        );
+    }
+
 }

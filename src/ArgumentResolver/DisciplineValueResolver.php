@@ -6,7 +6,7 @@ use App\Exception\DataAccessException;
 use App\Exception\NotFoundException;
 use App\Exception\ResourceNotFoundException;
 use App\Exception\ValidationException;
-use App\Model\Request\Discipline;
+use App\Model\QueryParam\Discipline;
 use App\Repository\DisciplineRepository;
 use Doctrine\DBAL\Exception;
 use JMS\Serializer\SerializerInterface;
@@ -44,7 +44,7 @@ class DisciplineValueResolver implements ArgumentValueResolverInterface
 
         try {
             $disciplineExistence = $this->disciplineRepository->isDisciplineExists($discipline->getDisciplineId());
-        } catch (Exception $e) {
+        } catch (Exception | \Doctrine\DBAL\Driver\Exception $e) {
             throw new DataAccessException($e);
         }
 
