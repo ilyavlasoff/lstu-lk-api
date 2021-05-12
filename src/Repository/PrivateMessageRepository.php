@@ -566,11 +566,11 @@ class PrivateMessageRepository extends AbstractRepository
     public function addPrivateMessageAttachment(BinaryFile $binaryFile, string $messageId)
     {
         $this->getEntityManager()->getConnection()->createQueryBuilder()
-            ->update('ET_MSG_CHAT_LK', 'EMSG')
-            ->setValue('EMSG.DOC', ':DOCUMENT')
-            ->setValue('EMSG.FILE$DOC', ':DOC_NAME')
-            ->where('EMSG.OID = :MESSAGE_ID')
-            ->setParameter('DOCUMENT', $binaryFile->getFileContent())
+            ->update('ET_MSG_CHAT_LK')
+            ->set('DOC', ':DOCUMENT')
+            ->set('FILE$DOC', ':DOC_NAME')
+            ->where('OID = :MESSAGE_ID')
+            ->setParameter('DOCUMENT', $binaryFile->getFileContent(), 'blob')
             ->setParameter('DOC_NAME', $binaryFile->getFilename())
             ->setParameter('MESSAGE_ID', $messageId)
             ->execute();

@@ -144,7 +144,7 @@ class PersonalRepository extends AbstractRepository
 
         if($updatedPhone = $newPerson->getPhone()) {
             $queryBuilder
-                ->set('NP.TELEPHONS', ':PH')
+                ->set('NP.TELEPHONE', ':PH')
                 ->setParameter('PH', $updatedPhone);
         };
 

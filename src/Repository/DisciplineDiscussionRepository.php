@@ -302,7 +302,7 @@ class DisciplineDiscussionRepository extends AbstractRepository
             ->set('EM.DOC', ':FILE_DATA')
             ->set('EM.FILE$DOC', ':FILE_NAME')
             ->where('EM.OID = :MESSAGE_ID')
-            ->setParameter('FILE_DATA', $file->getFileContent())
+            ->setParameter('FILE_DATA', $file->getFileContent(), 'blob')
             ->setParameter('FILE_NAME', $file->getFilename())
             ->setParameter('MESSAGE_ID', $messageId)
             ->execute();

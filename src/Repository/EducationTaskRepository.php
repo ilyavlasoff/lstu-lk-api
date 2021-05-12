@@ -79,11 +79,16 @@ class EducationTaskRepository extends AbstractRepository
      * @throws Exception
      */
     public function addAnswerDocument(BinaryFile $file, string $answerId) {
-        $this->getEntityManager()->getConnection()
-            ->update('ET_SWATTACHMENT', [
-                'DOC' => $file->getFileContent(),
-                'FILE$DOC' => $file->getFilename()
-            ],['OID' => $answerId]);
+        $queryBuilder = $this->getEntityManager()->getConnection()->createQueryBuilder()
+            ->update('ET_SWATTACHMENT')
+            ->set('DOC', ':DOC_CONTENT')
+            ->set('FILE$DOC', ':DOC_NAME')
+            ->where('OID = :ANSWER_ID')
+            ->setParameter('DOC_CONTENT', $file->getFileContent(), 'blob')
+            ->setParameter('DOC_NAME', $file->getFilename())
+            ->setParameter('ANSWER_ID', $answerId);
+
+        $queryBuilder->execute();
     }
 
     /**
