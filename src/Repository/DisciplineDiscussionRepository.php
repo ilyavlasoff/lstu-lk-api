@@ -212,23 +212,34 @@ class DisciplineDiscussionRepository extends AbstractRepository
         $newOid = $this->getNewOid();
         $queryBuilder
             ->insert('ET_MSG_LK')
-            ->setParameter('OID', $newOid)
-            ->setParameter('AUTHOR', $senderId)
-            ->setParameter('CREATED', new \DateTime())
-            ->setParameter('CSEMESTER', $semesterId)
-            ->setParameter('DISCIPLINE', $disciplineId)
-            ->setParameter('G', $groupId)
-            ->setParameter('MSG', $message);
+            ->setValue('OID', ':MSG_ID')
+            ->setValue('AUTHOR', ':AUTHOR_ID')
+            ->setValue('CREATED', "TO_DATE(:CURRENT_DATE, 'yyyy-mm-dd hh24:mi:ss')")
+            ->setValue('CSEMESTER', ':SEMESTER_ID')
+            ->setValue('DISCIPLINE', ':DISCIPLINE_ID')
+            ->setValue('G', ':GROUP_ID')
+            ->setValue('MSG', ':MESSAGE')
+            ->setParameter('MSG_ID', $newOid)
+            ->setParameter('AUTHOR_ID', $senderId)
+            ->setParameter('CURRENT_DATE', new \DateTime())
+            ->setParameter('SEMESTER_ID', $semesterId)
+            ->setParameter('DISCIPLINE_ID', $disciplineId)
+            ->setParameter('GROUP_ID', $groupId)
+            ->setParameter('MESSAGE', $message);
         if(count($attachments) > 0) {
             $queryBuilder
-                ->setParameter('DOC', $attachments[0]->getFileContent())
-                ->setParameter('FILE$DOC', $attachments[0]->getFilename());
+                ->setValue('DOC', ':DOCUMENT')
+                ->setValue('FILE$DOC', ':DOC_NAME')
+                ->setParameter('DOCUMENT', $attachments[0]->getFileContent())
+                ->setParameter('DOC_NAME', $attachments[0]->getFilename());
         }
 
         if(count($links) > 0) {
             $queryBuilder
-                ->setParameter('EXTLINK', $links[0]->getLinkContent())
-                ->setParameter('TEXTLINK', $links[0]->getLinkText());
+                ->setValue('EXTLINK', ':LINK_VALUE')
+                ->setValue('TEXTLINK', ':LINK_TXT')
+                ->setParameter('LINK_VALUE', $links[0]->getLinkContent())
+                ->setParameter('LINK_TXT', $links[0]->getLinkText());
         }
 
         $queryBuilder->execute();

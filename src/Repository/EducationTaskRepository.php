@@ -40,26 +40,35 @@ class EducationTaskRepository extends AbstractRepository
         string $answerName,
         array $attachments,
         array $externalLinks
-    ) {
+    ): string
+    {
         $newOid = $this->getNewOid();
 
-        $insertingData = [
-            'OID' => $newOid,
-            'CONTINGENT' => $educationId,
-            'NAME' => $answerName,
-            'WORK' => $workId
-        ];
+        $queryBuilder = $this->getEntityManager()->getConnection()->createQueryBuilder();
+        $queryBuilder
+            ->insert('ET_SWATTACHMENT')
+            ->setValue('OID', ':ID')
+            ->setValue('CONTINGENT', ':EDUCATION_ID')
+            ->setValue('NAME', ':NAME')
+            ->setValue('WORK', ':WORK')
+            ->setParameter('ID', $newOid)
+            ->setParameter('EDUCATION_ID', $educationId)
+            ->setParameter('NAME', $answerName)
+            ->setParameter('WORK', $workId);
 
         if($attachments) {
-            $insertingData['DOC'] = $attachments[0]->getFileContent();
-            $insertingData['FILE$DOC'] = $attachments[0]->getFilename();
+            $queryBuilder
+                ->setValue('DOC', ':DOC_CONTENT')
+                ->setValue('FILE$DOC', ':DOC_NAME')
+                ->setParameter('DOC_CONTENT', $attachments[0]->getFileContent())
+                ->setParameter('DOC_NAME', $attachments[0]->getFilename());
         };
         if($externalLinks) {
-            $insertingData['EXTLINK'] = $externalLinks[0]->getLinkContent();
+            $queryBuilder
+                ->setValue('EXTLINK', ':LINK')
+                ->setParameter('LINK', $externalLinks[0]->getLinkContent());
         }
-
-        $this->getEntityManager()->getConnection()
-            ->insert('ET_SWATTACHMENT', $insertingData);
+        $queryBuilder->execute();
 
         return $newOid;
     }
@@ -134,6 +143,7 @@ class EducationTaskRepository extends AbstractRepository
      * @param string $contingent
      * @return array
      * @throws Exception
+     * @throws \Doctrine\DBAL\Driver\Exception
      */
     public function getEducationTasksList(
         string $semester,
@@ -220,7 +230,7 @@ class EducationTaskRepository extends AbstractRepository
         $teachers = [];
         $works = [];
 
-        while($workRow = $result->fetch())
+        while($workRow = $result->fetchAssociative())
         {
             if(!(key_exists($workId = $workRow['WORK_ID'], $works) && $work = $works[$workId])) {
                 $work = new StudentWork();

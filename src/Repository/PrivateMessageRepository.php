@@ -451,7 +451,7 @@ class PrivateMessageRepository extends AbstractRepository
         $result = $queryBuilder->execute();
 
         $messageList = [];
-        while($messageRow = $result->fetchAllAssociative()) {
+        while($messageRow = $result->fetchAssociative()) {
             $sender = new Person();
             $sender->setUoid($messageRow['SENDER']);
             $sender->setFname($messageRow['SENDER_FNAME']);
@@ -501,7 +501,7 @@ class PrivateMessageRepository extends AbstractRepository
      * @throws ConnectionException
      */
     public function addMessageToDialog(string $senderPerson,
-                                       string $dialog, string $message, array $attachments, array $links)
+                                       string $dialog, string $message, array $attachments, array $links): string
     {
         $conn = $this->getEntityManager()->getConnection();
         $queryBuilder = $conn->createQueryBuilder();
@@ -514,7 +514,7 @@ class PrivateMessageRepository extends AbstractRepository
                 ->insert('ET_MSG_CHAT_LK')
                 ->setValue('OID', ':OID')
                 ->setValue('AUTHOR', ':AUTHOR')
-                ->setValue('CREATED', ':CREATED_AT')
+                ->setValue('CREATED', "TO_DATE(:CREATED_AT, 'yyyy-mm-dd hh24:mi:ss')")
                 ->setValue('DIALOG', ':DIALOG');
 
             if ($message) {
@@ -542,7 +542,7 @@ class PrivateMessageRepository extends AbstractRepository
             $queryBuilder
                 ->setParameter('OID', $newOid)
                 ->setParameter('AUTHOR', $senderPerson)
-                ->setParameter('CREATED_AT', new \DateTime())
+                ->setParameter('CREATED_AT', (new \DateTime())->format('Y-m-d H:i:s'))
                 ->setParameter('DIALOG', $dialog);
 
             $queryBuilder->execute();

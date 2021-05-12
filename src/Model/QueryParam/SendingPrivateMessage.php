@@ -22,13 +22,13 @@ class SendingPrivateMessage
      * @var Attachment[]
      * @JMS\Type("array<App\Model\DTO\Attachment>")
      */
-    private $attachments;
+    private $attachments = [];
 
     /**
      * @var ExternalLink[]
      * @JMS\Type("array<App\Model\DTO\ExternalLink>")
      */
-    private $extLinks;
+    private $extLinks = [];
 
     /**
      * @return string|null
