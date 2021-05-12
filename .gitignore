@@ -14,4 +14,4 @@
 ###< lexik/jwt-authentication-bundle ###
 .idea
 logs/*.log
-docker/rabbit/logs/*
+/docker/rabbit/*

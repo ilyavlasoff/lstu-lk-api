@@ -131,7 +131,7 @@ class PrivateMessagesController extends AbstractRestController
     }
 
     /**
-     * @Route("", name="private_messages_add", methods={"GET"})
+     * @Route("", name="private_messages_add", methods={"POST"})
      * @param SendingPrivateMessage $privateMessage
      * @param Dialog $dialog
      * @param WithJsonFlag $jsonFlag
@@ -179,7 +179,7 @@ class PrivateMessagesController extends AbstractRestController
         $createdMessage = new \App\Model\DTO\PrivateMessage();
         $createdMessage->setId($createdMessageId);
 
-        return $this->responseSuccessWithObject($createdMessage);
+        return $this->responseCreated($createdMessage);
     }
 
     /**
