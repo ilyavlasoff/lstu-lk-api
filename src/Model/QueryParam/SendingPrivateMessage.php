@@ -12,6 +12,7 @@ class SendingPrivateMessage
     /**
      * @var string | null
      * @JMS\Type("string")
+     * @JMS\SerializedName("message_text")
      * @Assert\NotNull(message="Message text was not found")
      * @Assert\NotBlank(message="Message text can not be empty")
      * @Assert\Length(max="2048", maxMessage="Message is too long, max length is {{ limit }} symbols, given {{ value }}")
