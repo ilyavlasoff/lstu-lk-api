@@ -69,7 +69,8 @@ class PrivateMessageRepository extends AbstractRepository
      * @throws Exception
      * @throws \Doctrine\DBAL\Exception
      */
-    public function getMessageExists(string $messageId) {
+    public function getMessageExists(string $messageId): bool
+    {
         $result = $this->getEntityManager()->getConnection()->createQueryBuilder()
             ->select('COUNT(*) AS CNT')
             ->from('ET_MSG_CHAT_LK', 'EMSG')
@@ -87,7 +88,8 @@ class PrivateMessageRepository extends AbstractRepository
      * @throws Exception
      * @throws \Doctrine\DBAL\Exception
      */
-    public function getDialogParticipants(string $dialogId) {
+    public function getDialogParticipants(string $dialogId): array
+    {
         $result = $this->getEntityManager()->getConnection()->createQueryBuilder()
             ->select('EDL.MEMBER1, EDL.MEMBER2')
             ->from('ET_DIALOG_CHAT_LK', 'EDL')
@@ -271,13 +273,33 @@ class PrivateMessageRepository extends AbstractRepository
     }
 
     /**
-     * @param string $person
-     * @param string|null $dialogId
-     * @return Dialog[]
      * @throws \Doctrine\DBAL\Exception
      * @throws Exception
      */
-    public function getUserDialogs(string $person, ?string $dialogId = null): array
+    public function getDialogCount(string $user): int
+    {
+        $queryBuilder = $this->getEntityManager()->getConnection()->createQueryBuilder();
+        $result = $queryBuilder
+            ->select('COUNT(*) AS CNT')
+            ->from('ET_DIALOG_CHAT_LK', 'EDCL')
+            ->where($queryBuilder->expr()->or('EDCL.MEMBER1 = :PERSON', 'EDCL.MEMBER2 = :PERSON'))
+            ->setParameter('PERSON', $user)
+            ->execute()
+            ->fetchAllAssociative();
+
+        return $result[0]['CNT'];
+    }
+
+    /**
+     * @param string $person
+     * @param string|null $offset
+     * @param string|null $count
+     * @param string|null $dialogId
+     * @return Dialog[]
+     * @throws Exception
+     * @throws \Doctrine\DBAL\Exception
+     */
+    public function getUserDialogs(string $person, ?string $offset = null, ?string $count = null, ?string $dialogId = null): array
     {
         $subQ1 = $this->getEntityManager()->getConnection()->createQueryBuilder()
             ->select("EDCL.OID AS DIALOG, EDCL.MEMBER1 AS PERSON, EDCL.MEMBER2 AS COMPANION,
@@ -319,7 +341,8 @@ class PrivateMessageRepository extends AbstractRepository
             ->leftJoin('DM', 'ET_MSG_CHAT_LK', 'EMLK', 'EMLK.DIALOG = DM.DIALOG')
             ->leftJoin('EMLK', 'NPERSONS', 'SNP', 'EMLK.AUTHOR = SNP.OID')
             ->where('EMLK.NUM = (SELECT MAX(NUM) FROM ET_MSG_CHAT_LK WHERE ET_MSG_CHAT_LK.DIALOG = DM.DIALOG)')
-            ->andWhere('DM.PERSON = :PERSON');
+            ->andWhere('DM.PERSON = :PERSON')
+            ->orderBy('EMLK.CREATED', 'DESC');
 
         if($dialogId) {
             $queryBuilder
@@ -327,8 +350,13 @@ class PrivateMessageRepository extends AbstractRepository
                 ->setParameter('DIALOG', $dialogId);
         }
 
+        if($offset && $count) {
+            $queryBuilder
+                ->setFirstResult($offset)
+                ->setMaxResults($count);
+        }
+
         $result = $queryBuilder
-            ->orderBy('EMLK.CREATED', 'DESC')
             ->setParameter('PERSON', $person)
             ->execute();
 

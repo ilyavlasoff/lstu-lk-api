@@ -39,15 +39,21 @@ class PrivateMessagesController extends AbstractRestController
     /**
      * @Route("/dialog/list", name="messenger_dialog_list", methods={"GET"})
      *
+     * @param Paginator $paginator
      * @return JsonResponse
      */
-    public function getDialogList(): JsonResponse
+    public function getDialogList(Paginator $paginator): JsonResponse
     {
         /** @var User $user */
         $user = $this->getUser();
 
+        $offset = $paginator->getOffset();
+        $count = $paginator->getCount();
+
         try {
-            $dialogs = $this->privateMessageRepository->getUserDialogs($user->getDbOid());
+            $totalDialogsCount = $this->privateMessageRepository->getDialogCount($user->getDbOid());
+
+            $dialogs = $this->privateMessageRepository->getUserDialogs($user->getDbOid(), $offset, $count);
         } catch (Exception | \Doctrine\DBAL\Driver\Exception $e) {
             throw new DataAccessException();
         }
@@ -55,6 +61,14 @@ class PrivateMessagesController extends AbstractRestController
         $dialogList = new ListedResponse();
         $dialogList->setCount(count($dialogs));
         $dialogList->setPayload($dialogs);
+        $dialogList->setOffset($offset);
+
+        $remains = $totalDialogsCount - $offset - count($dialogs);
+        $dialogList->setRemains($remains);
+
+        if($remains > 0) {
+            $dialogList->setNextOffset($offset + count($dialogs));
+        }
 
         return $this->responseSuccessWithObject($dialogList);
     }
