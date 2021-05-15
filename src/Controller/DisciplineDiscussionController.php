@@ -155,7 +155,7 @@ class DisciplineDiscussionController extends AbstractRestController
         $addedMessage = new DiscussionMessage();
         $addedMessage->setId($msgId);
 
-        return $this->responseSuccessWithObject($addedMessage);
+        return $this->responseCreated($addedMessage);
     }
 
     /**

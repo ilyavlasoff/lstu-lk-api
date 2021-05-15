@@ -155,13 +155,17 @@ class PrivateMessageRepository extends AbstractRepository
     /**
      * @param string $person
      * @param string $companion
-     * @return Dialog
-     * @throws \Doctrine\DBAL\Exception
+     * @param bool $errorOnExists
+     * @return string
      * @throws Exception
+     * @throws \Doctrine\DBAL\Exception
      */
-    public function startDialog(string $person, string $companion): string
+    public function startDialog(string $person, string $companion, bool $errorOnExists = false): string
     {
-        if($this->getExistingDialogId($person, $companion)) {
+        if(count($existingDialogs = $this->getExistingDialogId($person, $companion)) > 0) {
+            if(!$errorOnExists) {
+                return $existingDialogs[0];
+            }
             throw new DuplicateValueException('Dialog');
         }
 
