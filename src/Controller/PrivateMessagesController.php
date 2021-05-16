@@ -85,7 +85,7 @@ class PrivateMessagesController extends AbstractRestController
         $user = $this->getUser();
 
         try {
-            $createdDialogId = $this->privateMessageRepository->startDialog($user->getUsername(), $person->getPersonId());
+            $createdDialogId = $this->privateMessageRepository->startDialog($user->getDbOid(), $person->getPersonId());
         } catch (Exception | \Doctrine\DBAL\Driver\Exception $e) {
             throw new DataAccessException($e);
         }
