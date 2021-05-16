@@ -344,7 +344,7 @@ class PrivateMessageRepository extends AbstractRepository
             ->innerJoin('DM', 'NPERSONS', 'NP', 'DM.COMPANION = NP.OID')
             ->leftJoin('DM', 'ET_MSG_CHAT_LK', 'EMLK', 'EMLK.DIALOG = DM.DIALOG')
             ->leftJoin('EMLK', 'NPERSONS', 'SNP', 'EMLK.AUTHOR = SNP.OID')
-            ->where('EMLK.NUM = (SELECT MAX(NUM) FROM ET_MSG_CHAT_LK WHERE ET_MSG_CHAT_LK.DIALOG = DM.DIALOG)')
+            ->where('(EMLK.NUM = (SELECT MAX(NUM) FROM ET_MSG_CHAT_LK WHERE ET_MSG_CHAT_LK.DIALOG = DM.DIALOG) OR EMLK.NUM IS NULL)')
             ->andWhere('DM.PERSON = :PERSON')
             ->orderBy('EMLK.CREATED', 'DESC');
 
@@ -372,45 +372,48 @@ class PrivateMessageRepository extends AbstractRepository
             $companion->setLname($dialogRow['COMPANION_LNAME']);
             $companion->setPatronymic($dialogRow['COMPANION_PTR']);
 
-            $lastMessageSender = new Person();
-            $lastMessageSender->setUoid($dialogRow['LMS_ID']);
-            $lastMessageSender->setFname($dialogRow['LMS_FNAME']);
-            $lastMessageSender->setLname($dialogRow['LMS_LNAME']);
-            $lastMessageSender->setPatronymic($dialogRow['LMS_PTR']);
-
-            $lastMessage = new PrivateMessage();
-            $lastMessage->setMessageText($dialogRow['LAST_MGS']);
-            $lastMessage->setSendTime(new \DateTime($dialogRow['SEND_TIME']));
-            $lastMessage->setId($dialogRow['M_ID']);
-            $lastMessage->setChat($dialogRow['DIALOG']);
-
-            if($lastMessageSender->getUoid() === $person) {
-                $lastMessage->setMeSender(true);
-            } else {
-                $lastMessage->setSender($lastMessageSender);
-            }
-
-            $lastMessage->setIsRead($dialogRow['COMPANION_UNREAD'] == 0);
-
-            if($dialogRow['ATT_SIZE'] && $dialogRow['DOCNAME']) {
-                $attachment = new Attachment();
-                $attachment->setAttachmentSize($dialogRow['ATT_SIZE']);
-                $attachment->setAttachmentName($dialogRow['DOCNAME']);
-                $lastMessage->setAttachments([$attachment]);
-            }
-
-            if($dialogRow['LINK'] && $dialogRow['LINK_TEXT']) {
-                $link = new ExternalLink();
-                $link->setLinkText($dialogRow['LINK_TEXT']);
-                $lastMessage->setLinks([$link]);
-            }
-
             $dialog = new Dialog();
             $dialog->setId($dialogRow['DIALOG']);
             $dialog->setCompanion($companion);
             $dialog->setHasUnread($dialogRow['UNREAD_COUNT'] != 0);
             $dialog->setUnreadCount($dialogRow['UNREAD_COUNT']);
-            $dialog->setLastMessage($lastMessage);
+
+            if($dialogRow['M_ID']) {
+                $lastMessageSender = new Person();
+                $lastMessageSender->setUoid($dialogRow['LMS_ID']);
+                $lastMessageSender->setFname($dialogRow['LMS_FNAME']);
+                $lastMessageSender->setLname($dialogRow['LMS_LNAME']);
+                $lastMessageSender->setPatronymic($dialogRow['LMS_PTR']);
+
+                $lastMessage = new PrivateMessage();
+                $lastMessage->setMessageText($dialogRow['LAST_MGS']);
+                $lastMessage->setSendTime(new \DateTime($dialogRow['SEND_TIME']));
+                $lastMessage->setId($dialogRow['M_ID']);
+                $lastMessage->setChat($dialogRow['DIALOG']);
+
+                if($lastMessageSender->getUoid() === $person) {
+                    $lastMessage->setMeSender(true);
+                } else {
+                    $lastMessage->setSender($lastMessageSender);
+                }
+
+                $lastMessage->setIsRead($dialogRow['COMPANION_UNREAD'] == 0);
+
+                if($dialogRow['ATT_SIZE'] && $dialogRow['DOCNAME']) {
+                    $attachment = new Attachment();
+                    $attachment->setAttachmentSize($dialogRow['ATT_SIZE']);
+                    $attachment->setAttachmentName($dialogRow['DOCNAME']);
+                    $lastMessage->setAttachments([$attachment]);
+                }
+
+                if($dialogRow['LINK'] && $dialogRow['LINK_TEXT']) {
+                    $link = new ExternalLink();
+                    $link->setLinkText($dialogRow['LINK_TEXT']);
+                    $lastMessage->setLinks([$link]);
+                }
+
+                $dialog->setLastMessage($lastMessage);
+            }
 
             $loadedDialogs[] = $dialog;
         }
