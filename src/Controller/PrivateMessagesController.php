@@ -93,7 +93,7 @@ class PrivateMessagesController extends AbstractRestController
         $createdDialog = new \App\Model\DTO\Dialog();
         $createdDialog->setId($createdDialogId);
 
-        return $this->responseSuccessWithObject($createdDialog);
+        return $this->responseCreated($createdDialog);
     }
 
     /**
