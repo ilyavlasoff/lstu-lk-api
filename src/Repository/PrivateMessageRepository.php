@@ -12,11 +12,21 @@ use App\Model\DTO\Dialog;
 use App\Model\DTO\ExternalLink;
 use App\Model\DTO\Person;
 use App\Model\DTO\PrivateMessage;
+use App\Service\StringConverter;
 use Doctrine\DBAL\ConnectionException;
 use Doctrine\DBAL\Driver\Exception;
+use Doctrine\ORM\EntityManagerInterface;
 
 class PrivateMessageRepository extends AbstractRepository
 {
+    private $stringConverter;
+
+    public function __construct(EntityManagerInterface $entityManager, StringConverter $converter)
+    {
+        parent::__construct($entityManager);
+        $this->stringConverter = $converter;
+    }
+
     /**
      * @param string $person
      * @param string $companion
@@ -253,9 +263,9 @@ class PrivateMessageRepository extends AbstractRepository
         while ($messageRow = $result->fetchAssociative()) {
             $sender = new Person();
             $sender->setUoid($messageRow['SENDER_ID']);
-            $sender->setFname($messageRow['SENDER_FNAME']);
-            $sender->setLname($messageRow['SENDER_LNAME']);
-            $sender->setPatronymic($messageRow['SENDER_PTR']);
+            $sender->setFname($this->stringConverter->capitalize($messageRow['SENDER_FNAME']));
+            $sender->setLname($this->stringConverter->capitalize($messageRow['SENDER_LNAME']));
+            $sender->setPatronymic($this->stringConverter->capitalize($messageRow['SENDER_PTR']));
 
             $message = new PrivateMessage();
             if($sender->getUoid() === $person) {
@@ -368,9 +378,9 @@ class PrivateMessageRepository extends AbstractRepository
         while ($dialogRow = $result->fetchAssociative()) {
             $companion = new Person();
             $companion->setUoid($dialogRow['COMPANION_ID']);
-            $companion->setFname($dialogRow['COMPANION_FNAME']);
-            $companion->setLname($dialogRow['COMPANION_LNAME']);
-            $companion->setPatronymic($dialogRow['COMPANION_PTR']);
+            $companion->setFname($this->stringConverter->capitalize($dialogRow['COMPANION_FNAME']));
+            $companion->setLname($this->stringConverter->capitalize($dialogRow['COMPANION_LNAME']));
+            $companion->setPatronymic($this->stringConverter->capitalize($dialogRow['COMPANION_PTR']));
 
             $dialog = new Dialog();
             $dialog->setId($dialogRow['DIALOG']);
@@ -381,9 +391,9 @@ class PrivateMessageRepository extends AbstractRepository
             if($dialogRow['M_ID']) {
                 $lastMessageSender = new Person();
                 $lastMessageSender->setUoid($dialogRow['LMS_ID']);
-                $lastMessageSender->setFname($dialogRow['LMS_FNAME']);
-                $lastMessageSender->setLname($dialogRow['LMS_LNAME']);
-                $lastMessageSender->setPatronymic($dialogRow['LMS_PTR']);
+                $lastMessageSender->setFname($this->stringConverter->capitalize($dialogRow['LMS_FNAME']));
+                $lastMessageSender->setLname($this->stringConverter->capitalize($dialogRow['LMS_LNAME']));
+                $lastMessageSender->setPatronymic($this->stringConverter->capitalize($dialogRow['LMS_PTR']));
 
                 $lastMessage = new PrivateMessage();
                 $lastMessage->setMessageText($dialogRow['LAST_MGS']);
@@ -489,9 +499,9 @@ class PrivateMessageRepository extends AbstractRepository
         while($messageRow = $result->fetchAssociative()) {
             $sender = new Person();
             $sender->setUoid($messageRow['SENDER']);
-            $sender->setFname($messageRow['SENDER_FNAME']);
-            $sender->setLname($messageRow['SENDER_LNAME']);
-            $sender->setPatronymic($messageRow['SENDER_PTR']);
+            $sender->setFname($this->stringConverter->capitalize($messageRow['SENDER_FNAME']));
+            $sender->setLname($this->stringConverter->capitalize($messageRow['SENDER_LNAME']));
+            $sender->setPatronymic($this->stringConverter->capitalize($messageRow['SENDER_PTR']));
 
             $message = new PrivateMessage();
             $message->setId($messageRow['M_ID']);
