@@ -27,7 +27,7 @@ class WeekValueResolver implements ArgumentValueResolverInterface
     public function resolve(Request $request, ArgumentMetadata $argument)
     {
         $week = new Week();
-        $week->setWeekName($request->query->get('week'));
+        $week->weekCodeToName($request->query->get('week'));
 
         $errors = $this->validator->validate($week);
         if(count($errors) > 0) {

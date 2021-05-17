@@ -125,7 +125,10 @@ class TimetableRepository
                 $tti->setTeacher($teacher);
             }
 
-            $week = $timetableItem['WEEK'];
+            $coloredWeek = new \App\Model\QueryParam\Week();
+            $coloredWeek->setWeekName($timetableItem['WEEK_NAME']);
+
+            $week = $coloredWeek->weekNameToCode();
             $weekday = $timetableItem['WEEKDAY'];
             $timetableUnmapped[$week][$weekday][] = $tti;
         }
@@ -135,11 +138,9 @@ class TimetableRepository
         $timetable->setGroupName('group');
 
         $timetableWeeks = [];
-        foreach ($timetableUnmapped as $timetableWeek) {
+        foreach ($timetableUnmapped as $weekName => $timetableWeek) {
             $week = new Week();
-            $coloredWeek = new \App\Model\QueryParam\Week();
-            $coloredWeek->setWeekName($timetableItem['WEEK_NAME']);
-            $week->setType($coloredWeek->weekNameToCode());
+            $week->setType($weekName);
             $week->setCurrent(false);
             $weekDays = [];
             foreach ($timetableWeek as $timetableDay => $dayLessons) {
@@ -167,7 +168,7 @@ class TimetableRepository
 
     /**
      * @param string $dayId
-     * @return \App\Model\Grouping\Day
+     * @return Day
      * @throws Exception
      */
     public function getDayById(string $dayId): Day
@@ -207,7 +208,7 @@ class TimetableRepository
             ->setParameter('WEEKNAME', $weekName)
             ->execute();
 
-        $weekData = $result->fetchAll();
+        $weekData = $result->fetchAllAssociative();
 
         if(!$weekData) {
             throw new NotFoundException('Week');
