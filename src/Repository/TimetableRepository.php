@@ -34,7 +34,7 @@ class TimetableRepository
      * @param string|null $discipline
      * @param string|null $teacher
      * @return Timetable
-     * @throws Exception
+     * @throws Exception|\Doctrine\DBAL\Driver\Exception
      */
     public function getTimetable(
         string $group,
@@ -46,8 +46,8 @@ class TimetableRepository
         $queryBuilder = $this->entityManager->getConnection()->createQueryBuilder();
         $queryBuilder->select('ED.OID DISCIPLINE_OID, ED.NAME AS DISCIPLINE, NP.OID AS TCH_PERSON,
             TTCH.OID AS TEACHER_OID, NP.FNAME AS TCH_FNAME, NP.FAMILY AS TCH_LNAME, NP.MNAME AS TTCH_PTR,
-            EDL.NAME AS TCH_POST, EW.OID AS WEEK, EDW.OID AS WEEKDAY, ECT.BEGIN AS TIME_START, ECT.END AS TIME_END, 
-            ECT.NUM AS LESSON_NUM, TTK.VALUE AS CLASS_TYPE, TT.HALL AS ROOM, EK.NAME AS CAMPUS')
+            EDL.NAME AS TCH_POST, EW.OID AS WEEK, EW.NAME AS WEEK_NAME, EDW.OID AS WEEKDAY, ECT.BEGIN AS TIME_START, 
+            ECT.END AS TIME_END, ECT.NUM AS LESSON_NUM, TTK.VALUE AS CLASS_TYPE, TT.HALL AS ROOM, EK.NAME AS CAMPUS')
             ->from('ET_GROUPS', 'EG')
             ->innerJoin('EG', 'ET_RCONTINGENTS', 'ER', 'EG.OID = ER.G')
             ->innerJoin('ER', 'ET_CSEMESTERS', 'EC','ER.CSEMESTER = EC.OID')
@@ -97,7 +97,7 @@ class TimetableRepository
             ->execute();
 
         $timetableUnmapped = [];
-        while($timetableItem = $result->fetch()) {
+        while($timetableItem = $result->fetchAssociative()) {
             $tti = new TimetableItem();
             $tti->setLessonNumber($timetableItem['LESSON_NUM']);
             $tti->setBeginTime($timetableItem['TIME_START']);
@@ -137,7 +137,9 @@ class TimetableRepository
         $timetableWeeks = [];
         foreach ($timetableUnmapped as $timetableWeek) {
             $week = new Week();
-            $week->setType('type');
+            $coloredWeek = new \App\Model\QueryParam\Week();
+            $coloredWeek->setWeekName($timetableItem['WEEK_NAME']);
+            $week->setType($coloredWeek->weekNameToCode());
             $week->setCurrent(false);
             $weekDays = [];
             foreach ($timetableWeek as $timetableDay => $dayLessons) {
