@@ -126,9 +126,9 @@ class TimetableRepository
             }
 
             $coloredWeek = new \App\Model\QueryParam\Week();
-            $coloredWeek->setWeekName($timetableItem['WEEK_NAME']);
+            $coloredWeek->createByWeekNameValue($timetableItem['WEEK_NAME']);
 
-            $week = $coloredWeek->weekNameToCode();
+            $week = $coloredWeek->getWeekCode();
             $weekday = $timetableItem['WEEKDAY'];
             $timetableUnmapped[$week][$weekday][] = $tti;
         }

@@ -15,36 +15,39 @@ class Week
     /**
      * @var string | null
      * @Assert\Choice(choices={"green", "white"}, message="Undefined week name")
-     * @JMS\SerializedName("week")
-     * @JMS\Accessor(getter="weekNameToCode", setter="weekCodeToName")
      * @JMS\Type("string")
      */
-    private $weekName;
+    private $weekCode;
 
     /**
      * @return string|null
      */
-    public function getWeekName(): ?string
+    public function getWeekCode(): ?string
     {
-        return $this->weekName;
+        return $this->weekCode;
     }
 
     /**
-     * @param string|null $weekName
+     * @param string|null $weekCode
      */
-    public function setWeekName(?string $weekName): void
+    public function setWeekCode(?string $weekCode): void
     {
-        $this->weekName = $weekName;
+        $this->weekCode = $weekCode;
     }
 
-    public function weekCodeToName(?string $weekCode)
+    /**
+     * @return string
+     */
+    public function getWeekNameValue(): string
     {
-        $this->weekName = $this->timetableWeekTranslate[$weekCode] ?? 'undefined';
+        return $this->timetableWeekTranslate[$this->weekCode] ?? 'undefined';
     }
 
-    public function weekNameToCode()
-    {
-        return (array_flip($this->timetableWeekTranslate))[$this->weekName] ?? null;
+    /**
+     * @param string|null $value
+     */
+    public function createByWeekNameValue(?string $value) {
+        $this->weekCode = array_flip($this->timetableWeekTranslate)[$value] ?? null;
     }
 
 }
