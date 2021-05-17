@@ -560,7 +560,9 @@ class PrivateMessageRepository extends AbstractRepository
                 ->setValue('OID', ':OID')
                 ->setValue('AUTHOR', ':AUTHOR')
                 ->setValue('CREATED', "TO_DATE(:CREATED_AT, 'yyyy-mm-dd hh24:mi:ss')")
-                ->setValue('DIALOG', ':DIALOG');
+                ->setValue('DIALOG', ':DIALOG')
+                ->setValue('NUM', ':MESSAGE_NUM')
+                ->setParameter('MESSAGE_NUM', substr($newOid, strpos($newOid, ':') + 1));
 
             if ($message) {
                 $queryBuilder
