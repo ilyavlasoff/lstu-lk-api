@@ -134,9 +134,15 @@ class PersonalRepository extends AbstractRepository
         $queryBuilder
             ->update('NPERSONS', 'NP')
             ->where('NP.OID = :PERSONID')
-            ->setParameter('PERSONID', $userOid);
+            ->setParameter('PERSONID', $userOid)
+            ->set('NP.EMAIL', ':EMAIL')
+            ->set('NP.TELEPHONS', ':PH')
+            ->set('NP.MASSAGER', ':MSN')
+            ->setParameter('EMAIL', $newPerson->getEmail())
+            ->setParameter('PH', $newPerson->getPhone())
+            ->setParameter('MSN', $newPerson->getMessenger());
 
-        if($updatedEmail = $newPerson->getEmail()) {
+        /*if($updatedEmail = $newPerson->getEmail()) {
             $queryBuilder
                 ->set('NP.EMAIL', ':EMAIL')
                 ->setParameter('EMAIL', $updatedEmail);
@@ -144,7 +150,7 @@ class PersonalRepository extends AbstractRepository
 
         if($updatedPhone = $newPerson->getPhone()) {
             $queryBuilder
-                ->set('NP.TELEPHONE', ':PH')
+                ->set('NP.TELEPHONS', ':PH')
                 ->setParameter('PH', $updatedPhone);
         };
 
@@ -152,7 +158,7 @@ class PersonalRepository extends AbstractRepository
             $queryBuilder
                 ->set('NP.MASSAGER', ':MSN')
                 ->setParameter('MSN', $updatedMessenger);
-        };
+        };*/
 
         $queryBuilder->execute();
     }
