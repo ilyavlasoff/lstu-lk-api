@@ -309,6 +309,6 @@ class EducationTaskRepository extends AbstractRepository
             }
         }
 
-        return $works;
+        return array_values($works);
     }
 }
