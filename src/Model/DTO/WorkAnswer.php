@@ -5,7 +5,7 @@ namespace App\Model\DTO;
 class WorkAnswer
 {
     /**
-     * @var float
+     * @var float | null
      */
     private $score;
 
@@ -15,17 +15,17 @@ class WorkAnswer
     private $answerAttachments;
 
     /**
-     * @return float
+     * @return float|null
      */
-    public function getScore(): float
+    public function getScore(): ?float
     {
         return $this->score;
     }
 
     /**
-     * @param float $score
+     * @param float|null $score
      */
-    public function setScore(float $score): void
+    public function setScore(?float $score): void
     {
         $this->score = $score;
     }
