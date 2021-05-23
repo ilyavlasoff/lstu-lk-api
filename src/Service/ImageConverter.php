@@ -5,7 +5,10 @@ namespace App\Service;
 class ImageConverter
 {
     /**
-     * @throws \ImagickException
+     * @param \Imagick $image
+     * @param string|null $type
+     * @param bool $cropToSquare
+     * @return \Imagick
      */
     public function convert(\Imagick $image, ?string $type, bool $cropToSquare): \Imagick
     {
@@ -14,9 +17,9 @@ class ImageConverter
         }
 
         $sizing = [
-            'sm' => 150,
+            'sm' => 96,
             'md' => 400,
-            'lg' => 800
+            'lg' => 900
         ];
 
         $resizedWidth = $resizedHeight = array_key_exists($type, $sizing) ? $sizing[$type] : 800;

@@ -170,16 +170,17 @@ class TimetableRepository
      * @param string $dayId
      * @return Day
      * @throws Exception
+     * @throws \Doctrine\DBAL\Driver\Exception
      */
     public function getDayById(string $dayId): Day
     {
         $queryBuilder = $this->entityManager->getConnection()->createQueryBuilder();
-        $result = $queryBuilder->select('DW.OID, DW.NUM, DW.NAME')
+        $result = $queryBuilder->select('DW.OID, DW.NUM, DW.VALUE')
             ->from('ET_DAYWEEK', 'DW')
             ->where('DW.OID = :DWID')
             ->setParameter('DWID', $dayId)
             ->execute()
-            ->fetchAll();
+            ->fetchAllAssociative();
 
         if(!count($result)) {
             throw new NotFoundException('Day');
@@ -198,6 +199,7 @@ class TimetableRepository
      * @param string $weekName
      * @return mixed
      * @throws Exception
+     * @throws \Doctrine\DBAL\Driver\Exception
      */
     public function getWeekByName(string $weekName)
     {
@@ -222,11 +224,13 @@ class TimetableRepository
      * @param string $semesterId
      * @return array
      * @throws Exception
+     * @throws \Exception
+     * @throws \Doctrine\DBAL\Driver\Exception
      */
     public function getExamsTimetable(string $groupId, string $semesterId): array
     {
         $queryBuilder = $this->entityManager->getConnection()->createQueryBuilder();
-        $result = $queryBuilder
+        $queryBuilder
             ->select(
                 "ED.OID DISC_ID, 
                 ED.NAME DISCIPLINE, 
@@ -247,11 +251,11 @@ class TimetableRepository
             ->where('EE.G = :GROUP')
             ->andWhere('EE.CSEMESTER = :SEM')
             ->setParameter('GROUP', $groupId)
-            ->setParameter('SEM', $semesterId)
-            ->execute();
+            ->setParameter('SEM', $semesterId);
+        $result = $queryBuilder->execute();
 
         $exams = [];
-        while($examRow = $result->fetch()) {
+        while($examRow = $result->fetchAssociative()) {
             $exam = new Exam();
             if(($tName = $examRow['TCH_FIRSTNAME']) && ($tSurname = $examRow['TCH_SURNAME'])) {
                 $teacherAbbrName = $this->stringConverter->createAbbreviatedName($tName, $tSurname, $examRow['TCH_PATRONYMIC']);
