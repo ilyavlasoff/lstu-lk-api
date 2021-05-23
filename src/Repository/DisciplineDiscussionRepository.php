@@ -263,7 +263,7 @@ class DisciplineDiscussionRepository extends AbstractRepository
             ->select('COUNT(*) AS CNT')
             ->from('ET_MSG_LK', 'EM')
             ->where('EM.OID = :MESSAGE_ID')
-            ->where('EM.AUTHOR = :AUTHOR')
+            ->andWhere('EM.AUTHOR = :AUTHOR')
             ->setParameter('MESSAGE_ID', $messageId)
             ->setParameter('AUTHOR', $userId)
             ->execute()
