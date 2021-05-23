@@ -189,7 +189,7 @@ class TimetableRepository
         $day = $result[0];
         $weekDay = new Day();
         $weekDay->setId($day['OID']);
-        $weekDay->setName($day['NAME']);
+        $weekDay->setName($day['VALUE']);
         $weekDay->setNumber($day['NUM']);
 
         return $weekDay;
