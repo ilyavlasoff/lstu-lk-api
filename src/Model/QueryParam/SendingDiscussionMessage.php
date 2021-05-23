@@ -5,6 +5,7 @@ namespace App\Model\QueryParam;
 use App\Model\DTO\Attachment;
 use App\Model\DTO\ExternalLink;
 use Symfony\Component\Validator\Constraints as Assert;
+use JMS\Serializer\Annotation as JMS;
 
 class SendingDiscussionMessage
 {
@@ -19,15 +20,15 @@ class SendingDiscussionMessage
 
     /**
      * @var Attachment[]
-     * @JMS\Type("array<App\Model\Mapping\Attachment>")
+     * @JMS\Type("array<App\Model\DTO\Attachment>")
      */
-    private $attachments;
+    private $attachments = [];
 
     /**
      * @var ExternalLink[]
-     * @JMS\Type("array<App\Model\Mapping\ExternalLink>")
+     * @JMS\Type("array<App\Model\DTO\ExternalLink>")
      */
-    private $externalLinks;
+    private $externalLinks = [];
 
     /**
      * @return string|null

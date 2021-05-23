@@ -160,9 +160,9 @@ class DisciplineDiscussionRepository extends AbstractRepository
                   SELECT DISTINCT TT2.C_OID AS MM_ID, TT2.NAME
                   FROM T_TIMETABLE TT
                            INNER JOIN T_TEACHERS TT2 ON TT.TEACHER = TT2.OID
-                  WHERE TT.G = :GROUP
-                    AND TT.DISCIPLINE = :DISCIPLINE
-                    AND TT.CSEMESTER = :SEMESTER
+                  WHERE TT.G = ?
+                    AND TT.DISCIPLINE = ?
+                    AND TT.CSEMESTER = ?
                   UNION ALL
                   SELECT EC.C_OID AS MM_ID, EC.NAME AS NAME
                   FROM ET_CONTINGENTS EC
@@ -171,17 +171,20 @@ class DisciplineDiscussionRepository extends AbstractRepository
                            INNER JOIN ET_CURRICULUMS ETCR ON ETR.PLAN = ETCR.OID
                            INNER JOIN ET_DSPLANS EDSP ON ETCR.OID = EDSP.EPLAN
                            INNER JOIN T_CONTSTATES TCN ON EC.ESTATE = TCN.OID
-                  WHERE EG.OID = :GROUP
-                    AND EDSP.DISCIPLINE = :DISCIPLINE
-                    AND ETR.CSEMESTER = :SEMESTER
+                  WHERE EG.OID = ?
+                    AND EDSP.DISCIPLINE = ?
+                    AND ETR.CSEMESTER = ?
                     AND EC.C_OID IS NOT NULL
-                    AND TCN.NAME IN ('ИН', '2Г', 'УЧ', ' АК')
-              ) MMBR WHERE MMBR.MM_ID = :PERSON
+                    AND TCN.NAME IN ('ИН', '2Г', 'УЧ', 'АК')
+              ) MMBR WHERE MMBR.MM_ID = ?
         ");
-        $stmt->bindParam('GROUP', $groupId);
-        $stmt->bindParam('DISCIPLINE', $disciplineId);
-        $stmt->bindParam('SEMESTER', $semesterId);
-        $stmt->bindParam('PERSON', $personId);
+        $stmt->bindValue(1, $groupId);
+        $stmt->bindValue(2, $disciplineId);
+        $stmt->bindValue(3, $semesterId);
+        $stmt->bindValue(4, $groupId);
+        $stmt->bindValue(5, $disciplineId);
+        $stmt->bindValue(6, $semesterId);
+        $stmt->bindValue(7, $personId);
         $result = $stmt->executeQuery()->fetchAllAssociative();
 
         return (bool)$result[0]['IS_MEM'];
@@ -221,7 +224,7 @@ class DisciplineDiscussionRepository extends AbstractRepository
             ->setValue('MSG', ':MESSAGE')
             ->setParameter('MSG_ID', $newOid)
             ->setParameter('AUTHOR_ID', $senderId)
-            ->setParameter('CURRENT_DATE', new \DateTime())
+            ->setParameter('CURRENT_DATE', (new \DateTime())->format('Y-m-d H:i:s'))
             ->setParameter('SEMESTER_ID', $semesterId)
             ->setParameter('DISCIPLINE_ID', $disciplineId)
             ->setParameter('GROUP_ID', $groupId)
