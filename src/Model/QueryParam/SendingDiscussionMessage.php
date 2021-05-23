@@ -51,7 +51,7 @@ class SendingDiscussionMessage
      */
     public function getAttachments(): array
     {
-        return $this->attachments;
+        return $this->attachments ?? [];
     }
 
     /**
@@ -67,7 +67,7 @@ class SendingDiscussionMessage
      */
     public function getExternalLinks(): array
     {
-        return $this->externalLinks;
+        return $this->externalLinks ?? [];
     }
 
     /**
