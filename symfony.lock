@@ -101,6 +101,9 @@
     "friendsofphp/proxy-manager-lts": {
         "version": "v1.0.3"
     },
+    "gesdinet/jwt-refresh-token-bundle": {
+        "version": "v0.12.0"
+    },
     "jean85/pretty-package-versions": {
         "version": "1.6.0"
     },

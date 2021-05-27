@@ -1,2 +1,2 @@
-#gesdinet_jwt_refresh_token:
-#  manager_type: mongodb
+gesdinet_jwt_refresh_token:
+  manager_type: mongodb

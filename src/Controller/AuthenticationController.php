@@ -116,14 +116,16 @@ class AuthenticationController extends AbstractRestController
      * @param RegisterCredentials $credentials
      * @param JWTTokenManagerInterface $tokenManager
      * @param UserRepository $userRepository
+     * @param RefreshTokenManagerInterface $refreshTokenManager
      * @param ParameterBagInterface $parameterBag
      * @return JsonResponse
+     * @throws \Exception
      */
     public function register(
         RegisterCredentials $credentials,
         JWTTokenManagerInterface $tokenManager,
         UserRepository $userRepository,
-        //RefreshTokenManagerInterface $refreshTokenManager,
+        RefreshTokenManagerInterface $refreshTokenManager,
         ParameterBagInterface $parameterBag
     ): JsonResponse {
         /** @var User $user */
@@ -137,17 +139,17 @@ class AuthenticationController extends AbstractRestController
 
         $jwtToken = $tokenManager->create($user);
 
-        /*$refreshToken = $refreshTokenManager->create();
+        $refreshToken = $refreshTokenManager->create();
         $refreshToken->setUsername($user->getEmail());
         $refreshToken->setRefreshToken();
 
         $expiresSeconds = $parameterBag->get('expires_seconds');
         $expiresTime = (new \DateTime('now'))->add(new \DateInterval("PT{$expiresSeconds}S"));
         $refreshToken->setValid($expiresTime);
-        $refreshTokenManager->save($refreshToken);*/
+        $refreshTokenManager->save($refreshToken);
 
         $authenticationData = new AuthenticationData();
-        //$authenticationData->setRefreshToken($refreshToken->getRefreshToken());
+        $authenticationData->setRefreshToken($refreshToken->getRefreshToken());
         $authenticationData->setJwtToken($jwtToken);
         $authenticationData->setRoles($user->getRoles());
 
@@ -177,12 +179,12 @@ class AuthenticationController extends AbstractRestController
     /**
      * @Route("/token/refresh", name="app_jwt_refresh", methods={"POST"})
      * @param Request $request
+     * @param RefreshToken $refreshService
      * @return JsonResponse
      */
-    public function refreshJwt(Request $request/*, RefreshToken $refreshService*/): JsonResponse
+    public function refreshJwt(Request $request, RefreshToken $refreshService): JsonResponse
     {
-        return new JsonResponse();
-        //return $refreshService->refresh($request);
+        return $refreshService->refresh($request);
     }
 
     /**
