@@ -8,6 +8,7 @@ parameters:
     env(MONGODB_DB): ''
     expires_seconds: 86400
     images_path: '%kernel.project_dir%/public/media/pics/'
+    notifier_base_url: '%env(NOTIFIER_URL_BASE)%'
 
 services:
     # default configuration for services in *this* file

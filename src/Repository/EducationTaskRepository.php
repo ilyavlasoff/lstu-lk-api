@@ -13,15 +13,16 @@ use App\Model\DTO\WorkAnswer;
 use App\Model\DTO\WorkAnswerAttachment;
 use App\Service\StringConverter;
 use Doctrine\DBAL\Exception;
+use Doctrine\ODM\MongoDB\DocumentManager;
 use Doctrine\ORM\EntityManagerInterface;
 
 class EducationTaskRepository extends AbstractRepository
 {
     private $stringConverter;
 
-    public function __construct(EntityManagerInterface $entityManager, StringConverter $stringConverter)
+    public function __construct(EntityManagerInterface $entityManager, DocumentManager $documentManager, StringConverter $stringConverter)
     {
-        parent::__construct($entityManager);
+        parent::__construct($entityManager, $documentManager);
         $this->stringConverter = $stringConverter;
     }
 
@@ -44,7 +45,7 @@ class EducationTaskRepository extends AbstractRepository
     {
         $newOid = $this->getNewOid();
 
-        $queryBuilder = $this->getEntityManager()->getConnection()->createQueryBuilder();
+        $queryBuilder = $this->getConnection()->createQueryBuilder();
         $queryBuilder
             ->insert('ET_SWATTACHMENT')
             ->setValue('OID', ':ID')
@@ -79,7 +80,7 @@ class EducationTaskRepository extends AbstractRepository
      * @throws Exception
      */
     public function addAnswerDocument(BinaryFile $file, string $answerId) {
-        $queryBuilder = $this->getEntityManager()->getConnection()->createQueryBuilder()
+        $queryBuilder = $this->getConnection()->createQueryBuilder()
             ->update('ET_SWATTACHMENT')
             ->set('DOC', ':DOC_CONTENT')
             ->set('FILE$DOC', ':DOC_NAME')
@@ -100,7 +101,7 @@ class EducationTaskRepository extends AbstractRepository
      */
     public function getUserIsSenderForAttachment(string $userId, string $answerId)
     {
-        $result = $this->getEntityManager()->getConnection()->createQueryBuilder()
+        $result = $this->getConnection()->createQueryBuilder()
             ->select('COUNT(*) AS CNT')
             ->from('ET_SWATTACHMENT', 'SWAT')
             ->innerJoin('SWAT', 'ET_CONTINGENTS', 'ETC', 'ETC.OID = SWAT.CONTINGENT')
@@ -122,7 +123,7 @@ class EducationTaskRepository extends AbstractRepository
      */
     public function getEducationTaskAnswer(string $answerId): BinaryFile
     {
-        $result = $this->getEntityManager()->getConnection()->createQueryBuilder()
+        $result = $this->getConnection()->createQueryBuilder()
             ->select('SWAT.DOC, SWAT.FILE$DOC AS ATT_NAME')
             ->from('ET_SWATTACHMENT', 'SWAT')
             ->where('SWAT.OID = :ANSWER_ID')
@@ -157,7 +158,7 @@ class EducationTaskRepository extends AbstractRepository
         string $contingent
     ): array
     {
-        $queryBuilder = $this->getEntityManager()->getConnection()->createQueryBuilder();
+        $queryBuilder = $this->getConnection()->createQueryBuilder();
         $queryBuilder
             ->select("
                 ESW.OID AS WORK_ID,
@@ -185,7 +186,7 @@ class EducationTaskRepository extends AbstractRepository
             ->leftJoin('ESW', 'T_TKINDS', 'T', 'ESW.STUDYTYPE = T.OID')
             ->leftJoin(
                 'ESW',
-                sprintf('(%s)', $this->getEntityManager()->getConnection()->createQueryBuilder()
+                sprintf('(%s)', $this->getConnection()->createQueryBuilder()
                     ->select('
                         ES.OID, 
                         ES.WORK, 
@@ -197,7 +198,7 @@ class EducationTaskRepository extends AbstractRepository
                     ->from('ET_SWATTACHMENT', 'ES')
                     ->leftJoin(
                         'ES',
-                        sprintf('(%s)', $this->getEntityManager()->getConnection()->createQueryBuilder()
+                        sprintf('(%s)', $this->getConnection()->createQueryBuilder()
                             ->select('ISWG.BALL AS SCORE, ISWG.WORK, ISWG.CONTINGENT')
                             ->from('ET_SWGRADES', 'ISWG')
                             ->innerJoin(

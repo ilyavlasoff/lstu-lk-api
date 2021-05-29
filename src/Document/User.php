@@ -8,7 +8,7 @@ use Doctrine\ODM\MongoDB\Mapping\Annotations as ODM;
 /**
  * Class User
  * @package App\Document
- * @ODM\Document(collection="usr")
+ * @ODM\Document(collection="usr", repositoryClass="App\Repository\UserRepository")
  */
 class User implements UserInterface
 {
@@ -24,7 +24,7 @@ class User implements UserInterface
     private $email;
 
     /**
-     * @ODM\Field(type="string", nullable=true)
+     * @ODM\Field(type="string", nullable=false)
      */
     private $password;
 

@@ -16,7 +16,7 @@ class AchievementRepository extends AbstractRepository
      */
     public function getTotalAchievementCount(string $person): int
     {
-        $achievements = $this->getEntityManager()->getConnection()->createQueryBuilder()
+        $achievements = $this->getConnection()->createQueryBuilder()
             ->select('COUNT(EA.OID) AS CNT')
             ->from('ET_ACHIEVEMENTS', 'EA')
             ->innerJoin('EA', 'NPERSONS', 'N', 'EA.PERSON = N.OID')
@@ -39,7 +39,7 @@ class AchievementRepository extends AbstractRepository
      * @throws \Exception
      */
     public function getAchievements(string $person, int $offset = -1, int $count = -1, bool $lastFirst = true): array {
-        $queryBuilder = $this->getEntityManager()->getConnection()->createQueryBuilder();
+        $queryBuilder = $this->getConnection()->createQueryBuilder();
 
         $queryBuilder
             ->select('EA.OID AS ACH_OID, EA.VALUE AS ACH_NAME, EA.CREATED AS ACH_DATE, EAT.NAME AS ACH_KIND, EP.NAME ACH_TYPE')

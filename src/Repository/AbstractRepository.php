@@ -4,20 +4,28 @@ namespace App\Repository;
 
 use App\Exception\DataAccessException;
 use Doctrine\DBAL\Connection;
+use Doctrine\ODM\MongoDB\DocumentManager;
 use Doctrine\ORM\EntityManagerInterface;
 
 abstract class AbstractRepository
 {
     private $entityManager;
+    private $documentManager;
 
-    public function __construct(EntityManagerInterface $entityManager)
+    public function __construct(EntityManagerInterface $entityManager, DocumentManager $documentManager)
     {
         $this->entityManager = $entityManager;
+        $this->documentManager = $documentManager;
     }
 
     protected function getEntityManager(): EntityManagerInterface
     {
         return $this->entityManager;
+    }
+
+    protected function getDocumentManager() : DocumentManager
+    {
+        return $this->documentManager;
     }
 
     protected function getConnection(): Connection

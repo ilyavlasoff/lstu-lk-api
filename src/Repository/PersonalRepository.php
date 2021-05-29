@@ -8,6 +8,7 @@ use App\Model\QueryParam\PersonProperties;
 use App\Service\StringConverter;
 use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\FetchMode;
+use Doctrine\ODM\MongoDB\DocumentManager;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -15,9 +16,9 @@ class PersonalRepository extends AbstractRepository
 {
     private $stringConverter;
 
-    public function __construct(EntityManagerInterface $entityManager, StringConverter $stringConverter)
+    public function __construct(EntityManagerInterface $entityManager, DocumentManager $documentManager, StringConverter $stringConverter)
     {
-        parent::__construct($entityManager);
+        parent::__construct($entityManager, $documentManager);
         $this->stringConverter = $stringConverter;
     }
 
@@ -28,7 +29,7 @@ class PersonalRepository extends AbstractRepository
      * @throws \Doctrine\DBAL\Driver\Exception
      */
     public function isPersonExists(string $personId): bool {
-        $result = $this->getEntityManager()->getConnection()->createQueryBuilder()
+        $result = $this->getConnection()->createQueryBuilder()
             ->select('COUNT(NP.OID) AS CNT')
             ->from('NPERSONS', 'NP')
             ->where('NP.OID = :PERSON')
@@ -48,7 +49,7 @@ class PersonalRepository extends AbstractRepository
      */
     public function isEducationBelongsToUser(string $educationId, string $personId): bool
     {
-        $result = $this->getEntityManager()->getConnection()->createQueryBuilder()
+        $result = $this->getConnection()->createQueryBuilder()
             ->select('COUNT(*) AS CNT')
             ->from('NPERSONS', 'NP')
             ->innerJoin('NP', 'ET_CONTINGENTS', 'ETC', 'ETC.C_OID = NP.OID')
@@ -70,7 +71,7 @@ class PersonalRepository extends AbstractRepository
      */
     public function getPersonalProperties(string $nPersonId): Person
     {
-        $queryBuilder = $this->getEntityManager()->getConnection()->createQueryBuilder();
+        $queryBuilder = $this->getConnection()->createQueryBuilder();
         $result = $queryBuilder->select('NP.OID UOID, NP.FAMILY AS LNAME,NP.FNAME, NP.MNAME AS PATRONYMIC, 
             NP.CREATED AS BDAY, TS.VALUE AS SEX, NP.TELEPHONS AS PHONE, NP.EMAIL, NP.MASSAGER AS MSNGR, TP.NAME AS POST')
             ->from('NPERSONS', 'NP')
@@ -109,7 +110,7 @@ class PersonalRepository extends AbstractRepository
      */
     public function getGroupByContingent(string $contingentId): string
     {
-        $result = $this->getEntityManager()->getConnection()->createQueryBuilder()
+        $result = $this->getConnection()->createQueryBuilder()
             ->select('EC.G AS GRP')
             ->from('ET_CONTINGENTS', 'EC')
             ->where('EC.OID = :CONTINGENT_OID')
@@ -130,7 +131,7 @@ class PersonalRepository extends AbstractRepository
      * @throws Exception
      */
     public function updatePerson(PersonProperties $newPerson, string $userOid) {
-        $queryBuilder = $this->getEntityManager()->getConnection()->createQueryBuilder();
+        $queryBuilder = $this->getConnection()->createQueryBuilder();
         $queryBuilder
             ->update('NPERSONS', 'NP')
             ->where('NP.OID = :PERSONID')
@@ -170,7 +171,7 @@ class PersonalRepository extends AbstractRepository
      * @throws \Doctrine\DBAL\Driver\Exception
      */
     public function getProfileImage(string $personId) {
-        $queryBuilder = $this->getEntityManager()->getConnection()->createQueryBuilder();
+        $queryBuilder = $this->getConnection()->createQueryBuilder();
         $result = $queryBuilder
             ->select('NP.PHOTO AS PH')
             ->from('NPERSONS', 'NP')
@@ -198,7 +199,7 @@ class PersonalRepository extends AbstractRepository
      */
     public function getProfileUsers(string $personId, ?string $query, ?int $offset, ?int $limit): array
     {
-        $queryBuilder = $this->getEntityManager()->getConnection()->createQueryBuilder();
+        $queryBuilder = $this->getConnection()->createQueryBuilder();
         $queryBuilder
             ->select('NP.OID AS ID, NP.FNAME, NP.FAMILY AS LNAME, NP.MNAME AS PTR, TP.NAME AS POST')
             ->from('NPERSONS', 'NP')
@@ -242,7 +243,7 @@ class PersonalRepository extends AbstractRepository
      * @throws \Doctrine\DBAL\Driver\Exception
      */
     public function getCountOfPersons(?string $query) {
-        $queryBuilder = $this->getEntityManager()->getConnection()->createQueryBuilder();
+        $queryBuilder = $this->getConnection()->createQueryBuilder();
 
         $queryBuilder = $queryBuilder
             ->select('COUNT(*) CNT')

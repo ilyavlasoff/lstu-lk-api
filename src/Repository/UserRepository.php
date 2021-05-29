@@ -3,82 +3,28 @@
 namespace App\Repository;
 
 use App\Document\User;
-use App\Exception\DuplicateValueException;
-use App\Exception\InheritedSystemException;
-use App\Exception\ValidationException;
-use App\Exception\ResourceNotFoundException;
-use App\Model\QueryParam\RegisterCredentials;
-use Doctrine\ODM\MongoDB\DocumentManager;
+use App\Exception\DataAccessException;
 use Doctrine\ODM\MongoDB\MongoDBException;
-use Symfony\Component\Security\Core\Encoder\UserPasswordEncoderInterface;
-use Symfony\Component\Validator\Validator\ValidatorInterface;
+use Doctrine\ODM\MongoDB\Repository\DocumentRepository;
+use Symfony\Component\Security\Core\Exception\UnsupportedUserException;
+use Symfony\Component\Security\Core\User\PasswordUpgraderInterface;
+use Symfony\Component\Security\Core\User\UserInterface;
 
-class UserRepository
+class UserRepository extends DocumentRepository implements PasswordUpgraderInterface
 {
-    private $documentManager;
-    private $passwordEncoder;
-    private $validator;
-
-    public function __construct(
-        DocumentManager $documentManager,
-        UserPasswordEncoderInterface $passwordEncoder,
-        ValidatorInterface $validator
-    )
+    public function upgradePassword(UserInterface $user, string $newEncodedPassword): void
     {
-        $this->documentManager = $documentManager;
-        $this->passwordEncoder = $passwordEncoder;
-        $this->validator = $validator;
-    }
-
-    /**
-     * @param string $oid
-     * @return User
-     * @throws \App\Exception\DuplicateValueException
-     * @throws \Doctrine\ODM\MongoDB\MongoDBException
-     */
-    public function persistIdentifiedUser(string $oid): User
-    {
-        // При получении дублирующегося OID валидация не проходит по unique entity dbOid
-        $existingSameOid = $this->documentManager->getRepository(User::class)->findOneBy(['dbOid' => $oid]);
-        if($existingSameOid) {
-            throw new DuplicateValueException("Person");
+        if (!$user instanceof User) {
+            throw new UnsupportedUserException(sprintf('Instances of "%s" are not supported.', \get_class($user)));
         }
 
-        $user = new User();
-        $user->setRoles(['ROLE_IDENTIFIED']);
-        $user->setDbOid($oid);
-        $user->setEmail(uniqid('email', true));
-        $user->setPassword($this->passwordEncoder->encodePassword($user, uniqid('password', true)));
-        $this->documentManager->persist($user);
-
-        $this->documentManager->flush();
-        return $user;
-    }
-
-    /**
-     * @param User $currentUser
-     * @param RegisterCredentials $registerCredentials
-     * @return User
-     * @throws \Doctrine\ODM\MongoDB\MongoDBException
-     * @throws \App\Exception\DuplicateValueException
-     */
-    public function persistRegistration(
-        User $currentUser,
-        RegisterCredentials $registerCredentials
-    ): User {
-
-        $existingSameEmail = $this->documentManager->getRepository(User::class)
-            ->findOneBy(['email' => $registerCredentials->getUsername()]);
-        if($existingSameEmail) {
-            throw new DuplicateValueException('User');
+        $user->setPassword($newEncodedPassword);
+        $this->dm->persist($user);
+        try {
+            $this->dm->flush();
+        } catch (MongoDBException $e) {
+            throw new DataAccessException();
         }
-
-        $currentUser->setEmail($registerCredentials->getUsername());
-        $currentUser->setPassword($this->passwordEncoder->encodePassword($currentUser, $registerCredentials->getPassword()));
-        $currentUser->setRoles(['ROLE_STUDENT']);
-
-        $this->documentManager->flush();
-
-        return $currentUser;
     }
+
 }

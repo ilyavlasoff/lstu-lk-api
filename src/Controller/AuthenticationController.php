@@ -8,10 +8,12 @@ use App\Exception\DataAccessException;
 use App\Exception\ValidationException;
 use App\Model\DTO\Person;
 use App\Model\DTO\AuthenticationData;
+use App\Model\ExternalConsumingParam\NotificationReceiver;
 use App\Model\QueryParam\RegisterCredentials;
 use App\Model\QueryParam\UserIdentifier;
 use App\Repository\AuthenticationRepository;
 use App\Repository\UserRepository;
+use App\Service\NotifierQueryService;
 use Doctrine\ODM\MongoDB\MongoDBException;
 use Gesdinet\JWTRefreshTokenBundle\Service\RefreshToken;
 use Gesdinet\JWTRefreshTokenBundle\Model\RefreshTokenManagerInterface;
@@ -26,6 +28,7 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Security\Core\Encoder\UserPasswordEncoderInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 use OpenApi\Annotations as OA;
 use Nelmio\ApiDocBundle\Annotation\Security;
@@ -69,20 +72,17 @@ class AuthenticationController extends AbstractRestController
      *
      * @param UserIdentifier $userIdentifier
      * @param AuthenticationRepository $authenticationRepository
-     * @param UserRepository $userRepository
      * @param JWTTokenManagerInterface $tokenManager
      * @return JsonResponse
-     * @throws DataAccessException
      */
     public function identify(
         UserIdentifier $userIdentifier,
         AuthenticationRepository $authenticationRepository,
-        UserRepository $userRepository,
         JWTTokenManagerInterface $tokenManager
     ): JsonResponse {
         try {
             $oid = $authenticationRepository->identifyUser($userIdentifier);
-            $user = $userRepository->persistIdentifiedUser($oid);
+            $user = $authenticationRepository->persistIdentifiedUser($oid);
         } catch (\Doctrine\DBAL\Exception | MongoDBException $e) {
             throw new DataAccessException($e);
         }
@@ -115,24 +115,26 @@ class AuthenticationController extends AbstractRestController
      *
      * @param RegisterCredentials $credentials
      * @param JWTTokenManagerInterface $tokenManager
-     * @param UserRepository $userRepository
+     * @param AuthenticationRepository $authenticationRepository
      * @param RefreshTokenManagerInterface $refreshTokenManager
      * @param ParameterBagInterface $parameterBag
+     * @param NotifierQueryService $notifierQueryService
      * @return JsonResponse
      * @throws \Exception
      */
     public function register(
         RegisterCredentials $credentials,
         JWTTokenManagerInterface $tokenManager,
-        UserRepository $userRepository,
+        AuthenticationRepository $authenticationRepository,
         RefreshTokenManagerInterface $refreshTokenManager,
-        ParameterBagInterface $parameterBag
+        ParameterBagInterface $parameterBag,
+        NotifierQueryService $notifierQueryService
     ): JsonResponse {
         /** @var User $user */
         $user = $this->getUser();
 
         try {
-            $user = $userRepository->persistRegistration($user, $credentials);
+            $user = $authenticationRepository->persistRegistration($user, $credentials);
         } catch (MongoDBException $e) {
             throw new DataAccessException($e);
         }
@@ -152,6 +154,12 @@ class AuthenticationController extends AbstractRestController
         $authenticationData->setRefreshToken($refreshToken->getRefreshToken());
         $authenticationData->setJwtToken($jwtToken);
         $authenticationData->setRoles($user->getRoles());
+
+        $notificationReceiver = new NotificationReceiver();
+        $notificationReceiver->setNPersonsOid($user->getDbOid());
+        $notificationReceiver->setMutePrivate(false);
+        $notificationReceiver->setMuteDiscussion(false);
+        $notifierQueryService->addReceiver($notificationReceiver);
 
         return $this->responseSuccessWithObject($authenticationData);
     }

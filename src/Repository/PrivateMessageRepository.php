@@ -15,15 +15,16 @@ use App\Model\DTO\PrivateMessage;
 use App\Service\StringConverter;
 use Doctrine\DBAL\ConnectionException;
 use Doctrine\DBAL\Driver\Exception;
+use Doctrine\ODM\MongoDB\DocumentManager;
 use Doctrine\ORM\EntityManagerInterface;
 
 class PrivateMessageRepository extends AbstractRepository
 {
     private $stringConverter;
 
-    public function __construct(EntityManagerInterface $entityManager, StringConverter $converter)
+    public function __construct(EntityManagerInterface $entityManager, DocumentManager $documentManager, StringConverter $converter)
     {
-        parent::__construct($entityManager);
+        parent::__construct($entityManager, $documentManager);
         $this->stringConverter = $converter;
     }
 
@@ -36,7 +37,7 @@ class PrivateMessageRepository extends AbstractRepository
      */
     public function getExistingDialogId(string $person, string $companion): array
     {
-        $result = $this->getEntityManager()->getConnection()->createQueryBuilder()
+        $result = $this->getConnection()->createQueryBuilder()
             ->select('EDCL.OID AS DIALOG_ID')
             ->from('ET_DIALOG_CHAT_LK', 'EDCL')
             ->where("(EDCL.MEMBER1 = :FIRST AND EDCL.MEMBER2 = :SECOND) 
@@ -62,7 +63,7 @@ class PrivateMessageRepository extends AbstractRepository
      */
     public function getDialogExists(string $dialog): bool
     {
-        $result = $this->getEntityManager()->getConnection()->createQueryBuilder()
+        $result = $this->getConnection()->createQueryBuilder()
             ->select('COUNT(EDCL.OID) AS CNT')
             ->from('ET_DIALOG_CHAT_LK', 'EDCL')
             ->where('EDCL.OID = :DIALOG')
@@ -81,7 +82,7 @@ class PrivateMessageRepository extends AbstractRepository
      */
     public function getMessageExists(string $messageId): bool
     {
-        $result = $this->getEntityManager()->getConnection()->createQueryBuilder()
+        $result = $this->getConnection()->createQueryBuilder()
             ->select('COUNT(*) AS CNT')
             ->from('ET_MSG_CHAT_LK', 'EMSG')
             ->where('EMSG.OID = :MESSAGE_ID')
@@ -100,7 +101,7 @@ class PrivateMessageRepository extends AbstractRepository
      */
     public function getDialogParticipants(string $dialogId): array
     {
-        $result = $this->getEntityManager()->getConnection()->createQueryBuilder()
+        $result = $this->getConnection()->createQueryBuilder()
             ->select('EDL.MEMBER1, EDL.MEMBER2')
             ->from('ET_DIALOG_CHAT_LK', 'EDL')
             ->where('EDL.OID = :DIALOG_ID')
@@ -125,7 +126,7 @@ class PrivateMessageRepository extends AbstractRepository
      * @throws \Doctrine\DBAL\Exception
      */
     public function getMessageSender(string $messageId) {
-        $result = $this->getEntityManager()->getConnection()->createQueryBuilder()
+        $result = $this->getConnection()->createQueryBuilder()
             ->select('EMSG.AUTHOR')
             ->from('ET_MSG_CHAT_LK', 'EMSG')
             ->where('EMSG.OID = :MESSAGE_ID')
@@ -147,7 +148,7 @@ class PrivateMessageRepository extends AbstractRepository
      * @throws \Doctrine\DBAL\Exception
      */
     public function getDialogByMessage(string $messageId) {
-        $result = $this->getEntityManager()->getConnection()->createQueryBuilder()
+        $result = $this->getConnection()->createQueryBuilder()
             ->select('EMSG.DIALOG')
             ->from('ET_MSG_CHAT_LK', 'EMSG')
             ->where('EMSG.OID = :MESSAGE_ID')
@@ -179,7 +180,7 @@ class PrivateMessageRepository extends AbstractRepository
             throw new DuplicateValueException('Dialog');
         }
 
-        $conn = $this->getEntityManager()->getConnection();
+        $conn = $this->getConnection();
         $queryBuilder = $conn->createQueryBuilder();
 
         $newOid = $this->getNewOid();
@@ -206,7 +207,7 @@ class PrivateMessageRepository extends AbstractRepository
      */
     public function getUnreadMessages(?string $person): array
     {
-        $firstStartingQb = $this->getEntityManager()->getConnection()->createQueryBuilder();
+        $firstStartingQb = $this->getConnection()->createQueryBuilder();
         $fsQr = $firstStartingQb
             ->select('SELECT EDCL.OID AS CHAT_ID,
                     EMCL.OID AS MSG_ID,
@@ -226,7 +227,7 @@ class PrivateMessageRepository extends AbstractRepository
                 "TO_NUMBER(REGEXP_SUBSTR(EDCL.LAST_MSG_1, '[^\d:]\d+$')) < EMCL.NUM)"))
             ->getSQL();
 
-        $secondStartingQb = $this->getEntityManager()->getConnection()->createQueryBuilder();
+        $secondStartingQb = $this->getConnection()->createQueryBuilder();
         $ssQr = $secondStartingQb
             ->select('SELECT EDCL.OID AS CHAT_ID,
                     EMCL.OID AS MSG_ID,
@@ -248,7 +249,7 @@ class PrivateMessageRepository extends AbstractRepository
 
         $unionQuery = "$fsQr UNION $ssQr";
 
-        $qb = $this->getEntityManager()->getConnection()->createQueryBuilder()
+        $qb = $this->getConnection()->createQueryBuilder()
             ->select('UQ.CHAT_ID, UQ.MSG_ID, UQ.RECEIVER_ID, UQ.SENDER_ID, UQ.SENDER_FNAME, 
                 UQ.SENDER_LNAME, UQ.SENDER_PTR, UQ.CREATED, UQ.NAME AS M_TEXT, UQ.DOC_SIZE')
             ->from($unionQuery, 'UQ');
@@ -292,7 +293,7 @@ class PrivateMessageRepository extends AbstractRepository
      */
     public function getDialogCount(string $user): int
     {
-        $queryBuilder = $this->getEntityManager()->getConnection()->createQueryBuilder();
+        $queryBuilder = $this->getConnection()->createQueryBuilder();
         $result = $queryBuilder
             ->select('COUNT(*) AS CNT')
             ->from('ET_DIALOG_CHAT_LK', 'EDCL')
@@ -315,7 +316,7 @@ class PrivateMessageRepository extends AbstractRepository
      */
     public function getUserDialogs(string $person, ?string $offset = null, ?string $count = null, ?string $dialogId = null): array
     {
-        $subQ1 = $this->getEntityManager()->getConnection()->createQueryBuilder()
+        $subQ1 = $this->getConnection()->createQueryBuilder()
             ->select("EDCL.OID AS DIALOG, EDCL.MEMBER1 AS PERSON, EDCL.MEMBER2 AS COMPANION,
                 (SELECT COUNT(EMCL.OID) FROM ET_MSG_CHAT_LK EMCL WHERE EMCL.DIALOG = EDCL.OID 
                     AND (EMCL.NUM > TO_NUMBER(REGEXP_SUBSTR(EDCL.LAST_MSG_1, '[^\d:]\d+$')) OR EDCL.LAST_MSG_1 IS NULL)) AS UNREAD_COUNT,
@@ -324,7 +325,7 @@ class PrivateMessageRepository extends AbstractRepository
             ->from('ET_DIALOG_CHAT_LK', 'EDCL')
             ->getSQL();
 
-        $subQ2 = $this->getEntityManager()->getConnection()->createQueryBuilder()
+        $subQ2 = $this->getConnection()->createQueryBuilder()
             ->select("EDCL2.OID AS DIALOG, EDCL2.MEMBER2 AS PERSON, EDCL2.MEMBER1 AS COMPANION,
             (SELECT COUNT(EMCL3.OID) FROM ET_MSG_CHAT_LK EMCL3 WHERE EMCL3.DIALOG = EDCL2.OID 
                 AND (EMCL3.NUM > TO_NUMBER(REGEXP_SUBSTR(EDCL2.LAST_MSG_2, '[^\d:]\d+$')) OR EDCL2.LAST_MSG_2 IS NULL)) AS UNREAD_COUNT,
@@ -333,7 +334,7 @@ class PrivateMessageRepository extends AbstractRepository
             ->from('ET_DIALOG_CHAT_LK', 'EDCL2')
             ->getSQL();
 
-        $queryBuilder = $this->getEntityManager()->getConnection()->createQueryBuilder()
+        $queryBuilder = $this->getConnection()->createQueryBuilder()
             ->select('DM.DIALOG, NP.OID AS COMPANION_ID, NP.FNAME AS COMPANION_FNAME, NP.FAMILY AS COMPANION_LNAME, 
                 NP.MNAME AS COMPANION_PTR, 
                 EMLK.NAME AS LAST_MGS, 
@@ -439,7 +440,7 @@ class PrivateMessageRepository extends AbstractRepository
      */
     public function getMessageCountInDialog(string $dialog): int
     {
-        $result = $this->getEntityManager()->getConnection()->createQueryBuilder()
+        $result = $this->getConnection()->createQueryBuilder()
             ->select('COUNT(EMCL.OID) AS CNT')
             ->from('ET_MSG_CHAT_LK', 'EMCL')
             ->where('EMCL.DIALOG = :DIALOG')
@@ -461,7 +462,7 @@ class PrivateMessageRepository extends AbstractRepository
      */
     public function getMessageList(string $person, string $dialog, ?int $offset, ?int $count): array
     {
-        $queryBuilder = $this->getEntityManager()->getConnection()->createQueryBuilder();
+        $queryBuilder = $this->getConnection()->createQueryBuilder();
 
         $queryBuilder
             ->select("EMCL.OID AS M_ID, EMCL.AUTHOR AS SENDER,
@@ -548,7 +549,7 @@ class PrivateMessageRepository extends AbstractRepository
     public function addMessageToDialog(string $senderPerson,
                                        string $dialog, string $message, array $attachments, array $links): string
     {
-        $conn = $this->getEntityManager()->getConnection();
+        $conn = $this->getConnection();
         $queryBuilder = $conn->createQueryBuilder();
         $newOid = $this->getNewOid();
 
@@ -612,7 +613,7 @@ class PrivateMessageRepository extends AbstractRepository
      */
     public function addPrivateMessageAttachment(BinaryFile $binaryFile, string $messageId)
     {
-        $this->getEntityManager()->getConnection()->createQueryBuilder()
+        $this->getConnection()->createQueryBuilder()
             ->update('ET_MSG_CHAT_LK')
             ->set('DOC', ':DOCUMENT')
             ->set('FILE$DOC', ':DOC_NAME')
@@ -630,7 +631,7 @@ class PrivateMessageRepository extends AbstractRepository
      * @throws \Doctrine\DBAL\Exception
      */
     public function getPrivateMessageAttachment(string $messageId): BinaryFile {
-        $result = $this->getEntityManager()->getConnection()->createQueryBuilder()
+        $result = $this->getConnection()->createQueryBuilder()
             ->select('EMSG.DOC, EMSG.FILE$DOC AS DOC_NAME')
             ->from('ET_MSG_CHAT_LK', 'EMSG')
             ->where('EMSG.OID = :MESSAGE_ID')
@@ -658,7 +659,7 @@ class PrivateMessageRepository extends AbstractRepository
      */
     public function updateLastViewedMessages(string $dialog, string $person, string $value)
     {
-        $queryBuilder = $this->getEntityManager()->getConnection()->createQueryBuilder();
+        $queryBuilder = $this->getConnection()->createQueryBuilder();
         $queryBuilder
             ->update('ET_DIALOG_CHAT_LK', 'EDCL')
             ->set('LAST_MSG_1', 'CASE WHEN EDCL.MEMBER1 = :PERSON THEN :VALUE ELSE EDCL.LAST_MSG_1 END')

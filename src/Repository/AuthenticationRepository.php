@@ -2,20 +2,32 @@
 
 namespace App\Repository;
 
-use App\Exception\InheritedSystemException;
-use App\Exception\InvalidCredentialsException;
+use App\Document\User;
+use App\Exception\DuplicateValueException;
 use App\Exception\NotFoundException;
-use App\Exception\ResourceNotFoundException;
+use App\Model\QueryParam\RegisterCredentials;
 use App\Model\QueryParam\UserIdentifier;
-use Doctrine\DBAL\DBALException;
+use Doctrine\DBAL\Exception;
 use Doctrine\DBAL\FetchMode;
+use Doctrine\ODM\MongoDB\DocumentManager;
+use Doctrine\ODM\MongoDB\MongoDBException;
+use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\Security\Core\Encoder\UserPasswordEncoderInterface;
 
 class AuthenticationRepository extends AbstractRepository
 {
+    private $userPasswordEncoder;
+
+    public function __construct(EntityManagerInterface $entityManager, DocumentManager $documentManager, UserPasswordEncoderInterface $userPasswordEncoder)
+    {
+        parent::__construct($entityManager, $documentManager);
+        $this->userPasswordEncoder = $userPasswordEncoder;
+    }
+
     /**
      * @param UserIdentifier $identifier
      * @return mixed
-     * @throws \Doctrine\DBAL\Exception
+     * @throws Exception
      */
     public function identifyUser(UserIdentifier $identifier)
     {
@@ -44,5 +56,64 @@ class AuthenticationRepository extends AbstractRepository
             throw new NotFoundException('Person');
         }
         return $foundedUsers[0]['OID'];
+    }
+
+    /**
+     * @param string $oid
+     * @return User
+     * @throws MongoDBException
+     */
+    public function persistIdentifiedUser(string $oid): User
+    {
+        // При получении дублирующегося OID валидация не проходит по unique entity dbOid
+        $existingSameOid = $this->getDocumentManager()->getRepository(User::class)->findOneBy(['dbOid' => $oid]);
+        if($existingSameOid) {
+            throw new DuplicateValueException("Person");
+        }
+
+        /** @var UserRepository $userRepository */
+        $userRepository = $this->getDocumentManager()->getRepository(User::class);
+
+        $user = new User();
+        $user->setRoles(['ROLE_IDENTIFIED']);
+        $user->setDbOid($oid);
+        $user->setEmail(uniqid('email', true));
+        $tempPassword = $this->userPasswordEncoder->encodePassword($user, uniqid('password', true));
+        $userRepository->upgradePassword($user, $tempPassword);
+        $this->getDocumentManager()->persist($user);
+
+        $this->getDocumentManager()->flush();
+        return $user;
+    }
+
+    /**
+     * @param User $currentUser
+     * @param RegisterCredentials $registerCredentials
+     * @return User
+     * @throws MongoDBException
+     */
+    public function persistRegistration(
+        User $currentUser,
+        RegisterCredentials $registerCredentials
+    ): User {
+
+        $existingSameEmail = $this->getDocumentManager()->getRepository(User::class)
+            ->findOneBy(['email' => $registerCredentials->getUsername()]);
+
+        if($existingSameEmail) {
+            throw new DuplicateValueException('User');
+        }
+
+        /** @var UserRepository $userRepository */
+        $userRepository = $this->getDocumentManager()->getRepository(User::class);
+
+        $currentUser->setEmail($registerCredentials->getUsername());
+        $updatedPassword = $this->userPasswordEncoder->encodePassword($currentUser, $registerCredentials->getPassword());
+        $userRepository->upgradePassword($currentUser, $updatedPassword);
+        $currentUser->setRoles(['ROLE_STUDENT']);
+
+        $this->getDocumentManager()->flush();
+
+        return $currentUser;
     }
 }

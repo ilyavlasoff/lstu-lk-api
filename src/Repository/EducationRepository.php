@@ -15,17 +15,17 @@ use App\Model\DTO\TimetableItem;
 use App\Service\StringConverter;
 use Doctrine\DBAL\Driver\Exception;
 use Doctrine\DBAL\FetchMode;
+use Doctrine\ODM\MongoDB\DocumentManager;
 use Doctrine\ORM\EntityManagerInterface;
 
-class EducationRepository
+class EducationRepository extends AbstractRepository
 {
-    private $entityManager;
     private $stringConverter;
 
-    public function __construct(EntityManagerInterface $entityManager, StringConverter $stringConverter)
+    public function __construct(EntityManagerInterface $entityManager, DocumentManager $documentManager, StringConverter $converter)
     {
-        $this->entityManager = $entityManager;
-        $this->stringConverter = $stringConverter;
+        parent::__construct($entityManager, $documentManager);
+        $this->stringConverter = $converter;
     }
 
     /**
@@ -34,7 +34,7 @@ class EducationRepository
      * @throws \Doctrine\DBAL\Exception
      */
     public function isEducationExists(string $education): bool {
-        $edu = $this->entityManager->getConnection()->createQueryBuilder()
+        $edu = $this->getConnection()->createQueryBuilder()
             ->select('EC.OID')
             ->from('ET_CONTINGENTS', 'EC')
             ->where('EC.OID = :EDUCATION')
@@ -51,7 +51,7 @@ class EducationRepository
      * @throws \Doctrine\DBAL\Exception
      */
     public function isSemesterExists(string $semester): bool {
-        $sem = $this->entityManager->getConnection()->createQueryBuilder()
+        $sem = $this->getConnection()->createQueryBuilder()
             ->select('ES.OID')
             ->from('ET_CSEMESTERS', 'ES')
             ->where('ES.OID = :SEMESTER')
@@ -63,6 +63,24 @@ class EducationRepository
     }
 
     /**
+     * @param string $group
+     * @return bool
+     * @throws Exception
+     * @throws \Doctrine\DBAL\Exception
+     */
+    public function isGroupExists(string $group): bool {
+        $groups = $this->getConnection()->createQueryBuilder()
+            ->select('G.OID')
+            ->from('ET_GROUPS', 'G')
+            ->where('G.OID = :GROUP')
+            ->setParameter('GROUP', $group)
+            ->execute()
+            ->fetchFirstColumn();
+
+        return count($groups) === 1;
+    }
+
+    /**
      * @param string $personOid
      * @return array
      * @throws \Doctrine\DBAL\Exception
@@ -71,7 +89,7 @@ class EducationRepository
      */
     public function getLstuEducationListByPerson(string $personOid): array
     {
-        $queryBuilder = $this->entityManager->getConnection()->createQueryBuilder();
+        $queryBuilder = $this->getConnection()->createQueryBuilder();
         $result = $queryBuilder
             ->select('EC.OID AS EDU_ID, TC.VALUE AS EDU_STATUS, EG.CREATED AS EDU_START, 
             EG.RELEASE_DATE AS EDU_END, COALESCE(EM.VALUE, EM.VALUE, EG.NAME) AS EDU_NAME, 
@@ -119,7 +137,7 @@ class EducationRepository
      */
     public function getCurrentSemester(string $groupId): Semester
     {
-        $queryBuilder = $this->entityManager->getConnection()->createQueryBuilder();
+        $queryBuilder = $this->getConnection()->createQueryBuilder();
         $result = $queryBuilder
             ->select('EC.OID AS SEMID')
             ->from('ET_GROUPS', 'EG')
@@ -151,7 +169,7 @@ class EducationRepository
      */
     public function getSemesterList(string $groupId): array
     {
-        $queryBuilder = $this->entityManager->getConnection()->createQueryBuilder();
+        $queryBuilder = $this->getConnection()->createQueryBuilder();
         $result = $queryBuilder
             ->select('EC.OID AS SEM_OID',
             'CASE WHEN TS.OID = \'1:4312\' THEN CAST(TO_NUMBER(TY.NAME) + 1 AS VARCHAR(20)) ELSE TY.NAME END AS YEAR',
@@ -184,7 +202,7 @@ class EducationRepository
      * @throws Exception
      */
     public function getUserEducationsIdList(string $person): array {
-        $queryBuilder = $this->entityManager->getConnection()->createQueryBuilder();
+        $queryBuilder = $this->getConnection()->createQueryBuilder();
         $result = $queryBuilder
             ->select('EC.OID AS ID')
             ->from('NPERSONS', 'NP')

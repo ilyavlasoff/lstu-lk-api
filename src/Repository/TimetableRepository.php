@@ -13,7 +13,6 @@ use App\Model\DTO\TimetableItem;
 use App\Model\DTO\Timetable;
 use App\Service\StringConverter;
 use Doctrine\DBAL\Exception;
-use Doctrine\DBAL\FetchMode;
 use Doctrine\ORM\EntityManagerInterface;
 
 class TimetableRepository

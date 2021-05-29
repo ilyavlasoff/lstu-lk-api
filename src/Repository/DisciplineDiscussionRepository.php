@@ -2,6 +2,7 @@
 
 namespace App\Repository;
 
+use App\Exception\DataAccessException;
 use App\Exception\NotFoundException;
 use App\Model\DTO\Attachment;
 use App\Model\DTO\BinaryFile;
@@ -10,15 +11,16 @@ use App\Model\DTO\ExternalLink;
 use App\Model\DTO\Person;
 use App\Service\StringConverter;
 use Doctrine\DBAL\Exception;
+use Doctrine\ODM\MongoDB\DocumentManager;
 use Doctrine\ORM\EntityManagerInterface;
 
 class DisciplineDiscussionRepository extends AbstractRepository
 {
     private $stringConverter;
 
-    public function __construct(EntityManagerInterface $entityManager, StringConverter $stringConverter)
+    public function __construct(EntityManagerInterface $entityManager, DocumentManager $documentManager, StringConverter $stringConverter)
     {
-        parent::__construct($entityManager);
+        parent::__construct($entityManager, $documentManager);
         $this->stringConverter = $stringConverter;
     }
 
@@ -32,7 +34,7 @@ class DisciplineDiscussionRepository extends AbstractRepository
      */
     public function getDisciplineChatMessagesCount(string $group, string $semester, string $discipline): int
     {
-        $queryBuilder = $this->getEntityManager()->getConnection()->createQueryBuilder();
+        $queryBuilder = $this->getConnection()->createQueryBuilder();
         $result = $queryBuilder
             ->select('COUNT(EM.OID) AS COUNT')
             ->from('ET_MSG_LK', 'EM')
@@ -66,7 +68,7 @@ class DisciplineDiscussionRepository extends AbstractRepository
         int $offset,
         int $limit
     ): array {
-        $queryBuilder = $this->getEntityManager()->getConnection()->createQueryBuilder();
+        $queryBuilder = $this->getConnection()->createQueryBuilder();
         $queryBuilder
             ->select("
                 EM.OID AS MSG_ID,
@@ -155,7 +157,7 @@ class DisciplineDiscussionRepository extends AbstractRepository
         string $disciplineId
     ): bool
     {
-        $stmt = $this->getEntityManager()->getConnection()->prepare("
+        $stmt = $this->getConnection()->prepare("
             SELECT COUNT(*) AS IS_MEM FROM (
                   SELECT DISTINCT TT2.C_OID AS MM_ID, TT2.NAME
                   FROM T_TIMETABLE TT
@@ -210,7 +212,7 @@ class DisciplineDiscussionRepository extends AbstractRepository
         string $disciplineId,
         string $groupId
     ): string {
-        $queryBuilder = $this->getEntityManager()->getConnection()->createQueryBuilder();
+        $queryBuilder = $this->getConnection()->createQueryBuilder();
 
         $newOid = $this->getNewOid();
         $queryBuilder
@@ -259,7 +261,7 @@ class DisciplineDiscussionRepository extends AbstractRepository
      */
     public function isMessageBelongsToUser(string $messageId, string $userId): bool
     {
-        $result = $this->getEntityManager()->getConnection()->createQueryBuilder()
+        $result = $this->getConnection()->createQueryBuilder()
             ->select('COUNT(*) AS CNT')
             ->from('ET_MSG_LK', 'EM')
             ->where('EM.OID = :MESSAGE_ID')
@@ -280,7 +282,7 @@ class DisciplineDiscussionRepository extends AbstractRepository
      */
     public function isMessageExists(string $messageId) : bool
     {
-        $result = $this->getEntityManager()->getConnection()->createQueryBuilder()
+        $result = $this->getConnection()->createQueryBuilder()
             ->select('COUNT(*) AS CNT')
             ->from('ET_MSG_LK', 'EM')
             ->where('EM.OID = :MESSAGE_ID')
@@ -298,7 +300,7 @@ class DisciplineDiscussionRepository extends AbstractRepository
      */
     public function addAttachmentToMessage(string $messageId, BinaryFile $file)
     {
-        $queryBuilder = $this->getEntityManager()->getConnection()->createQueryBuilder();
+        $queryBuilder = $this->getConnection()->createQueryBuilder();
 
         $queryBuilder
             ->update('ET_MSG_LK', 'EM')
@@ -318,7 +320,7 @@ class DisciplineDiscussionRepository extends AbstractRepository
      * @throws \Doctrine\DBAL\Driver\Exception
      */
     public function getMessageAttachment(string $messageId) {
-        $result = $this->getEntityManager()->getConnection()->createQueryBuilder()
+        $result = $this->getConnection()->createQueryBuilder()
             ->select('EM.DOC, EM.FILE$DOC AS FILE_NAME')
             ->from('ET_MSG_LK', 'EM')
             ->where('EM.OID = :MESSAGE_ID')
@@ -335,5 +337,53 @@ class DisciplineDiscussionRepository extends AbstractRepository
         $binaryFile->setFileContent($result[0]['DOC']);
 
         return $binaryFile;
+    }
+
+    /**
+     * @param string $semesterId
+     * @param string $groupId
+     * @param string $disciplineId
+     * @return array
+     * @throws Exception
+     * @throws \Doctrine\DBAL\Driver\Exception
+     */
+    public function getChatMembersIds(string $semesterId, string $groupId, string $disciplineId) {
+        $stmt = $this->getConnection()->prepare("
+            SELECT DISTINCT TT2.C_OID AS MM_ID
+                  FROM T_TIMETABLE TT
+                           INNER JOIN T_TEACHERS TT2 ON TT.TEACHER = TT2.OID
+                  WHERE TT.G = ?
+                    AND TT.DISCIPLINE = ?
+                    AND TT.CSEMESTER = ?
+                  UNION ALL
+                  SELECT DISTINCT EC.C_OID AS MM_ID
+                  FROM ET_CONTINGENTS EC
+                           INNER JOIN ET_GROUPS EG ON EC.G = EG.OID
+                           INNER JOIN ET_RCONTINGENTS ETR ON EG.OID = ETR.G
+                           INNER JOIN ET_CURRICULUMS ETCR ON ETR.PLAN = ETCR.OID
+                           INNER JOIN ET_DSPLANS EDSP ON ETCR.OID = EDSP.EPLAN
+                           INNER JOIN T_CONTSTATES TCN ON EC.ESTATE = TCN.OID
+                  WHERE EG.OID = ?
+                    AND EDSP.DISCIPLINE = ?
+                    AND ETR.CSEMESTER = ?
+                    AND EC.C_OID IS NOT NULL
+                    AND TCN.NAME IN ('ИН', '2Г', 'УЧ', 'АК')
+        ");
+        $stmt->bindValue(1, $groupId);
+        $stmt->bindValue(2, $disciplineId);
+        $stmt->bindValue(3, $semesterId);
+        $stmt->bindValue(4, $groupId);
+        $stmt->bindValue(5, $disciplineId);
+        $stmt->bindValue(6, $semesterId);
+        $result = $stmt->executeQuery();
+
+        $members = [];
+        while ($memberData = $result->fetchAssociative()) {
+            $member = new Person();
+            $member->setUoid($memberData['MM_ID']);
+            $members[] = $member;
+        }
+
+        return $members;
     }
 }

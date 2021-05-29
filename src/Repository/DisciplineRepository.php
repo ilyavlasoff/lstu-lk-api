@@ -23,6 +23,7 @@ use Doctrine\DBAL\FetchMode;
 use Doctrine\DBAL\Result;
 use Doctrine\DBAL\Type\Type;
 use Doctrine\DBAL\Types\BlobType;
+use Doctrine\ODM\MongoDB\DocumentManager;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Validator\Constraints\Json;
@@ -31,9 +32,9 @@ class DisciplineRepository extends AbstractRepository
 {
     private $stringConverter;
 
-    public function __construct(EntityManagerInterface $entityManager, StringConverter $stringConverter)
+    public function __construct(EntityManagerInterface $entityManager, DocumentManager $documentManager, StringConverter $stringConverter)
     {
-        parent::__construct($entityManager);
+        parent::__construct($entityManager, $documentManager);
         $this->stringConverter = $stringConverter;
     }
 
@@ -44,7 +45,7 @@ class DisciplineRepository extends AbstractRepository
      * @throws \Doctrine\DBAL\Driver\Exception
      */
     public function isDisciplineExists(string $discipline): bool {
-        $result = $this->getEntityManager()->getConnection()->createQueryBuilder()
+        $result = $this->getConnection()->createQueryBuilder()
             ->select('COUNT(*) AS CNT')
             ->from('ET_DISCIPLINES', 'EDIS')
             ->where('EDIS.OID = :DISCIPLINE')
@@ -63,7 +64,7 @@ class DisciplineRepository extends AbstractRepository
      */
     public function getDiscipline(string $discipline): Discipline
     {
-        $queryBuilder = $this->getEntityManager()->getConnection()->createQueryBuilder();
+        $queryBuilder = $this->getConnection()->createQueryBuilder();
 
         $disciplineRows = $queryBuilder
             ->select('EDIS.OID AS DIS_ID, 
@@ -92,16 +93,16 @@ class DisciplineRepository extends AbstractRepository
 
         $discipline = new Discipline();
         $discipline->setId($disciplineData['DIS_ID']);
-        $discipline->setName($disciplineData['DIS_NAME']);
+        $discipline->setName($this->stringConverter->capitalize($disciplineData['DIS_NAME']));
         $discipline->setCategory($disciplineData['DISCAT_NAME']);
 
         $chair = new Chair();
         $chair->setId($disciplineData['CH_ID']);
-        $chair->setChairName($disciplineData['CH_NAME']);
+        $chair->setChairName($this->stringConverter->capitalize($disciplineData['CH_NAME']));
 
         $faculty = new Faculty();
         $faculty->setId($disciplineData['FAC_ID']);
-        $faculty->setFacName($disciplineData['FAC_NAME']);
+        $faculty->setFacName($this->stringConverter->capitalize($disciplineData['FAC_NAME']));
         $faculty->setFacCode($disciplineData['FAC_ABBR']);
 
         $chair->setFaculty($faculty);
@@ -120,7 +121,7 @@ class DisciplineRepository extends AbstractRepository
      */
     public function getTeachersByDiscipline(string $discipline, string $group, string $semester): array
     {
-        $queryBuilder = $this->getEntityManager()->getConnection()->createQueryBuilder();
+        $queryBuilder = $this->getConnection()->createQueryBuilder();
         $queryBuilder
             ->select('TT.TEACHER AS TCH_OID, NP.OID AS TCH_PERSON, TTCH.FIRSTNAME AS FNAME, TTCH.SURNAME AS LNAME, 
             TTCH.PATRONYMIC AS PTR, ED.ABBR AS TEACHER_POST, EDIS.OID AS DIS_ID, EDIS.NAME AS DISCIPLINE, T.VALUE AS LESSON_TYPE')
@@ -176,7 +177,7 @@ class DisciplineRepository extends AbstractRepository
      */
     public function getDisciplinesBySemester(string $groupId, string $semesterId): array
     {
-        $queryBuilder = $this->getEntityManager()->getConnection()->createQueryBuilder();
+        $queryBuilder = $this->getConnection()->createQueryBuilder();
         //$result = $queryBuilder->select('EDIS.OID as DISCIPLINE_ID, EDIS.NAME AS DISCIPLINE_NAME, ECH.VALUE AS CHAIR_NAME')
         $queryBuilder->select('EDIS.OID as DISCIPLINE_ID, EDIS.NAME AS DISCIPLINE_NAME')
             ->from('ET_RCONTINGENTS', 'ER')

@@ -1,6 +1,10 @@
 version: "3.1"
 volumes:
   mongo: ~
+networks:
+  default:
+    external:
+      name: lkapp_shared_network
 services:
   nginx:
     container_name: lk_nginx

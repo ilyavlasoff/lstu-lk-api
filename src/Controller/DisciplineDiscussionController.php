@@ -8,6 +8,7 @@ use App\Exception\DataAccessException;
 use App\Model\DTO\Attachment;
 use App\Model\DTO\BinaryFile;
 use App\Model\DTO\DiscussionMessage;
+use App\Model\DTO\Group;
 use App\Model\DTO\ListedResponse;
 use App\Model\QueryParam\Discipline;
 use App\Model\QueryParam\Education;
@@ -51,7 +52,7 @@ class DisciplineDiscussionController extends AbstractRestController
      * @param PersonalRepository $personalRepository
      * @return JsonResponse
      */
-    public function disciplineChatMessages(
+    public function getDisciplineChatMessages(
         Discipline $discipline,
         Education $education,
         Semester $semester,
@@ -110,7 +111,7 @@ class DisciplineDiscussionController extends AbstractRestController
      * @param PersonalRepository $personalRepository
      * @return JsonResponse
      */
-    public function disciplineChatMessagesAdd(
+    public function addDisciplineChatMessage(
         SendingDiscussionMessage $message,
         Education $education,
         Discipline $discipline,
@@ -165,7 +166,7 @@ class DisciplineDiscussionController extends AbstractRestController
      * @param DisciplineDiscussionMessage $message
      * @return JsonResponse
      */
-    public function disciplineChatAttachmentAdd(BinaryFile $file, DisciplineDiscussionMessage $message): JsonResponse
+    public function addDisciplineChatAttachment(BinaryFile $file, DisciplineDiscussionMessage $message): JsonResponse
     {
         /** @var User $user */
         $user = $this->getUser();
