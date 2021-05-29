@@ -1,52 +1,48 @@
 security:
-    encoders:
-        App\Document\User:
-            algorithm: bcrypt
+  encoders:
+    App\Document\User:
+      algorithm: bcrypt
 
-    providers:
-        app_user_provider:
-            id: App\Security\UserAuthenticationProvider
+  providers:
+    app_user_provider:
+      id: App\Security\UserAuthenticationProvider
 
-    firewalls:
-        dev:
-            pattern: ^/(_(profiler|wdt)|css|images|js)/
-            security: false
-        auth:
-            pattern: ^/api/v1/auth
-            anonymous: true
-            stateless: true
-            provider: app_user_provider
-            json_login:
-                check_path: /api/v1/auth
-                login_path: email
-                password_path: password
-                success_handler: lexik_jwt_authentication.handler.authentication_success
-                failure_handler: lexik_jwt_authentication.handler.authentication_failure
-        identify:
-            pattern: ^/api/v1/identify
-            anonymous: true
-            stateless: true
-        token_refresh:
-            pattern: ^/api/v1/token/refresh
-            anonymous: true
-            stateless: true
-        service:
-            pattern: ^/api/v1/service
-            anonymous: true
-        docs:
-            pattern: ^/api/v1/doc
-            anonymous: true
-        api:
-            pattern: ^/api/v1/
-            stateless: true
-            anonymous: false
-            provider: app_user_provider
-            guard:
-                authenticators:
-                    - lexik_jwt_authentication.jwt_token_authenticator
-    access_control:
-         - { path: ^/api/v1/(auth|identify|refresh|doc), roles: IS_AUTHENTICATED_ANONYMOUSLY }
-         - { path: ^/api/v1/token/refresh, roles: IS_AUTHENTICATED_ANONYMOUSLY }
-         - { path: ^/api/v1/service, roles: IS_AUTHENTICATED_ANONYMOUSLY }
-         - { path: ^/api/v1/reg, roles: ROLE_IDENTIFIED }
-         - { path: ^/api/v1/, roles: ROLE_STUDENT }
+  firewalls:
+    dev:
+      pattern: ^/(_(profiler|wdt)|css|images|js)/
+      security: false
+    auth:
+      pattern: ^/api/v1/auth
+      anonymous: true
+      stateless: true
+      provider: app_user_provider
+      json_login:
+        check_path: /api/v1/auth
+        login_path: email
+        password_path: password
+        success_handler: lexik_jwt_authentication.handler.authentication_success
+        failure_handler: lexik_jwt_authentication.handler.authentication_failure
+    identify:
+      pattern: ^/api/v1/identify
+      anonymous: true
+      stateless: true
+    token_refresh:
+      pattern: ^/api/v1/token/refresh
+      anonymous: true
+      stateless: true
+    docs:
+      pattern: ^/api/v1/doc
+      anonymous: true
+    api:
+      pattern: ^/api/v1/
+      stateless: true
+      anonymous: false
+      provider: app_user_provider
+      guard:
+        authenticators:
+          - lexik_jwt_authentication.jwt_token_authenticator
+  access_control:
+    - { path: ^/api/v1/(auth|identify|refresh|doc), roles: IS_AUTHENTICATED_ANONYMOUSLY }
+    - { path: ^/api/v1/token/refresh, roles: IS_AUTHENTICATED_ANONYMOUSLY }
+    - { path: ^/api/v1/reg, roles: ROLE_IDENTIFIED }
+    - { path: ^/api/v1/, roles: ROLE_STUDENT }

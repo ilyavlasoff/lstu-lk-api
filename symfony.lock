@@ -373,16 +373,16 @@
         ]
     },
     "symfony/security-core": {
-        "version": "v5.2.5"
+        "version": "v5.2.9"
     },
     "symfony/security-csrf": {
-        "version": "v5.2.4"
+        "version": "v5.2.7"
     },
     "symfony/security-guard": {
-        "version": "v5.2.4"
+        "version": "v5.2.8"
     },
     "symfony/security-http": {
-        "version": "v5.2.5"
+        "version": "v5.2.9"
     },
     "symfony/service-contracts": {
         "version": "v2.2.0"
