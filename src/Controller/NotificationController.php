@@ -66,6 +66,21 @@ class NotificationController extends AbstractRestController
     }
 
     /**
+     * @Route("/prefs", name="get_notification_prefs", methods={"GET"})
+     * @return JsonResponse
+     */
+    public function getCurrentNotificationPreferences()
+    {
+        /** @var User $user */
+        $user = $this->getUser();
+
+        /** @var NotificationPreferences $preferences */
+        $preferences = $this->notifierQueryService->getReceiver($user->getDbOid());
+
+        return $this->responseSuccessWithObject($preferences);
+    }
+
+    /**
      * @Route("/prefs", name="patch_notification_prefs", methods={"PATCH"})
      * @param NotificationPreferences $notificationPreferences
      * @return JsonResponse
@@ -80,8 +95,9 @@ class NotificationController extends AbstractRestController
         $notificationReceiver->setMutePrivate($notificationPreferences->getDisablePrivateMessageNotifications());
         $notificationReceiver->setNPersonsOid($user->getDbOid());
 
-        $updated = $this->notifierQueryService->updateReceiver($notificationReceiver);
+        /** @var NotificationPreferences $updated */
+        $updatedPreferences = $this->notifierQueryService->updateReceiver($notificationReceiver);
 
-        return $this->responseSuccess();
+        return $this->responseSuccessWithObject($updatedPreferences);
     }
 }

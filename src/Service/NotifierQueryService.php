@@ -4,6 +4,7 @@ namespace App\Service;
 
 use App\Model\ExternalConsumingParam\NotificationReceiver;
 use App\Model\ExternalConsumingParam\NotificationReceiverDevice;
+use App\Model\QueryParam\NotificationPreferences;
 use JMS\Serializer\SerializerInterface;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
@@ -40,6 +41,14 @@ class NotifierQueryService extends AbstractQueryService
         return $response['success'];
     }
 
+    public function getReceiver(string $user) {
+        $urlPath = 'management/receiver';
+
+        return $this->makeQuery($this->urlBase, $urlPath, 'GET', 'http', 200,
+            ['receiver' => $user], [], [], null, '', true, NotificationReceiver::class, false);
+
+    }
+
     public function addReceiver(NotificationReceiver $receiver) {
         $urlPath = 'management/receiver';
 
@@ -56,10 +65,9 @@ class NotifierQueryService extends AbstractQueryService
 
         $deviceSerialized = $this->serializer->serialize($receiver, 'json');
 
-        $response = $this->makeQuery($this->urlBase, $urlPath, 'PATCH', 'http', 200,
-            [], [], [], $deviceSerialized, '', false, '', true);
+        return $this->makeQuery($this->urlBase, $urlPath, 'PATCH', 'http', 200,
+            [], [], [], $deviceSerialized, '', true, NotificationPreferences::class, false);
 
-        return $response['success'];
     }
 
     public function removeReceiver(NotificationReceiver $receiver) {
