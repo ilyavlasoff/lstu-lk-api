@@ -91,21 +91,21 @@ abstract class AbstractQueryService
 
             if(is_integer($correctStatusCode)) {
                 if($response->getStatusCode() !== $correctStatusCode) {
-                    throw new BadExtResponseException($response->getStatusCode(), $response->getContent());
+                    throw new BadExtResponseException($response->getStatusCode(), $response->getContent(false));
                 }
             }
             else if(is_array($correctStatusCode)) {
                 if(!in_array($response->getStatusCode(), $correctStatusCode)) {
-                    throw new BadExtResponseException($response->getStatusCode(), $response->getContent());
+                    throw new BadExtResponseException($response->getStatusCode(), $response->getContent(false));
                 }
             }
 
             if($jmsDeserialize) {
-                return $this->serializer->deserialize($response->getContent(), $jmsDeserializeType, 'json');
+                return $this->serializer->deserialize($response->getContent(false), $jmsDeserializeType, 'json');
             }
 
             if($jsonDeserialize) {
-                return json_decode($response->getContent(), true);
+                return json_decode($response->getContent(false), true);
             }
 
             return $response->getContent();
