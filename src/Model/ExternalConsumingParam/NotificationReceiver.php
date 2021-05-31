@@ -9,6 +9,7 @@ class NotificationReceiver
     /**
      * @var string | null
      * @JMS\SerializedName("id")
+     * @JMS\Type("string")
      */
     private $nPersonsOid;
 
