@@ -45,7 +45,7 @@ class NotifierQueryService extends AbstractQueryService
         $urlPath = 'management/receiver';
 
         return $this->makeQuery($this->urlBase, $urlPath, 'GET', 'http', 200,
-            ['receiver' => $user], [], [], null, '', true, NotificationReceiver::class, false);
+            ['receiver' => $user], [], [], '', '', true, NotificationReceiver::class, false);
 
     }
 
