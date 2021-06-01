@@ -454,13 +454,13 @@ class PrivateMessageRepository extends AbstractRepository
     /**
      * @param string $person
      * @param string $dialog
-     * @param int|null $offset
+     * @param string|null $bound
      * @param int|null $count
      * @return array
      * @throws Exception
      * @throws \Doctrine\DBAL\Exception
      */
-    public function getMessageList(string $person, string $dialog, ?int $offset, ?int $count): array
+    public function getMessageList(string $person, string $dialog, ?string $bound, ?int $count): array
     {
         $queryBuilder = $this->getConnection()->createQueryBuilder();
 
@@ -489,10 +489,17 @@ class PrivateMessageRepository extends AbstractRepository
             ->where('DM.DIALOG = :DIALOG_ID')
             ->andWhere('DM.PERSON = :PERSON_ID')
             ->orderBy('SEND_TIME', 'DESC')
-            ->setFirstResult($offset)
             ->setMaxResults($count)
             ->setParameter('DIALOG_ID', $dialog)
             ->setParameter('PERSON_ID', $person);
+
+        // with identifier paginator
+        if($bound) {
+            $edgeMessageNum = (int)substr($bound, strpos($bound, ':') + 1);
+            $queryBuilder
+                ->andWhere('EMCL.NUM > :EDGE_MESSAGE_NUM')
+                ->setParameter('EDGE_MESSAGE_NUM', $edgeMessageNum);
+            }
 
         $result = $queryBuilder->execute();
 

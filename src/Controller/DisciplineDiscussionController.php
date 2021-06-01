@@ -9,10 +9,12 @@ use App\Model\DTO\Attachment;
 use App\Model\DTO\BinaryFile;
 use App\Model\DTO\DiscussionMessage;
 use App\Model\DTO\Group;
+use App\Model\DTO\IdentifierBoundedListedResponse;
 use App\Model\DTO\ListedResponse;
 use App\Model\QueryParam\Discipline;
 use App\Model\QueryParam\Education;
 use App\Model\QueryParam\DisciplineDiscussionMessage;
+use App\Model\QueryParam\IdentifierPaginator;
 use App\Model\QueryParam\Paginator;
 use App\Model\QueryParam\Semester;
 use App\Model\QueryParam\SendingDiscussionMessage;
@@ -47,7 +49,7 @@ class DisciplineDiscussionController extends AbstractRestController
      * @param Discipline $discipline
      * @param Education $education
      * @param Semester $semester
-     * @param Paginator $paginator
+     * @param IdentifierPaginator $paginator
      * @param EducationRepository $educationRepository
      * @param PersonalRepository $personalRepository
      * @return JsonResponse
@@ -56,7 +58,7 @@ class DisciplineDiscussionController extends AbstractRestController
         Discipline $discipline,
         Education $education,
         Semester $semester,
-        Paginator $paginator,
+        IdentifierPaginator $paginator,
         EducationRepository $educationRepository,
         PersonalRepository $personalRepository
     ): JsonResponse {
@@ -78,24 +80,20 @@ class DisciplineDiscussionController extends AbstractRestController
 
             $disciplineChatMessages = $this->disciplineDiscussionRepository
                 ->getDisciplineChatMessages($semester->getSemesterId(), $discipline->getDisciplineId(),
-                    $group, $paginator->getOffset(), $paginator->getCount());
-
-            $totalMessageCount = $this->disciplineDiscussionRepository
-                ->getDisciplineChatMessagesCount($group, $semester->getSemesterId(), $discipline->getDisciplineId());
+                    $group, $paginator->getEdge(), $paginator->getCount());
         } catch (Exception | \Doctrine\DBAL\Driver\Exception | \Exception $e) {
             throw new DataAccessException($e);
         }
 
-        $remainsCount = $totalMessageCount - $paginator->getOffset() - count($disciplineChatMessages);
-
-        $discussionChatList = new ListedResponse();
+        $discussionChatList = new IdentifierBoundedListedResponse();
         $discussionChatList->setPayload($disciplineChatMessages);
-        $discussionChatList->setOffset($paginator->getOffset());
+        $discussionChatList->setCurrentBound($paginator->getEdge());
         $discussionChatList->setCount(count($disciplineChatMessages));
-        $discussionChatList->setRemains($remainsCount);
 
-        if($remainsCount > 0) {
-            $discussionChatList->setNextOffset($paginator->getOffset() + count($disciplineChatMessages));
+        if(($cnt = count($disciplineChatMessages)) > 0) {
+            /** @var DiscussionMessage $lastMessage */
+            $lastMessage = $disciplineChatMessages[$cnt - 1];
+            $discussionChatList->setNextBound($lastMessage->getId());
         }
 
         return $this->responseSuccessWithObject($discussionChatList);

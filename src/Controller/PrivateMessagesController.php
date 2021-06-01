@@ -5,9 +5,12 @@ namespace App\Controller;
 use App\Document\User;
 use App\Exception\AccessDeniedException;
 use App\Exception\DataAccessException;
+use App\Exception\NotFoundException;
 use App\Model\DTO\Attachment;
 use App\Model\DTO\BinaryFile;
+use App\Model\DTO\IdentifierBoundedListedResponse;
 use App\Model\QueryParam\Dialog;
+use App\Model\QueryParam\IdentifierPaginator;
 use App\Model\QueryParam\Paginator;
 use App\Model\QueryParam\Person;
 use App\Model\DTO\ListedResponse;
@@ -100,45 +103,56 @@ class PrivateMessagesController extends AbstractRestController
      * @Route("/list", name="private_messages_list", methods={"GET"})
      *
      * @param Dialog $dialog
-     * @param Paginator $paginator
+     * @param IdentifierPaginator $paginator
      * @return JsonResponse
      */
-    public function getPrivateMessageList(Dialog $dialog, Paginator $paginator): JsonResponse
+    public function getPrivateMessageList(Dialog $dialog, IdentifierPaginator $paginator): JsonResponse
     {
         /** @var User $user */
         $user = $this->getUser();
 
-        $offset = $paginator->getOffset();
+        $bound = $paginator->getEdge();
         $count = $paginator->getCount();
 
-        if($offset === null) {
-            $offset = 0;
+        if($bound) {
+            try {
+                $isExists = $this->privateMessageRepository->getMessageExists($bound);
+                $belongs = $this->privateMessageRepository->getDialogByMessage($bound);
+                if(!$isExists || $dialog->getDialogId() !== $belongs) {
+                    throw new NotFoundException('Private message');
+                }
+            } catch (\Doctrine\DBAL\Driver\Exception | Exception $e) {
+                throw new DataAccessException($e);
+            }
         }
-        if($count === null) {
+
+        if(!$count) {
             $count = 100;
         }
 
         try {
-            $totalMessagesCount = $this->privateMessageRepository->getMessageCountInDialog($dialog->getDialogId());
-
             $messages = $this->privateMessageRepository->getMessageList(
-                $user->getDbOid(), $dialog->getDialogId(), $offset, $count);
+                $user->getDbOid(), $dialog->getDialogId(), $bound, $count);
 
-            //TODO: Add increasing read message
+            if(count($messages) > 0) {
+                /** @var \App\Model\DTO\PrivateMessage $lastMessage */
+                $lastMessage = $messages[count($messages) - 1];
+                $this->privateMessageRepository->updateLastViewedMessages(
+                    $dialog->getDialogId(), $user->getDbOid(), $lastMessage->getId());
+            }
         } catch (Exception | \Doctrine\DBAL\Driver\Exception $e) {
             throw new DataAccessException($e);
         }
 
-        $messageList = new ListedResponse();
+        $messageList = new IdentifierBoundedListedResponse();
         $messageList->setPayload($messages);
         $messageList->setCount(count($messages));
-        $messageList->setOffset($offset);
+        $messageList->setCurrentBound($bound);
 
-        $remains = $totalMessagesCount - $offset - count($messages);
-        $messageList->setRemains($remains);
-
-        if($remains > 0) {
-            $messageList->setNextOffset($offset + count($messages));
+        if(count($messages) > 0) {
+            /** @var \App\Model\DTO\PrivateMessage $lastMessage */
+            $lastMessage = $messages[count($messages) - 1];
+            $messageList->setNextBound($lastMessage->getId());
         }
 
         return $this->responseSuccessWithObject($messageList);

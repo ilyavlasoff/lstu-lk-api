@@ -54,19 +54,18 @@ class DisciplineDiscussionRepository extends AbstractRepository
      * @param string $semester
      * @param string $discipline
      * @param string $group
-     * @param int $offset
+     * @param string $bound
      * @param int $limit
      * @return array
      * @throws Exception
-     * @throws \Exception
      * @throws \Doctrine\DBAL\Driver\Exception
      */
     public function getDisciplineChatMessages(
         string $semester,
         string $discipline,
         string $group,
-        int $offset,
-        int $limit
+        ?string $bound,
+        ?int $limit
     ): array {
         $queryBuilder = $this->getConnection()->createQueryBuilder();
         $queryBuilder
@@ -89,8 +88,13 @@ class DisciplineDiscussionRepository extends AbstractRepository
             ->andWhere('EM.DISCIPLINE = :DISC')
             ->andWhere('EM.CSEMESTER = :SEM')
             ->orderBy('EM.CREATED', 'DESC')
-            ->setFirstResult($offset)
             ->setMaxResults($limit);
+
+        if($bound) {
+            $queryBuilder
+                ->andWhere('EM.OID > :BOUND')
+                ->setParameter('BOUND', $bound);
+        }
 
         $response = $queryBuilder
             ->setParameter('GROUP', $group)
