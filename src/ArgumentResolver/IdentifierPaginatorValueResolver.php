@@ -26,8 +26,8 @@ class IdentifierPaginatorValueResolver implements ArgumentValueResolverInterface
     public function resolve(Request $request, ArgumentMetadata $argument)
     {
         $paginator = new IdentifierPaginator();
-        $paginator->setCount($request->query->get('c'));
-        $paginator->setEdge($request->query->get('of'));
+        $paginator->setCount($request->query->get('ic'));
+        $paginator->setEdge($request->query->get('iof'));
 
         $errors = $this->validator->validate($paginator);
         if(count($errors) > 0) {

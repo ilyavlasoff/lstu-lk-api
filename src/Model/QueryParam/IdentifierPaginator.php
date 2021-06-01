@@ -10,8 +10,6 @@ class IdentifierPaginator
     /**
      * @var string | null
      * @JMS\Type("string")
-     * @Assert\NotNull(message="Edge value identifier was not found")
-     * @Assert\NotBlank(message="Edge value identifier value is empty")
      */
     private $edge;
 
