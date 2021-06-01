@@ -91,9 +91,10 @@ class DisciplineDiscussionRepository extends AbstractRepository
             ->setMaxResults($limit);
 
         if($bound) {
+            $edgeMessageNum = (int)substr($bound, strpos($bound, ':') + 1);
             $queryBuilder
-                ->andWhere('EM.OID > :BOUND')
-                ->setParameter('BOUND', $bound);
+                ->andWhere("TO_NUMBER(SUBSTR(EM.OID, instr(EM.OID, ':') + 1)) < :BOUND")
+                ->setParameter('BOUND', $edgeMessageNum);
         }
 
         $response = $queryBuilder

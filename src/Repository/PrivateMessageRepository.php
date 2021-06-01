@@ -497,7 +497,7 @@ class PrivateMessageRepository extends AbstractRepository
         if($bound) {
             $edgeMessageNum = (int)substr($bound, strpos($bound, ':') + 1);
             $queryBuilder
-                ->andWhere('EMCL.NUM > :EDGE_MESSAGE_NUM')
+                ->andWhere('EMCL.NUM < :EDGE_MESSAGE_NUM')
                 ->setParameter('EDGE_MESSAGE_NUM', $edgeMessageNum);
             }
 
