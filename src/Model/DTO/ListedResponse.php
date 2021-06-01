@@ -10,12 +10,12 @@ class ListedResponse
     private $count;
 
     /**
-     * @var int | null
+     * @var int | string | null
      */
     private $offset;
 
     /**
-     * @var int | null
+     * @var int | string | null
      */
     private $nextOffset;
 
@@ -46,33 +46,33 @@ class ListedResponse
     }
 
     /**
-     * @return int|null
+     * @return int|string|null
      */
-    public function getOffset(): ?int
+    public function getOffset()
     {
         return $this->offset;
     }
 
     /**
-     * @param int|null $offset
+     * @param int|string|null $offset
      */
-    public function setOffset(?int $offset): void
+    public function setOffset($offset): void
     {
         $this->offset = $offset;
     }
 
     /**
-     * @return int|null
+     * @return int|string|null
      */
-    public function getNextOffset(): ?int
+    public function getNextOffset()
     {
         return $this->nextOffset;
     }
 
     /**
-     * @param int|null $nextOffset
+     * @param int|string|null $nextOffset
      */
-    public function setNextOffset(?int $nextOffset): void
+    public function setNextOffset($nextOffset): void
     {
         $this->nextOffset = $nextOffset;
     }

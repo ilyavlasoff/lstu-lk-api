@@ -67,13 +67,13 @@ class PrivateMessagesController extends AbstractRestController
             throw new DataAccessException();
         }
 
-        $dialogList = new IdentifierBoundedListedResponse();
+        $dialogList = new ListedResponse();
         $dialogList->setCount(count($dialogs));
         $dialogList->setPayload($dialogs);
-        $dialogList->setCurrentBound($bound);
+        $dialogList->setOffset($bound);
         $dialogList->setRemains($remains);
         if($lastDialog) {
-            $dialogList->setNextBound($lastDialog->getId());
+            $dialogList->setNextOffset($lastDialog->getId());
         }
 
         return $this->responseSuccessWithObject($dialogList);
@@ -151,13 +151,13 @@ class PrivateMessagesController extends AbstractRestController
             throw new DataAccessException($e);
         }
 
-        $messageList = new IdentifierBoundedListedResponse();
+        $messageList = new ListedResponse();
         $messageList->setPayload($messages);
         $messageList->setCount(count($messages));
-        $messageList->setCurrentBound($bound);
+        $messageList->setOffset($bound);
         $messageList->setRemains($remains);
         if($lastMessage) {
-            $messageList->setNextBound($lastMessage->getId());
+            $messageList->setNextOffset($lastMessage->getId());
         }
 
         return $this->responseSuccessWithObject($messageList);

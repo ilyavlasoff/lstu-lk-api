@@ -94,13 +94,13 @@ class DisciplineDiscussionController extends AbstractRestController
             throw new DataAccessException($e);
         }
 
-        $discussionChatList = new IdentifierBoundedListedResponse();
+        $discussionChatList = new ListedResponse();
         $discussionChatList->setPayload($disciplineChatMessages);
-        $discussionChatList->setCurrentBound($paginator->getEdge());
+        $discussionChatList->setOffset($paginator->getEdge());
         $discussionChatList->setCount(count($disciplineChatMessages));
         $discussionChatList->setRemains($remains);
         if($lastMessage) {
-            $discussionChatList->setNextBound($lastMessage->getId());
+            $discussionChatList->setNextOffset($lastMessage->getId());
         }
 
 
