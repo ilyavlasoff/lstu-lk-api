@@ -307,14 +307,14 @@ class PrivateMessageRepository extends AbstractRepository
 
     /**
      * @param string $person
-     * @param string|null $offset
-     * @param string|null $count
+     * @param string|null $bound
+     * @param int|null $count
      * @param string|null $dialogId
      * @return Dialog[]
      * @throws Exception
      * @throws \Doctrine\DBAL\Exception
      */
-    public function getUserDialogs(string $person, ?string $offset = null, ?string $count = null, ?string $dialogId = null): array
+    public function getUserDialogs(string $person, ?string $bound, ?int $count, ?string $dialogId = null): array
     {
         $subQ1 = $this->getConnection()->createQueryBuilder()
             ->select("EDCL.OID AS DIALOG, EDCL.MEMBER1 AS PERSON, EDCL.MEMBER2 AS COMPANION,
@@ -345,10 +345,10 @@ class PrivateMessageRepository extends AbstractRepository
                 EMLK.FILE$DOC AS DOCNAME,
                 EMLK.LINK AS LINK, 
                 EMLK.TEXTLINK AS LINK_TEXT, 
-                DM.UNREAD_COUNT, 
+                DM.UNREAD_COUNT,
                 DM.COMPANION_UNREAD,
-                SNP.OID AS LMS_ID, SNP.FNAME AS LMS_FNAME, 
-                SNP.FAMILY AS LMS_LNAME, 
+                SNP.OID AS LMS_ID, SNP.FNAME AS LMS_FNAME,
+                SNP.FAMILY AS LMS_LNAME,
                 SNP.MNAME AS LMS_PTR'
             )
             ->from("($subQ1 UNION ALL $subQ2)", 'DM')
@@ -357,7 +357,8 @@ class PrivateMessageRepository extends AbstractRepository
             ->leftJoin('EMLK', 'NPERSONS', 'SNP', 'EMLK.AUTHOR = SNP.OID')
             ->where('(EMLK.NUM = (SELECT MAX(NUM) FROM ET_MSG_CHAT_LK WHERE ET_MSG_CHAT_LK.DIALOG = DM.DIALOG) OR EMLK.NUM IS NULL)')
             ->andWhere('DM.PERSON = :PERSON')
-            ->orderBy('EMLK.CREATED', 'DESC');
+            ->orderBy('EMLK.CREATED', 'DESC')
+            ->setParameter('PERSON', $person);
 
         if($dialogId) {
             $queryBuilder
@@ -365,15 +366,14 @@ class PrivateMessageRepository extends AbstractRepository
                 ->setParameter('DIALOG', $dialogId);
         }
 
-        if($offset && $count) {
+        if($bound && $count) {
             $queryBuilder
-                ->setFirstResult($offset)
+                ->andWhere("TO_NUMBER(SUBSTR(DM.DIALOG, INSTR(DM.DIALOG, ':') + 1)) < :BOUND")
+                ->setParameter('BOUND',  (int)substr($bound, strpos($bound, ':') + 1))
                 ->setMaxResults($count);
         }
 
-        $result = $queryBuilder
-            ->setParameter('PERSON', $person)
-            ->execute();
+        $result = $queryBuilder->execute();
 
         $loadedDialogs = [];
         while ($dialogRow = $result->fetchAssociative()) {
@@ -433,6 +433,37 @@ class PrivateMessageRepository extends AbstractRepository
     }
 
     /**
+     * @param string $person
+     * @param string $boundDialog
+     * @param bool $invert
+     * @return mixed
+     * @throws Exception
+     * @throws \Doctrine\DBAL\Exception
+     */
+    public function getOlderDialogsThanSpecified(string $person, string $boundDialog, bool $invert = false) {
+        $queryBuilder = $this->getConnection()->createQueryBuilder();
+        $queryBuilder
+            ->select('COUNT(*) AS CNT')
+            ->from('ET_DIALOG_CHAT_LK', 'EDCL')
+            ->where($queryBuilder->expr()->or('EDCL.MEMBER1 = :PERSON', 'EDCL.MEMBER2 = :PERSON'));
+
+        if($invert) {
+            $queryBuilder->andWhere("TO_NUMBER(SUBSTR(EDCL.OID, INSTR(EDCL.OID, ':') + 1)) > :BOUND");
+        } else {
+            $queryBuilder->andWhere("TO_NUMBER(SUBSTR(EDCL.OID, INSTR(EDCL.OID, ':') + 1)) < :BOUND");
+        }
+
+        $result = $queryBuilder
+            ->setParameter('PERSON', $person)
+            ->setParameter('BOUND', (int)substr($boundDialog, strpos($boundDialog, ':') + 1))
+            ->execute();
+
+        $data = $result->fetchAllAssociative();
+
+        return $data[0]['CNT'];
+    }
+
+    /**
      * @param string $dialog
      * @return int
      * @throws \Doctrine\DBAL\Exception
@@ -487,11 +518,7 @@ class PrivateMessageRepository extends AbstractRepository
                 TO_NUMBER(REGEXP_SUBSTR(EDCL2.LAST_MSG_1, '[^\d:]\d+$')) AS COMPANION_LAST_READ FROM ET_DIALOG_CHAT_LK EDCL2)", 'DM', 'EMCL.DIALOG = DM.DIALOG')
             ->innerJoin('EMCL', 'NPERSONS', 'NP', 'EMCL.AUTHOR = NP.OID')
             ->where('DM.DIALOG = :DIALOG_ID')
-            ->andWhere('DM.PERSON = :PERSON_ID')
-            ->orderBy('SEND_TIME', 'DESC')
-            ->setMaxResults($count)
-            ->setParameter('DIALOG_ID', $dialog)
-            ->setParameter('PERSON_ID', $person);
+            ->andWhere('DM.PERSON = :PERSON_ID');
 
         // with identifier paginator
         if($bound) {
@@ -501,7 +528,12 @@ class PrivateMessageRepository extends AbstractRepository
                 ->setParameter('EDGE_MESSAGE_NUM', $edgeMessageNum);
             }
 
-        $result = $queryBuilder->execute();
+        $result = $queryBuilder
+            ->orderBy('SEND_TIME', 'DESC')
+            ->setMaxResults($count)
+            ->setParameter('DIALOG_ID', $dialog)
+            ->setParameter('PERSON_ID', $person)
+            ->execute();
 
         $messageList = [];
         while($messageRow = $result->fetchAssociative()) {
@@ -542,6 +574,41 @@ class PrivateMessageRepository extends AbstractRepository
         }
 
         return $messageList;
+    }
+
+    /**
+     * @param string $dialog
+     * @param string $bound
+     * @param bool $invert
+     * @return mixed
+     * @throws Exception
+     * @throws \Doctrine\DBAL\Exception
+     */
+    public function getOlderMessagesThanSpecified(string $dialog, string $bound, bool $invert = false) {
+        $boundNum = (int)substr($bound, strpos($bound, ':') + 1);
+
+        $queryBuilder = $this->getConnection()->createQueryBuilder();
+        $queryBuilder
+            ->select('COUNT(*) AS CNT')
+            ->from('ET_MSG_CHAT_LK', 'EMCL')
+            ->where('EMCL.DIALOG = :DIALOG');
+
+        if($invert) {
+            $queryBuilder
+                ->where('EMCL.NUM > :BOUND');
+        } else {
+            $queryBuilder
+                ->where('EMCL.NUM < :BOUND');
+        }
+
+        $query = $queryBuilder
+            ->setParameter('BOUND', $boundNum)
+            ->setParameter('DIALOG', $dialog)
+            ->execute();
+
+        $result = $query->fetchAllAssociative();
+
+        return $result[0]['CNT'];
     }
 
     /**

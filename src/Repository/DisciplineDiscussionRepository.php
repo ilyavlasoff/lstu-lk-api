@@ -86,18 +86,18 @@ class DisciplineDiscussionRepository extends AbstractRepository
             ->innerJoin('EM', 'NPERSONS', 'N', 'EM.AUTHOR = N.OID')
             ->where('EM.G = :GROUP')
             ->andWhere('EM.DISCIPLINE = :DISC')
-            ->andWhere('EM.CSEMESTER = :SEM')
-            ->orderBy('EM.CREATED', 'DESC')
-            ->setMaxResults($limit);
+            ->andWhere('EM.CSEMESTER = :SEM');
 
         if($bound) {
             $edgeMessageNum = (int)substr($bound, strpos($bound, ':') + 1);
             $queryBuilder
-                ->andWhere("TO_NUMBER(SUBSTR(EM.OID, instr(EM.OID, ':') + 1)) < :BOUND")
+                ->andWhere("TO_NUMBER(SUBSTR(EM.OID, INSTR(EM.OID, ':') + 1)) < :BOUND")
                 ->setParameter('BOUND', $edgeMessageNum);
         }
 
         $response = $queryBuilder
+            ->orderBy('EM.CREATED', 'DESC')
+            ->setMaxResults($limit)
             ->setParameter('GROUP', $group)
             ->setParameter('DISC', $discipline)
             ->setParameter('SEM', $semester)
@@ -144,6 +144,47 @@ class DisciplineDiscussionRepository extends AbstractRepository
         }
 
         return $discussionMessages;
+    }
+
+    /**
+     * @param string $semester
+     * @param string $discipline
+     * @param string $group
+     * @param string $bound
+     * @param bool $invert
+     * @return int
+     * @throws Exception
+     * @throws \Doctrine\DBAL\Driver\Exception
+     */
+    public function getOlderDiscussionListCountThanSpecified(string $semester, string $discipline, string $group, string $bound, bool $invert = false) {
+        $queryBuilder = $this->getConnection()->createQueryBuilder();
+
+        $queryBuilder
+            ->select('COUNT(*) AS CNT')
+            ->from('ET_MSG_LK', 'EM')
+            ->where('EM.G = :GROUP')
+            ->andWhere('EM.DISCIPLINE = :DISC')
+            ->andWhere('EM.CSEMESTER = :SEM');
+
+        if($invert) {
+            $queryBuilder
+                ->andWhere("TO_NUMBER(SUBSTR(EM.OID, INSTR(EM.OID, ':') + 1)) > :BOUND");
+
+        } else {
+            $queryBuilder
+                ->andWhere("TO_NUMBER(SUBSTR(EM.OID, INSTR(EM.OID, ':') + 1)) < :BOUND");
+        }
+
+        $query = $queryBuilder
+            ->setParameter('BOUND', (int)substr($bound, strpos($bound, ':') + 1))
+            ->setParameter('GROUP', $group)
+            ->setParameter('DISC', $discipline)
+            ->setParameter('SEM', $semester)
+            ->execute();
+
+        $result = $query->fetchAllAssociative();
+
+        return (int)$result[0]['CNT'];
     }
 
     /**

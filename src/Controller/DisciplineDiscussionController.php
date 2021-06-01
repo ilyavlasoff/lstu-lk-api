@@ -81,6 +81,15 @@ class DisciplineDiscussionController extends AbstractRestController
             $disciplineChatMessages = $this->disciplineDiscussionRepository
                 ->getDisciplineChatMessages($semester->getSemesterId(), $discipline->getDisciplineId(),
                     $group, $paginator->getEdge(), $paginator->getCount());
+
+            $remains = 0;
+            $lastMessage = null;
+            if(count($disciplineChatMessages) > 0) {
+                /** @var DiscussionMessage $lastMessage */
+                $lastMessage = $disciplineChatMessages[count($disciplineChatMessages) - 1];
+                $remains = $this->disciplineDiscussionRepository->getOlderDiscussionListCountThanSpecified(
+                    $semester->getSemesterId(), $discipline->getDisciplineId(), $group, $lastMessage->getId());
+            }
         } catch (Exception | \Doctrine\DBAL\Driver\Exception | \Exception $e) {
             throw new DataAccessException($e);
         }
@@ -89,12 +98,11 @@ class DisciplineDiscussionController extends AbstractRestController
         $discussionChatList->setPayload($disciplineChatMessages);
         $discussionChatList->setCurrentBound($paginator->getEdge());
         $discussionChatList->setCount(count($disciplineChatMessages));
-
-        if(($cnt = count($disciplineChatMessages)) > 0) {
-            /** @var DiscussionMessage $lastMessage */
-            $lastMessage = $disciplineChatMessages[$cnt - 1];
+        $discussionChatList->setRemains($remains);
+        if($lastMessage) {
             $discussionChatList->setNextBound($lastMessage->getId());
         }
+
 
         return $this->responseSuccessWithObject($discussionChatList);
     }

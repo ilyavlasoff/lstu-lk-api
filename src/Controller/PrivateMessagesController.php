@@ -42,35 +42,38 @@ class PrivateMessagesController extends AbstractRestController
     /**
      * @Route("/dialog/list", name="messenger_dialog_list", methods={"GET"})
      *
-     * @param Paginator $paginator
+     * @param IdentifierPaginator $paginator
      * @return JsonResponse
      */
-    public function getDialogList(Paginator $paginator): JsonResponse
+    public function getDialogList(IdentifierPaginator $paginator): JsonResponse
     {
         /** @var User $user */
         $user = $this->getUser();
 
-        $offset = $paginator->getOffset();
+        $bound = $paginator->getEdge();
         $count = $paginator->getCount();
 
         try {
-            $totalDialogsCount = $this->privateMessageRepository->getDialogCount($user->getDbOid());
+            /** @var \App\Model\DTO\Dialog[] $dialogs */
+            $dialogs = $this->privateMessageRepository->getUserDialogs($user->getDbOid(), $bound, $count);
 
-            $dialogs = $this->privateMessageRepository->getUserDialogs($user->getDbOid(), $offset, $count);
+            $remains = 0;
+            $lastDialog = null;
+            if($cnt = count($dialogs)) {
+                $lastDialog = $dialogs[$cnt - 1];
+                $remains = $this->privateMessageRepository->getOlderDialogsThanSpecified($user->getDbOid(), $lastDialog->getId());
+            }
         } catch (Exception | \Doctrine\DBAL\Driver\Exception $e) {
             throw new DataAccessException();
         }
 
-        $dialogList = new ListedResponse();
+        $dialogList = new IdentifierBoundedListedResponse();
         $dialogList->setCount(count($dialogs));
         $dialogList->setPayload($dialogs);
-        $dialogList->setOffset($offset);
-
-        $remains = $totalDialogsCount - $offset - count($dialogs);
+        $dialogList->setCurrentBound($bound);
         $dialogList->setRemains($remains);
-
-        if($remains > 0) {
-            $dialogList->setNextOffset($offset + count($dialogs));
+        if($lastDialog) {
+            $dialogList->setNextBound($lastDialog->getId());
         }
 
         return $this->responseSuccessWithObject($dialogList);
@@ -134,11 +137,15 @@ class PrivateMessagesController extends AbstractRestController
             $messages = $this->privateMessageRepository->getMessageList(
                 $user->getDbOid(), $dialog->getDialogId(), $bound, $count);
 
-            if(count($messages) > 0) {
+
+            $lastMessage = null;
+            $remains = 0;
+            if(count($messages)) {
                 /** @var \App\Model\DTO\PrivateMessage $lastMessage */
                 $lastMessage = $messages[count($messages) - 1];
                 $this->privateMessageRepository->updateLastViewedMessages(
                     $dialog->getDialogId(), $user->getDbOid(), $lastMessage->getId());
+                $remains = $this->privateMessageRepository->getOlderMessagesThanSpecified($dialog->getDialogId(), $lastMessage->getId());
             }
         } catch (Exception | \Doctrine\DBAL\Driver\Exception $e) {
             throw new DataAccessException($e);
@@ -148,10 +155,8 @@ class PrivateMessagesController extends AbstractRestController
         $messageList->setPayload($messages);
         $messageList->setCount(count($messages));
         $messageList->setCurrentBound($bound);
-
-        if(count($messages) > 0) {
-            /** @var \App\Model\DTO\PrivateMessage $lastMessage */
-            $lastMessage = $messages[count($messages) - 1];
+        $messageList->setRemains($remains);
+        if($lastMessage) {
             $messageList->setNextBound($lastMessage->getId());
         }
 
