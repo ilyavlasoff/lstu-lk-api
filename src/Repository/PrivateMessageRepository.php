@@ -17,6 +17,7 @@ use Doctrine\DBAL\ConnectionException;
 use Doctrine\DBAL\Driver\Exception;
 use Doctrine\ODM\MongoDB\DocumentManager;
 use Doctrine\ORM\EntityManagerInterface;
+use function Doctrine\DBAL\Query\QueryBuilder;
 
 class PrivateMessageRepository extends AbstractRepository
 {
@@ -196,6 +197,31 @@ class PrivateMessageRepository extends AbstractRepository
             ->execute();
 
         return $newOid;
+    }
+
+    /**
+     * @param string $person
+     * @return array
+     * @throws Exception
+     * @throws \Doctrine\DBAL\Exception
+     */
+    public function getDialogIdentifiersList(string $person) {
+        $queryBuilder = $this->getConnection()->createQueryBuilder();
+        $queryBuilder
+            ->select('EDCL.OID AS DIAL_ID')
+            ->from('ET_DIALOG_CHAT_LK', 'EDCL')
+            ->where($queryBuilder->expr()->or('EDCL.MEMBER1 = :PERSON', 'EDCL.MEMBER2 = :PERSON'))
+            ->setParameter('PERSON', $person);
+        $query = $queryBuilder->execute();
+
+        $dialogsList = [];
+        while ($row = $query->fetchAssociative()) {
+            $dialog = new Dialog();
+            $dialog->setId($row['DIAL_ID']);
+            $dialogsList[] = $dialog;
+        }
+
+        return $dialogsList;
     }
 
     /**

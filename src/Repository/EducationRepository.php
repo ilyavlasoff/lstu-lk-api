@@ -214,4 +214,32 @@ class EducationRepository extends AbstractRepository
         return $result->fetchFirstColumn();
     }
 
+    /**
+     * @param string $person
+     * @return array
+     * @throws Exception
+     * @throws \Doctrine\DBAL\Exception
+     */
+    public function getUserGroupsIdList(string $person): array {
+        $queryBuilder = $this->getConnection()->createQueryBuilder();
+        $result = $queryBuilder
+            ->select('EC.G')
+            ->from('NPERSONS', 'NP')
+            ->innerJoin('NP', 'ET_CONTINGENTS', 'EC', 'NP.OID = EC.C_OID')
+            ->where('NP.OID = :PERSON')
+            ->setParameter('PERSON', $person)
+            ->execute();
+
+        $data = $result->fetchFirstColumn();
+
+        $groups = [];
+        foreach ($data as $groupId) {
+            $group = new Group();
+            $group->setId($groupId);
+            $groups[] = $group;
+        }
+
+        return $groups;
+    }
+
 }

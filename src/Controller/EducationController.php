@@ -2,7 +2,9 @@
 
 namespace App\Controller;
 
+use App\Document\User;
 use App\Exception\DataAccessException;
+use App\Model\DTO\Group;
 use App\Model\DTO\Semester;
 use App\Model\QueryParam\Person;
 use App\Model\DTO\ListedResponse;
@@ -54,7 +56,7 @@ class EducationController extends AbstractRestController
      * @return JsonResponse
      * @throws DataAccessException
      */
-    public function educationList(Person $person): JsonResponse
+    public function getEducationList(Person $person): JsonResponse
     {
         try {
             $educations = $this->educationRepository->getLstuEducationListByPerson($person->getPersonId());
@@ -91,7 +93,7 @@ class EducationController extends AbstractRestController
      * @param PersonalRepository $personalRepository
      * @return JsonResponse
      */
-    public function semesterList(\App\Model\QueryParam\Education $education, PersonalRepository $personalRepository): JsonResponse
+    public function getSemesterList(\App\Model\QueryParam\Education $education, PersonalRepository $personalRepository): JsonResponse
     {
         try {
             $groupId = $personalRepository->getGroupByContingent($education->getEducationId());
@@ -132,7 +134,7 @@ class EducationController extends AbstractRestController
      * @return JsonResponse
      * @throws DataAccessException
      */
-    public function currentSemester(\App\Model\QueryParam\Education $education, PersonalRepository $personalRepository): JsonResponse
+    public function getCurrentSemester(\App\Model\QueryParam\Education $education, PersonalRepository $personalRepository): JsonResponse
     {
         try {
             $groupId = $personalRepository->getGroupByContingent($education->getEducationId());
@@ -142,6 +144,30 @@ class EducationController extends AbstractRestController
         }
 
         return $this->responseSuccessWithObject($semester);
+    }
+
+    /**
+     * @Route("/groups/ids/list", name="groups_ids_full_list", methods={"GET"})
+     * @return JsonResponse
+     */
+    public function getGroupIdentifiersList() {
+        /** @var User $user */
+        $user = $this->getUser();
+
+        try {
+            /** @var Group[] $groups */
+            $groups = $this->educationRepository->getUserGroupsIdList($user->getDbOid());
+        } catch (\Doctrine\DBAL\Driver\Exception | Exception $e) {
+            throw new DataAccessException($e);
+        }
+
+        $response = new ListedResponse();
+        $response->setOffset(0);
+        $response->setRemains(0);
+        $response->setCount(count($groups));
+        $response->setPayload($groups);
+
+        return $this->responseSuccessWithObject($response);
     }
 
 }

@@ -80,6 +80,30 @@ class PrivateMessagesController extends AbstractRestController
     }
 
     /**
+     * @Route("/dialog/ids/list", name="messenger_dialog_ids_full_list", methods={"GET"})
+     * @return JsonResponse
+     */
+    public function getDialogIdentifiersFullList() {
+        /** @var User $user */
+        $user = $this->getUser();
+
+        try {
+            /** @var \App\Model\DTO\Dialog[] $dialogsIdsList */
+            $dialogsIdsList = $this->privateMessageRepository->getDialogIdentifiersList($user->getDbOid());
+        } catch (\Doctrine\DBAL\Driver\Exception | Exception $e) {
+            throw new DataAccessException($e);
+        }
+
+        $response = new ListedResponse();
+        $response->setPayload($dialogsIdsList);
+        $response->setCount(count($dialogsIdsList));
+        $response->setOffset(0);
+        $response->setRemains(0);
+
+        return $this->responseSuccessWithObject($response);
+    }
+
+    /**
      * @Route("/dialog", name="messenger_dialog_add", methods={"POST"})
      *
      * @param Person $person
