@@ -621,10 +621,10 @@ class PrivateMessageRepository extends AbstractRepository
 
         if($invert) {
             $queryBuilder
-                ->where('EMCL.NUM > :BOUND');
+                ->andWhere('EMCL.NUM > :BOUND');
         } else {
             $queryBuilder
-                ->where('EMCL.NUM < :BOUND');
+                ->andWhere('EMCL.NUM < :BOUND');
         }
 
         $query = $queryBuilder
