@@ -21,6 +21,7 @@ use App\Model\QueryParam\SendingDiscussionMessage;
 use App\Repository\DisciplineDiscussionRepository;
 use App\Repository\EducationRepository;
 use App\Repository\PersonalRepository;
+use App\Service\RabbitmqTest;
 use Doctrine\DBAL\Exception;
 use JMS\Serializer\SerializerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -122,7 +123,7 @@ class DisciplineDiscussionController extends AbstractRestController
         Education $education,
         Discipline $discipline,
         Semester $semester,
-        PersonalRepository $personalRepository
+        PersonalRepository $personalRepository, RabbitmqTest $rabbitmqTest
     ): JsonResponse {
         /** @var User $user */
         $user = $this->getUser();
@@ -155,6 +156,17 @@ class DisciplineDiscussionController extends AbstractRestController
                 $discipline->getDisciplineId(),
                 $group
             );
+
+            // TEST RABBIT MQ
+
+            $data = $this->disciplineDiscussionRepository->getNewCreatedDiscussionMessageData($msgId);
+            if($data) {
+                $rabbitmqTest->notifyAboutDiscussionMessage($data['OID'], $data['G'], $data['DISCIPLINE'], $data['CSEMESTER'],
+                    $data['AUTHOR'], $data['FNAME'], $data['FAMILY'], $data['MNAME'], $data['MSG'], $data['CREATED'],
+                    $data['DOCNAME'], $data['DOCSIZE'], $data['TEXTLINK'], $data['EXTLINK']);
+
+            }
+
         } catch (Exception $e) {
             throw new DataAccessException($e);
         }

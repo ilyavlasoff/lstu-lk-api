@@ -770,4 +770,61 @@ class PrivateMessageRepository extends AbstractRepository
             ->setParameter('VALUE', $value)
             ->execute();
     }
+
+    public function getNewCreatedDialogInfo($dialogId) {
+        $sql = "SELECT EDCL.MEMBER1, EDCL.MEMBER2, N.FNAME AS FN1, N.FAMILY AS LN1, N.MNAME AS P1,
+               N2.FNAME FN2, N2.FAMILY AS LN2, N2.MNAME AS P2, EDCL.OID AS DIAL_ID,
+               S2.OID MAX_MSG, S2.NAME AS TXT, S2.AUTHOR, S2.CREATED,
+               (SELECT COUNT(*) FROM ET_MSG_CHAT_LK EEM WHERE EEM.DIALOG = EDCL.OID AND ( EDCL.LAST_MSG_1 IS NULL OR EEM.NUM > TO_NUMBER(REGEXP_SUBSTR(EDCL.LAST_MSG_1, '[^\d:]\d+$')) )) AS UNREAD1,
+               (SELECT COUNT(*) FROM ET_MSG_CHAT_LK EEM WHERE EEM.DIALOG = EDCL.OID AND ( EDCL.LAST_MSG_2 IS NULL OR EEM.NUM > TO_NUMBER(REGEXP_SUBSTR(EDCL.LAST_MSG_2, '[^\d:]\d+$')) )) AS UNREAD2
+                from ET_DIALOG_CHAT_LK EDCL INNER JOIN NPERSONS N on EDCL.MEMBER1 = N.OID
+                INNER JOIN NPERSONS N2 ON EDCL.MEMBER2 = N2.OID
+                INNER JOIN (SELECT MAX(EMLK2.NUM) AS MAXNUM, EMLK2.DIALOG FROM ET_MSG_CHAT_LK EMLK2 GROUP BY EMLK2.DIALOG) S ON S.DIALOG = EDCL.OID
+                INNER JOIN (SELECT EMLK3.OID, EMLK3.NAME, EMLK3.AUTHOR, EMLK3.CREATED, EMLK3.NUM FROM ET_MSG_CHAT_LK EMLK3) S2 ON S2.NUM = S.MAXNUM
+                WHERE EDCL.OID = ?";
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(1, $dialogId);
+        $result = $stmt->executeQuery()->fetchAllAssociative();
+
+        if(count($result) > 0) {
+            return $result[0];
+        }
+
+        return null;
+    }
+
+    public function getNewCreatedMessageInfo($messageId) {
+        $sql = 'SELECT EMLK.DIALOG,
+               EDCL.MEMBER1,
+               EDCL.MEMBER2,
+               CASE WHEN EDCL.LAST_MSG_1 IS NULL OR TO_NUMBER(REGEXP_SUBSTR(EDCL.LAST_MSG_1, \'[^\d:]\d+$\')) < EMLK.NUM THEN 0 ELSE 1 END AS MEMBER1READ,
+               CASE WHEN EDCL.LAST_MSG_2 IS NULL OR TO_NUMBER(REGEXP_SUBSTR(EDCL.LAST_MSG_2, \'[^\d:]\d+$\')) < EMLK.NUM THEN 0 ELSE 1 END AS MEMBER2READ,
+               EMLK.OID,
+               EMLK.AUTHOR,
+               N.FNAME,
+               N.FAMILY,
+               N.MNAME,
+               EMLK.NAME,
+               EMLK.CREATED,
+               EMLK.FILE$DOC AS DOCNAME,
+               round(DBMS_LOB.getlength(EMLK.DOC) / 1024) AS DOCSIZE,
+               EMLK.TEXTLINK,
+               EMLK.EXTLINK,
+               EMLK.NUM
+               FROM
+        ET_MSG_CHAT_LK EMLK INNER JOIN ET_DIALOG_CHAT_LK EDCL on EMLK.DIALOG = EDCL.OID
+        INNER JOIN NPERSONS N ON EMLK.AUTHOR = N.OID
+        WHERE EMLK.OID = ?';
+
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(1, $messageId);
+        $result = $stmt->executeQuery()->fetchAllAssociative();
+
+        if(count($result) > 0) {
+            return $result[0];
+        }
+
+        return null;
+
+    }
 }

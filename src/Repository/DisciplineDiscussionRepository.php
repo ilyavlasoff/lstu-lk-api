@@ -432,4 +432,19 @@ class DisciplineDiscussionRepository extends AbstractRepository
 
         return $members;
     }
+
+    public function getNewCreatedDiscussionMessageData(string $id) {
+        $sql = 'SELECT EML.OID, EML.G, EML.DISCIPLINE, EML.CSEMESTER, EML.AUTHOR, N.FNAME, N.FAMILY, N.MNAME, EML.MSG, EML.CREATED, EML.FILE$DOC AS DOCNAME, round(DBMS_LOB.getlength(EML.DOC) / 1024) AS DOCSIZE, EML.TEXTLINK, EML.EXTLINK
+                FROM ET_MSG_LK EML INNER JOIN NPERSONS N on EML.AUTHOR = N.OID
+                WHERE EML.OID = ?';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(1, $id);
+        $result = $stmt->executeQuery()->fetchAllAssociative();
+
+        if(count($result) > 0) {
+            return $result[0];
+        }
+
+        return null;
+    }
 }

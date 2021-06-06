@@ -18,6 +18,7 @@ use App\Model\QueryParam\PrivateMessage;
 use App\Model\QueryParam\SendingPrivateMessage;
 use App\Model\QueryParam\WithJsonFlag;
 use App\Repository\PrivateMessageRepository;
+use App\Service\RabbitmqTest;
 use Doctrine\DBAL\ConnectionException;
 use Doctrine\DBAL\Exception;
 use JMS\Serializer\SerializerInterface;
@@ -109,13 +110,24 @@ class PrivateMessagesController extends AbstractRestController
      * @param Person $person
      * @return JsonResponse
      */
-    public function startDialogWithUser(Person $person): JsonResponse
+    public function startDialogWithUser(Person $person, RabbitmqTest $rabbitmqTest): JsonResponse
     {
         /** @var User $user */
         $user = $this->getUser();
 
         try {
             $createdDialogId = $this->privateMessageRepository->startDialog($user->getDbOid(), $person->getPersonId());
+
+            // TEST RABBIT MQ
+            $data = $this->privateMessageRepository->getNewCreatedDialogInfo($createdDialogId);
+
+            if($data) {
+                $rabbitmqTest->notifyAboutCreatingDialog($data['MEMBER1'], $data['MEMBER2'], $data['FN1'], $data['LN1'],
+                    $data['P1'], $data['FN2'], $data['LN2'], $data['P2'], $data['DIAL_ID'], $data['UNREAD1'],
+                    $data['UNREAD2'], $data['MAX_MSG'], $data['TXT'], $data['AUTHOR'], $data['CREATED']);
+            }
+
+
         } catch (Exception | \Doctrine\DBAL\Driver\Exception $e) {
             throw new DataAccessException($e);
         }
@@ -197,7 +209,7 @@ class PrivateMessagesController extends AbstractRestController
     public function addNewPrivateMessage(
         SendingPrivateMessage $privateMessage,
         Dialog $dialog,
-        WithJsonFlag $jsonFlag
+        WithJsonFlag $jsonFlag, RabbitmqTest $rabbitmqTest
     ): JsonResponse
     {
         /** @var User $user */
@@ -229,6 +241,17 @@ class PrivateMessagesController extends AbstractRestController
                 $attachments,
                 $privateMessage->getExtLinks()
             );
+
+            // TEST RABBIT MQ
+
+            $data = $this->privateMessageRepository->getNewCreatedMessageInfo($createdMessageId);
+
+            if($data) {
+                $rabbitmqTest->notifyAboutPrivateMessage($data['DIALOG'], $data['MEMBER1'], $data['MEMBER2'], $data['MEMBER1READ'],
+                    $data['MEMBER2READ'], $data['OID'], $data['AUTHOR'], $data['FNAME'], $data['FAMILY'], $data['MNAME'],
+                    $data['NAME'], $data['CREATED'], $data['DOCNAME'], $data['DOCSIZE'], $data['TEXTLINK'], $data['EXTLINK'], $data['NUM']);
+            }
+
         } catch (ConnectionException $e) {
             throw new DataAccessException($e);
         }
@@ -267,4 +290,5 @@ class PrivateMessagesController extends AbstractRestController
 
         return $this->responseSuccess();
     }
+
 }
