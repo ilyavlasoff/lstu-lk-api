@@ -38,7 +38,7 @@ class RabbitmqTest extends AbstractQueryService
         ?string $lastMessageId,
         ?string $lastMessageText,
         ?string $lastAuthor,
-        \DateTime $lastSendTime
+        ?\DateTime $lastSendTime
     ) {
         $this->makeQuery($this->urlBase, 'data/dialog-created', 'POST', 'http', 200, [], [], [
             'member1_id' => $member1Id,
