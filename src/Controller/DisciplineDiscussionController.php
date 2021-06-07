@@ -160,9 +160,16 @@ class DisciplineDiscussionController extends AbstractRestController
             // TEST RABBIT MQ
 
             $data = $this->disciplineDiscussionRepository->getNewCreatedDiscussionMessageData($msgId);
+
+            try {
+                $created = $data['CREATED'] ? new \DateTime($data['CREATED']) : null;
+            } catch (\Exception $e) {
+                $created = null;
+            }
+
             if($data) {
                 $rabbitmqTest->notifyAboutDiscussionMessage($data['OID'], $data['G'], $data['DISCIPLINE'], $data['CSEMESTER'],
-                    $data['AUTHOR'], $data['FNAME'], $data['FAMILY'], $data['MNAME'], $data['MSG'], $data['CREATED'],
+                    $data['AUTHOR'], $data['FNAME'], $data['FAMILY'], $data['MNAME'], $data['MSG'], $created,
                     $data['DOCNAME'], $data['DOCSIZE'], $data['TEXTLINK'], $data['EXTLINK']);
 
             }

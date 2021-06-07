@@ -121,10 +121,16 @@ class PrivateMessagesController extends AbstractRestController
             // TEST RABBIT MQ
             $data = $this->privateMessageRepository->getNewCreatedDialogInfo($createdDialogId);
 
+            try {
+                $created = $data['CREATED'] ? new \DateTime($data['CREATED']) : null;
+            } catch (\Exception $e) {
+                $created = null;
+            }
+
             if($data) {
                 $rabbitmqTest->notifyAboutCreatingDialog($data['MEMBER1'], $data['MEMBER2'], $data['FN1'], $data['LN1'],
                     $data['P1'], $data['FN2'], $data['LN2'], $data['P2'], $data['DIAL_ID'], $data['UNREAD1'],
-                    $data['UNREAD2'], $data['MAX_MSG'], $data['TXT'], $data['AUTHOR'], $data['CREATED']);
+                    $data['UNREAD2'], $data['MAX_MSG'], $data['TXT'], $data['AUTHOR'], $created);
             }
 
 
@@ -246,10 +252,16 @@ class PrivateMessagesController extends AbstractRestController
 
             $data = $this->privateMessageRepository->getNewCreatedMessageInfo($createdMessageId);
 
+            try {
+                $created = $data['CREATED'] ? new \DateTime($data['CREATED']) : null;
+            } catch (\Exception $e) {
+                $created = null;
+            }
+
             if($data) {
                 $rabbitmqTest->notifyAboutPrivateMessage($data['DIALOG'], $data['MEMBER1'], $data['MEMBER2'], $data['MEMBER1READ'],
                     $data['MEMBER2READ'], $data['OID'], $data['AUTHOR'], $data['FNAME'], $data['FAMILY'], $data['MNAME'],
-                    $data['NAME'], $data['CREATED'], $data['DOCNAME'], $data['DOCSIZE'], $data['TEXTLINK'], $data['EXTLINK'], $data['NUM']);
+                    $data['NAME'], $created , $data['DOCNAME'], $data['DOCSIZE'], $data['TEXTLINK'], $data['EXTLINK'], $data['NUM']);
             }
 
         } catch (ConnectionException $e) {
