@@ -122,7 +122,7 @@ class PrivateMessagesController extends AbstractRestController
             $data = $this->privateMessageRepository->getNewCreatedDialogInfo($createdDialogId);
 
             try {
-                $created = $data['CREATED'] ? new \DateTime($data['CREATED']) : null;
+                $created = $data['CREATED'] ? (new \DateTime($data['CREATED']))->format('y-m-d H:i:s') : null;
             } catch (\Exception $e) {
                 $created = null;
             }
@@ -253,7 +253,7 @@ class PrivateMessagesController extends AbstractRestController
             $data = $this->privateMessageRepository->getNewCreatedMessageInfo($createdMessageId);
 
             try {
-                $created = $data['CREATED'] ? new \DateTime($data['CREATED']) : null;
+                $created = $data['CREATED'] ? (new \DateTime($data['CREATED']))->format('y-m-d H:i:s') : null;
             } catch (\Exception $e) {
                 $created = null;
             }

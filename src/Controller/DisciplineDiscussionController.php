@@ -162,7 +162,7 @@ class DisciplineDiscussionController extends AbstractRestController
             $data = $this->disciplineDiscussionRepository->getNewCreatedDiscussionMessageData($msgId);
 
             try {
-                $created = $data['CREATED'] ? new \DateTime($data['CREATED']) : null;
+                $created = $data['CREATED'] ? (new \DateTime($data['CREATED']))->format('y-m-d H:i:s') : null;
             } catch (\Exception $e) {
                 $created = null;
             }
