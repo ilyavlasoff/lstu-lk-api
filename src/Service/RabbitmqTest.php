@@ -38,9 +38,9 @@ class RabbitmqTest extends AbstractQueryService
         ?string $lastMessageId,
         ?string $lastMessageText,
         ?string $lastAuthor,
-        \DateTime $lastSendTime
+        ?\DateTime $lastSendTime
     ) {
-        $this->makeQuery($this->urlBase, 'data/dialog-created', 'POST', 'http', 200, [], [], [
+        $this->makeQuery($this->urlBase, 'data/dialog-created', 'POST', 'http', 200, [], [], [], [
             'member1_id' => $member1Id,
             'member2_id' => $member2Id,
             'member1_name' => $member1Name,
@@ -56,7 +56,7 @@ class RabbitmqTest extends AbstractQueryService
             'last_message_text' => $lastMessageText,
             'last_author' => $lastAuthor,
             'last_send_time' => $lastSendTime
-        ], null, '', false, '', false);
+        ],'', false, '', false);
     }
 
     public function notifyAboutMessageReading(
@@ -78,7 +78,7 @@ class RabbitmqTest extends AbstractQueryService
         ?string $linkContent,
         ?int $messageNumber
     ) {
-        $this->makeQuery($this->urlBase, 'data/msg-read', 'POST', 'http', 200, [], [], [
+        $this->makeQuery($this->urlBase, 'data/msg-read', 'POST', 'http', 200, [], [], [], [
             'dialog' => $dialog,
             'member1' => $member1,
             'member2' => $member2,
@@ -96,7 +96,7 @@ class RabbitmqTest extends AbstractQueryService
             'link_text' => $linkText,
             'link_content' => $linkContent,
             'message_number' => $messageNumber
-        ], null, '', false, '', false);
+        ], '', false, '', false);
     }
 
     public function notifyAboutDiscussionMessage(
@@ -115,7 +115,7 @@ class RabbitmqTest extends AbstractQueryService
         ?string $linkText,
         ?string $linkContent
     ) {
-        $this->makeQuery($this->urlBase, 'data/discussion-msg-created', 'POST', 'http', 200, [], [], [
+        $this->makeQuery($this->urlBase, 'data/discussion-msg-created', 'POST', 'http', 200, [], [], [], [
             'id' => $id,
             'group' => $group,
             'discipline' => $discipline,
@@ -130,7 +130,7 @@ class RabbitmqTest extends AbstractQueryService
             'doc_size' => $docSize,
             'link_text' => $linkText,
             'link_content' => $linkContent,
-        ], null, '', false, '', false);
+        ], '', false, '', false);
     }
 
     public function notifyAboutPrivateMessage(
@@ -152,7 +152,7 @@ class RabbitmqTest extends AbstractQueryService
         ?string $linkContent,
         ?int $messageNumber
     ) {
-        $this->makeQuery($this->urlBase, 'data/message-created', 'POST', 'http', 200, [], [], [
+        $this->makeQuery($this->urlBase, 'data/message-created', 'POST', 'http', 200, [], [], [], [
             'dialog' => $dialog,
             'member1' => $member1,
             'member2' => $member2,
@@ -170,6 +170,6 @@ class RabbitmqTest extends AbstractQueryService
             'link_text' => $linkText,
             'link_content' => $linkContent,
             'message_number' => $messageNumber
-        ], null, '', false, '', false);
+        ], false, '', false);
     }
 }

@@ -54,7 +54,7 @@ abstract class AbstractQueryService
         array $queryParams = [],
         array $headers = [],
         array $json = [],
-        string $body = '',
+        $body = '',
         string $jwt = '',
         bool $jmsDeserialize = false,
         string $jmsDeserializeType = '',
