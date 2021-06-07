@@ -56,7 +56,7 @@ class RabbitmqTest extends AbstractQueryService
             'last_message_text' => $lastMessageText,
             'last_author' => $lastAuthor,
             'last_send_time' => $lastSendTime
-        ], null, '', false, '', false);
+        ], '', '', false, '', false);
     }
 
     public function notifyAboutMessageReading(
@@ -96,7 +96,7 @@ class RabbitmqTest extends AbstractQueryService
             'link_text' => $linkText,
             'link_content' => $linkContent,
             'message_number' => $messageNumber
-        ], null, '', false, '', false);
+        ], '', '', false, '', false);
     }
 
     public function notifyAboutDiscussionMessage(
@@ -130,7 +130,7 @@ class RabbitmqTest extends AbstractQueryService
             'doc_size' => $docSize,
             'link_text' => $linkText,
             'link_content' => $linkContent,
-        ], null, '', false, '', false);
+        ], '', '', false, '', false);
     }
 
     public function notifyAboutPrivateMessage(
@@ -170,6 +170,6 @@ class RabbitmqTest extends AbstractQueryService
             'link_text' => $linkText,
             'link_content' => $linkContent,
             'message_number' => $messageNumber
-        ], null, '', false, '', false);
+        ], '', '', false, '', false);
     }
 }
