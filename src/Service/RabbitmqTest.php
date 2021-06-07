@@ -24,20 +24,20 @@ class RabbitmqTest extends AbstractQueryService
     }
 
     public function notifyAboutCreatingDialog(
-        string $member1Id,
-        string $member2Id,
-        string $member1Name,
-        string $member1Surname,
-        string $member1Patronymic,
-        string $member2Name,
-        string $member2Surname,
-        string $member2Patronymic,
-        string $dialogId,
-        string $unread1Count,
-        string $unread2Count,
-        string $lastMessageId,
-        string $lastMessageText,
-        string $lastAuthor,
+        ?string $member1Id,
+        ?string $member2Id,
+        ?string $member1Name,
+        ?string $member1Surname,
+        ?string $member1Patronymic,
+        ?string $member2Name,
+        ?string $member2Surname,
+        ?string $member2Patronymic,
+        ?string $dialogId,
+        ?string $unread1Count,
+        ?string $unread2Count,
+        ?string $lastMessageId,
+        ?string $lastMessageText,
+        ?string $lastAuthor,
         \DateTime $lastSendTime
     ) {
         $this->makeQuery($this->urlBase, 'data/dialog-created', 'POST', 'http', 200, [], [], [
@@ -60,23 +60,23 @@ class RabbitmqTest extends AbstractQueryService
     }
 
     public function notifyAboutMessageReading(
-        string $dialog,
-        string $member1,
-        string $member2,
-        bool $member1Read,
-        bool $member2Read,
-        string $messageId,
-        string $senderId,
-        string $senderName,
-        string $senderSurname,
-        string $senderPatronymic,
-        string $textContent,
-        \DateTime $createdAt,
-        string $docName,
-        string $docSize,
-        string $linkText,
-        string $linkContent,
-        int $messageNumber
+        ?string $dialog,
+        ?string $member1,
+        ?string $member2,
+        ?bool $member1Read,
+        ?bool $member2Read,
+        ?string $messageId,
+        ?string $senderId,
+        ?string $senderName,
+        ?string $senderSurname,
+        ?string $senderPatronymic,
+        ?string $textContent,
+        ?\DateTime $createdAt,
+        ?string $docName,
+        ?string $docSize,
+        ?string $linkText,
+        ?string $linkContent,
+        ?int $messageNumber
     ) {
         $this->makeQuery($this->urlBase, 'data/msg-read', 'POST', 'http', 200, [], [], [
             'dialog' => $dialog,
@@ -100,20 +100,20 @@ class RabbitmqTest extends AbstractQueryService
     }
 
     public function notifyAboutDiscussionMessage(
-        string $id,
-        string $group,
-        string $discipline,
-        string $semester,
-        string $senderId,
-        string $senderName,
-        string $senderSurname,
-        string $senderPatronymic,
-        string $textContent,
-        \DateTime $createdAt,
-        string $docName,
-        string $docSize,
-        string $linkText,
-        string $linkContent
+        ?string $id,
+        ?string $group,
+        ?string $discipline,
+        ?string $semester,
+        ?string $senderId,
+        ?string $senderName,
+        ?string $senderSurname,
+        ?string $senderPatronymic,
+        ?string $textContent,
+        ?\DateTime $createdAt,
+        ?string $docName,
+        ?string $docSize,
+        ?string $linkText,
+        ?string $linkContent
     ) {
         $this->makeQuery($this->urlBase, 'data/discussion-msg-created', 'POST', 'http', 200, [], [], [
             'id' => $id,
@@ -134,23 +134,23 @@ class RabbitmqTest extends AbstractQueryService
     }
 
     public function notifyAboutPrivateMessage(
-        string $dialog,
-        string $member1,
-        string $member2,
-        bool $member1Read,
-        bool $member2Read,
-        string $messageId,
-        string $senderId,
-        string $senderName,
-        string $senderSurname,
-        string $senderPatronymic,
-        string $textContent,
-        \DateTime $createdAt,
-        string $docName,
-        string $docSize,
-        string $linkText,
-        string $linkContent,
-        int $messageNumber
+        ?string $dialog,
+        ?string $member1,
+        ?string $member2,
+        ?bool $member1Read,
+        ?bool $member2Read,
+        ?string $messageId,
+        ?string $senderId,
+        ?string $senderName,
+        ?string $senderSurname,
+        ?string $senderPatronymic,
+        ?string $textContent,
+        ?\DateTime $createdAt,
+        ?string $docName,
+        ?string $docSize,
+        ?string $linkText,
+        ?string $linkContent,
+        ?int $messageNumber
     ) {
         $this->makeQuery($this->urlBase, 'data/message-created', 'POST', 'http', 200, [], [], [
             'dialog' => $dialog,
