@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Document\User;
 use App\Exception\AccessDeniedException;
 use App\Exception\DataAccessException;
+use App\Exception\DuplicateValueException;
 use App\Exception\NotFoundException;
 use App\Model\DTO\Attachment;
 use App\Model\DTO\BinaryFile;
@@ -19,6 +20,7 @@ use App\Model\QueryParam\SendingPrivateMessage;
 use App\Model\QueryParam\WithJsonFlag;
 use App\Repository\PrivateMessageRepository;
 use App\Service\RabbitmqTest;
+use App\Service\StringConverter;
 use Doctrine\DBAL\ConnectionException;
 use Doctrine\DBAL\Exception;
 use JMS\Serializer\SerializerInterface;
@@ -73,7 +75,7 @@ class PrivateMessagesController extends AbstractRestController
         $dialogList->setPayload($dialogs);
         $dialogList->setOffset($bound);
         $dialogList->setRemains($remains);
-        if($lastDialog) {
+        if($remains) {
             $dialogList->setNextOffset($lastDialog->getId());
         }
 
@@ -107,39 +109,48 @@ class PrivateMessagesController extends AbstractRestController
     /**
      * @Route("/dialog", name="messenger_dialog_add", methods={"POST"})
      *
-     * @param Person $person
+     * @param Person $companion
+     * @param RabbitmqTest $rabbitmqTest
+     * @param StringConverter $stringConverter
      * @return JsonResponse
      */
-    public function startDialogWithUser(Person $person, RabbitmqTest $rabbitmqTest): JsonResponse
+    public function startDialogWithUser(Person $companion, RabbitmqTest $rabbitmqTest, StringConverter $stringConverter): JsonResponse
     {
         /** @var User $user */
         $user = $this->getUser();
 
         try {
-            $createdDialogId = $this->privateMessageRepository->startDialog($user->getDbOid(), $person->getPersonId());
+            if(count($existingDialogs = $this->privateMessageRepository
+                    ->getExistingDialogId($user->getDbOid(), $companion->getPersonId())) > 0) {
+                $requestedDialogId = $existingDialogs[0];
+            } else {
 
-            // TEST RABBIT MQ
-            $data = $this->privateMessageRepository->getNewCreatedDialogInfo($createdDialogId);
+                $requestedDialogId = $this->privateMessageRepository->startDialog($user->getDbOid(), $companion->getPersonId());
 
-            try {
-                $created = $data['CREATED'] ? (new \DateTime($data['CREATED']))->format('y-m-d H:i:s') : null;
-            } catch (\Exception $e) {
-                $created = null;
+                // TEST RABBIT MQ
+                $data = $this->privateMessageRepository->getNewCreatedDialogInfo($requestedDialogId);
+
+                try {
+                    $created = $data['CREATED'] ? (new \DateTime($data['CREATED']))->format('y-m-d H:i:s') : null;
+                } catch (\Exception $e) {
+                    $created = null;
+                }
+
+                if ($data) {
+                    $rabbitmqTest->notifyAboutCreatingDialog($data['MEMBER1'], $data['MEMBER2'],
+                        $stringConverter->capitalize($data['FN1']), $stringConverter->capitalize($data['LN1']),
+                        $stringConverter->capitalize($data['P1']), $stringConverter->capitalize($data['FN2']),
+                        $stringConverter->capitalize($data['LN2']), $stringConverter->capitalize($data['P2']),
+                        $data['DIAL_ID'], $data['UNREAD1'], $data['UNREAD2'], $data['MAX_MSG'], $data['TXT'], $data['AUTHOR'], $created);
+                }
+
             }
-
-            if($data) {
-                $rabbitmqTest->notifyAboutCreatingDialog($data['MEMBER1'], $data['MEMBER2'], $data['FN1'], $data['LN1'],
-                    $data['P1'], $data['FN2'], $data['LN2'], $data['P2'], $data['DIAL_ID'], $data['UNREAD1'],
-                    $data['UNREAD2'], $data['MAX_MSG'], $data['TXT'], $data['AUTHOR'], $created);
-            }
-
-
         } catch (Exception | \Doctrine\DBAL\Driver\Exception $e) {
             throw new DataAccessException($e);
         }
 
         $createdDialog = new \App\Model\DTO\Dialog();
-        $createdDialog->setId($createdDialogId);
+        $createdDialog->setId($requestedDialogId);
 
         return $this->responseCreated($createdDialog);
     }
@@ -210,12 +221,16 @@ class PrivateMessagesController extends AbstractRestController
      * @param SendingPrivateMessage $privateMessage
      * @param Dialog $dialog
      * @param WithJsonFlag $jsonFlag
+     * @param RabbitmqTest $rabbitmqTest
+     * @param StringConverter $stringConverter
      * @return JsonResponse
      */
     public function addNewPrivateMessage(
         SendingPrivateMessage $privateMessage,
         Dialog $dialog,
-        WithJsonFlag $jsonFlag, RabbitmqTest $rabbitmqTest
+        WithJsonFlag $jsonFlag,
+        RabbitmqTest $rabbitmqTest,
+        StringConverter $stringConverter
     ): JsonResponse
     {
         /** @var User $user */
@@ -260,7 +275,8 @@ class PrivateMessagesController extends AbstractRestController
 
             if($data) {
                 $rabbitmqTest->notifyAboutPrivateMessage($data['DIALOG'], $data['MEMBER1'], $data['MEMBER2'], $data['MEMBER1READ'],
-                    $data['MEMBER2READ'], $data['OID'], $data['AUTHOR'], $data['FNAME'], $data['FAMILY'], $data['MNAME'],
+                    $data['MEMBER2READ'], $data['OID'], $data['AUTHOR'], $stringConverter->capitalize($data['FNAME']),
+                    $stringConverter->capitalize($data['FAMILY']), $stringConverter->capitalize($data['MNAME']),
                     $data['NAME'], $created , $data['DOCNAME'], $data['DOCSIZE'], $data['TEXTLINK'], $data['EXTLINK'], $data['NUM']);
             }
 

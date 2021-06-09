@@ -167,20 +167,11 @@ class PrivateMessageRepository extends AbstractRepository
     /**
      * @param string $person
      * @param string $companion
-     * @param bool $errorOnExists
      * @return string
-     * @throws Exception
      * @throws \Doctrine\DBAL\Exception
      */
-    public function startDialog(string $person, string $companion, bool $errorOnExists = false): string
+    public function startDialog(string $person, string $companion): string
     {
-        if(count($existingDialogs = $this->getExistingDialogId($person, $companion)) > 0) {
-            if(!$errorOnExists) {
-                return $existingDialogs[0];
-            }
-            throw new DuplicateValueException('Dialog');
-        }
-
         $conn = $this->getConnection();
         $queryBuilder = $conn->createQueryBuilder();
 
@@ -314,8 +305,10 @@ class PrivateMessageRepository extends AbstractRepository
     }
 
     /**
-     * @throws \Doctrine\DBAL\Exception
+     * @param string $user
+     * @return int
      * @throws Exception
+     * @throws \Doctrine\DBAL\Exception
      */
     public function getDialogCount(string $user): int
     {
@@ -383,7 +376,7 @@ class PrivateMessageRepository extends AbstractRepository
             ->leftJoin('EMLK', 'NPERSONS', 'SNP', 'EMLK.AUTHOR = SNP.OID')
             ->where('(EMLK.NUM = (SELECT MAX(NUM) FROM ET_MSG_CHAT_LK WHERE ET_MSG_CHAT_LK.DIALOG = DM.DIALOG) OR EMLK.NUM IS NULL)')
             ->andWhere('DM.PERSON = :PERSON')
-            ->orderBy('EMLK.CREATED', 'DESC')
+            ->orderBy('EMLK.CREATED', 'DESC NULLS LAST')
             ->setParameter('PERSON', $person);
 
         if($dialogId) {
@@ -467,24 +460,17 @@ class PrivateMessageRepository extends AbstractRepository
      * @throws \Doctrine\DBAL\Exception
      */
     public function getOlderDialogsThanSpecified(string $person, string $boundDialog, bool $invert = false) {
-        $queryBuilder = $this->getConnection()->createQueryBuilder();
-        $queryBuilder
-            ->select('COUNT(*) AS CNT')
-            ->from('ET_DIALOG_CHAT_LK', 'EDCL')
-            ->where($queryBuilder->expr()->or('EDCL.MEMBER1 = :PERSON', 'EDCL.MEMBER2 = :PERSON'));
+        $sql = 'WITH DLG AS (SELECT EDCL.OID ID, ROW_NUMBER() OVER(ORDER BY S2.CREATED DESC NULLS LAST) AS RN FROM ET_DIALOG_CHAT_LK EDCL
+            LEFT JOIN (SELECT MAX(EMLK2.NUM) AS MAXNUM, EMLK2.DIALOG FROM ET_MSG_CHAT_LK EMLK2 GROUP BY EMLK2.DIALOG) S ON S.DIALOG = EDCL.OID
+            LEFT JOIN (SELECT EMLK3.OID, EMLK3.CREATED, EMLK3.NUM FROM ET_MSG_CHAT_LK EMLK3) S2 ON S2.NUM = S.MAXNUM WHERE EDCL.MEMBER1 = ? OR EDCL.MEMBER2 = ?
+            ORDER BY S2.CREATED DESC NULLS LAST)
+        SELECT COUNT(*) AS CNT FROM DLG WHERE DLG.RN '. ($invert ? '<' : '>') .' (SELECT RN FROM DLG WHERE DLG.ID = ?)';
+        $query = $this->getConnection()->prepare($sql);
+        $query->bindValue(1, $person);
+        $query->bindValue(2, $person);
+        $query->bindValue(3, $boundDialog);
 
-        if($invert) {
-            $queryBuilder->andWhere("TO_NUMBER(SUBSTR(EDCL.OID, INSTR(EDCL.OID, ':') + 1)) > :BOUND");
-        } else {
-            $queryBuilder->andWhere("TO_NUMBER(SUBSTR(EDCL.OID, INSTR(EDCL.OID, ':') + 1)) < :BOUND");
-        }
-
-        $result = $queryBuilder
-            ->setParameter('PERSON', $person)
-            ->setParameter('BOUND', (int)substr($boundDialog, strpos($boundDialog, ':') + 1))
-            ->execute();
-
-        $data = $result->fetchAllAssociative();
+        $data = $query->executeQuery()->fetchAllAssociative();
 
         return $data[0]['CNT'];
     }

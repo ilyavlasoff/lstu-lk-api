@@ -372,7 +372,7 @@ class DisciplineDiscussionRepository extends AbstractRepository
             ->where('EM.OID = :MESSAGE_ID')
             ->setParameter('MESSAGE_ID', $messageId)
             ->execute()
-            ->fetchAssociative();
+            ->fetchAllAssociative();
 
         if(count($result) !== 1) {
             throw new NotFoundException('DisciplineDiscussionMessage');
