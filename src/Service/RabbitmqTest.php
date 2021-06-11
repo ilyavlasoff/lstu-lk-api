@@ -40,7 +40,7 @@ class RabbitmqTest extends AbstractQueryService
         ?string $lastAuthor,
         ?string $lastSendTime
     ) {
-        $this->makeQuery($this->urlBase, 'data/dialog', 'POST', 'http', 200, [], [], [
+        $this->makeQuery($this->urlBase, 'data/dialog/add', 'POST', 'http', 200, [], [], [
             'member1_id' => $member1Id,
             'member2_id' => $member2Id,
             'member1_name' => $member1Name,
@@ -78,7 +78,7 @@ class RabbitmqTest extends AbstractQueryService
         ?string $linkContent,
         ?int $messageNumber
     ) {
-        $this->makeQuery($this->urlBase, 'data/private', 'PATCH', 'http', 200, [], [], [
+        $this->makeQuery($this->urlBase, 'data/private/change', 'POST', 'http', 200, [], [], [
             'dialog' => $dialog,
             'member1' => $member1,
             'member2' => $member2,
@@ -115,7 +115,7 @@ class RabbitmqTest extends AbstractQueryService
         ?string $linkText,
         ?string $linkContent
     ) {
-        $this->makeQuery($this->urlBase, 'data/discussion', 'POST', 'http', 200, [], [], [
+        $this->makeQuery($this->urlBase, 'data/discussion/add', 'POST', 'http', 200, [], [], [
             'id' => $id,
             'group' => $group,
             'discipline' => $discipline,
@@ -149,7 +149,7 @@ class RabbitmqTest extends AbstractQueryService
         ?string $linkText,
         ?string $linkContent
     ) {
-        $this->makeQuery($this->urlBase, 'data/discussion', 'PATCH', 'http', 200, [], [], [
+        $this->makeQuery($this->urlBase, 'data/discussion/change', 'POST', 'http', 200, [], [], [
             'id' => $id,
             'group' => $group,
             'discipline' => $discipline,
@@ -186,7 +186,7 @@ class RabbitmqTest extends AbstractQueryService
         ?string $linkContent,
         ?int $messageNumber
     ) {
-        $this->makeQuery($this->urlBase, 'data/private', 'POST', 'http', 200, [], [], [
+        $this->makeQuery($this->urlBase, 'data/private/add', 'POST', 'http', 200, [], [], [
             'dialog' => $dialog,
             'member1' => $member1,
             'member2' => $member2,
