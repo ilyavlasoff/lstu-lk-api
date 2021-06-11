@@ -137,7 +137,7 @@ class PrivateMessagesController extends AbstractRestController
                 }
 
                 if ($data) {
-                    $rabbitmqTest->notifyAboutCreatingDialog($data['MEMBER1'], $data['MEMBER2'],
+                    $rabbitmqTest->notifyDialogCreated($data['MEMBER1'], $data['MEMBER2'],
                         $stringConverter->capitalize($data['FN1']), $stringConverter->capitalize($data['LN1']),
                         $stringConverter->capitalize($data['P1']), $stringConverter->capitalize($data['FN2']),
                         $stringConverter->capitalize($data['LN2']), $stringConverter->capitalize($data['P2']),
@@ -274,7 +274,7 @@ class PrivateMessagesController extends AbstractRestController
             }
 
             if($data) {
-                $rabbitmqTest->notifyAboutPrivateMessage($data['DIALOG'], $data['MEMBER1'], $data['MEMBER2'], $data['MEMBER1READ'],
+                $rabbitmqTest->notifyPrivateMessageCreated($data['DIALOG'], $data['MEMBER1'], $data['MEMBER2'], $data['MEMBER1READ'],
                     $data['MEMBER2READ'], $data['OID'], $data['AUTHOR'], $stringConverter->capitalize($data['FNAME']),
                     $stringConverter->capitalize($data['FAMILY']), $stringConverter->capitalize($data['MNAME']),
                     $data['NAME'], $created , $data['DOCNAME'], $data['DOCSIZE'], $data['TEXTLINK'], $data['EXTLINK'], $data['NUM']);
@@ -295,10 +295,16 @@ class PrivateMessagesController extends AbstractRestController
      *
      * @param BinaryFile $binaryFile
      * @param PrivateMessage $privateMessage
+     * @param RabbitmqTest $rabbitmqTest
+     * @param StringConverter $stringConverter
      * @return JsonResponse
      */
-    public function addPrivateMessageAttachment(BinaryFile $binaryFile, PrivateMessage $privateMessage): JsonResponse
-    {
+    public function addPrivateMessageAttachment(
+        BinaryFile $binaryFile,
+        PrivateMessage $privateMessage,
+        RabbitmqTest $rabbitmqTest,
+        StringConverter $stringConverter
+    ): JsonResponse {
         /** @var User $user */
         $user = $this->getUser();
 
@@ -311,6 +317,23 @@ class PrivateMessagesController extends AbstractRestController
             }
 
             $this->privateMessageRepository->addPrivateMessageAttachment($binaryFile, $privateMessage->getMsg());
+
+            // TEST RABBIT MQ
+
+            $data = $this->privateMessageRepository->getNewCreatedMessageInfo($privateMessage->getMsg());
+
+            try {
+                $created = $data['CREATED'] ? (new \DateTime($data['CREATED']))->format('y-m-d H:i:s') : null;
+            } catch (\Exception $e) {
+                $created = null;
+            }
+
+            if($data) {
+                $rabbitmqTest->notifyPrivateMessageChanged($data['DIALOG'], $data['MEMBER1'], $data['MEMBER2'], $data['MEMBER1READ'],
+                    $data['MEMBER2READ'], $data['OID'], $data['AUTHOR'], $stringConverter->capitalize($data['FNAME']),
+                    $stringConverter->capitalize($data['FAMILY']), $stringConverter->capitalize($data['MNAME']),
+                    $data['NAME'], $created , $data['DOCNAME'], $data['DOCSIZE'], $data['TEXTLINK'], $data['EXTLINK'], $data['NUM']);
+            }
 
         } catch (Exception | \Doctrine\DBAL\Driver\Exception $e) {
             throw new DataAccessException($e);

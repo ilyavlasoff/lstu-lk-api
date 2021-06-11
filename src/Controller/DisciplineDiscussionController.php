@@ -22,6 +22,7 @@ use App\Repository\DisciplineDiscussionRepository;
 use App\Repository\EducationRepository;
 use App\Repository\PersonalRepository;
 use App\Service\RabbitmqTest;
+use App\Service\StringConverter;
 use Doctrine\DBAL\Exception;
 use JMS\Serializer\SerializerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -116,6 +117,8 @@ class DisciplineDiscussionController extends AbstractRestController
      * @param Discipline $discipline
      * @param Semester $semester
      * @param PersonalRepository $personalRepository
+     * @param RabbitmqTest $rabbitmqTest
+     * @param StringConverter $stringConverter
      * @return JsonResponse
      */
     public function addDisciplineChatMessage(
@@ -123,7 +126,9 @@ class DisciplineDiscussionController extends AbstractRestController
         Education $education,
         Discipline $discipline,
         Semester $semester,
-        PersonalRepository $personalRepository, RabbitmqTest $rabbitmqTest
+        PersonalRepository $personalRepository,
+        RabbitmqTest $rabbitmqTest,
+        StringConverter $stringConverter
     ): JsonResponse {
         /** @var User $user */
         $user = $this->getUser();
@@ -168,8 +173,9 @@ class DisciplineDiscussionController extends AbstractRestController
             }
 
             if($data) {
-                $rabbitmqTest->notifyAboutDiscussionMessage($data['OID'], $data['G'], $data['DISCIPLINE'], $data['CSEMESTER'],
-                    $data['AUTHOR'], $data['FNAME'], $data['FAMILY'], $data['MNAME'], $data['MSG'], $created,
+                $rabbitmqTest->notifyDiscussionMessageCreated($data['OID'], $data['G'], $data['DISCIPLINE'], $data['CSEMESTER'],
+                    $data['AUTHOR'], $stringConverter->capitalize($data['FNAME']), $stringConverter->capitalize($data['FAMILY']),
+                    $stringConverter->capitalize($data['MNAME']), $data['MSG'], $created,
                     $data['DOCNAME'], $data['DOCSIZE'], $data['TEXTLINK'], $data['EXTLINK']);
 
             }
@@ -191,7 +197,7 @@ class DisciplineDiscussionController extends AbstractRestController
      * @param DisciplineDiscussionMessage $message
      * @return JsonResponse
      */
-    public function addDisciplineChatAttachment(BinaryFile $file, DisciplineDiscussionMessage $message): JsonResponse
+    public function addDisciplineChatAttachment(BinaryFile $file, DisciplineDiscussionMessage $message, StringConverter $stringConverter, RabbitmqTest $rabbitmqTest): JsonResponse
     {
         /** @var User $user */
         $user = $this->getUser();
@@ -204,6 +210,22 @@ class DisciplineDiscussionController extends AbstractRestController
             }
 
             $this->disciplineDiscussionRepository->addAttachmentToMessage($message->getMsg(), $file);
+
+            $data = $this->disciplineDiscussionRepository->getNewCreatedDiscussionMessageData($message->getMsg());
+
+            try {
+                $created = $data['CREATED'] ? (new \DateTime($data['CREATED']))->format('y-m-d H:i:s') : null;
+            } catch (\Exception $e) {
+                $created = null;
+            }
+
+            if($data) {
+                $rabbitmqTest->notifyDiscussionMessageChanged($data['OID'], $data['G'], $data['DISCIPLINE'], $data['CSEMESTER'],
+                    $data['AUTHOR'], $stringConverter->capitalize($data['FNAME']), $stringConverter->capitalize($data['FAMILY']),
+                    $stringConverter->capitalize($data['MNAME']), $data['MSG'], $created,
+                    $data['DOCNAME'], $data['DOCSIZE'], $data['TEXTLINK'], $data['EXTLINK']);
+
+            }
         } catch (Exception | \Doctrine\DBAL\Driver\Exception $e) {
             throw new DataAccessException($e);
         }
