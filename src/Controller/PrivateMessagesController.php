@@ -194,10 +194,13 @@ class PrivateMessagesController extends AbstractRestController
             $lastMessage = null;
             $remains = 0;
             if(count($messages)) {
+                /** @var PrivateMessage $firstMessage */
+                $firstMessage = $messages[0];
+                $this->privateMessageRepository->updateLastViewedMessages(
+                    $dialog->getDialogId(), $user->getDbOid(), $firstMessage->getId());
+
                 /** @var \App\Model\DTO\PrivateMessage $lastMessage */
                 $lastMessage = $messages[count($messages) - 1];
-                $this->privateMessageRepository->updateLastViewedMessages(
-                    $dialog->getDialogId(), $user->getDbOid(), $lastMessage->getId());
                 $remains = $this->privateMessageRepository->getOlderMessagesThanSpecified($dialog->getDialogId(), $lastMessage->getId());
             }
         } catch (Exception | \Doctrine\DBAL\Driver\Exception $e) {
@@ -263,6 +266,9 @@ class PrivateMessagesController extends AbstractRestController
                 $privateMessage->getExtLinks()
             );
 
+            $this->privateMessageRepository->updateLastViewedMessages(
+                $dialog->getDialogId(), $user->getDbOid(), $createdMessageId);
+
             // TEST RABBIT MQ
 
             $data = $this->privateMessageRepository->getNewCreatedMessageInfo($createdMessageId);
@@ -280,7 +286,7 @@ class PrivateMessagesController extends AbstractRestController
                     $data['NAME'], $created , $data['DOCNAME'], $data['DOCSIZE'], $data['TEXTLINK'], $data['EXTLINK'], $data['NUM']);
             }
 
-        } catch (ConnectionException $e) {
+        } catch (ConnectionException | Exception $e) {
             throw new DataAccessException($e);
         }
 
