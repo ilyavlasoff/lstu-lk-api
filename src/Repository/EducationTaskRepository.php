@@ -38,9 +38,9 @@ class EducationTaskRepository extends AbstractRepository
     public function addEducationTaskAnswer(
         string $educationId,
         string $workId,
-        string $answerName,
-        array $attachments,
-        array $externalLinks
+        ?string $answerName,
+        ?array $attachments,
+        ?array $externalLinks
     ): string
     {
         $newOid = $this->getNewOid();
