@@ -3,16 +3,19 @@
 namespace App\Model\DTO;
 
 use JMS\Serializer\Annotation as JMS;
+use OpenApi\Annotations as OA;
 
 class ProfilePicture
 {
     /**
      * @var string
+     * @OA\Property(type="string", nullable=true, description="Идентификатор персоны")
      */
     private $person;
 
     /**
      * @var string
+     * @OA\Property(type="string", nullable=true, description="Base64 формат фото профиля")
      */
     private $profilePicture;
 

@@ -5,6 +5,7 @@ namespace App\Model\QueryParam;
 use JMS\Serializer\Annotation as JMS;
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Validator\Context\ExecutionContextInterface;
+use OpenApi\Annotations as OA;
 
 class UserIdentifier
 {
@@ -12,6 +13,7 @@ class UserIdentifier
      * @JMS\Type("string")
      * @Assert\NotBlank(message="Username field can not be blank")
      * @Assert\NotNull(message="Username value was not found")
+     * @OA\Property(type="string", nullable=false, description="Имя пользователя")
      */
     private $username;
 
@@ -20,6 +22,7 @@ class UserIdentifier
      * @Assert\NotNull(message="Document value was not found")
      * @Assert\NotBlank(message="Document field can not be blank")
      * @Assert\Regex(pattern="/^\d+$/", message="Document number can only contain digits")
+     * @OA\Property(type="string", nullable=false, description="Номер зачетной книжки студента")
      */
     private $zBookNumber;
 
@@ -27,6 +30,7 @@ class UserIdentifier
      * @JMS\Type("int")
      * @Assert\NotNull(message="Enter year field was not found")
      * @Assert\NotBlank(message="Enter year field can not be blank")
+     * @OA\Property(type="int", nullable=false, description="Год поступления в ЛГТУ на указанное направление обучения")
      */
     private $enteredYear;
 

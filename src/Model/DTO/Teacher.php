@@ -3,22 +3,27 @@
 namespace App\Model\DTO;
 
 use JMS\Serializer\Annotation as JMS;
+use Nelmio\ApiDocBundle\Annotation\Model;
+use OpenApi\Annotations as OA;
 
 class Teacher
 {
     /**
      * @var string | null
+     * @OA\Property(type="string", description="Идентификато преподавателя", nullable=false, example="5:341243")
      */
     private $id;
 
     /**
      * @var Person | null
      * @JMS\Type("App\Model\DTO\Person")
+     * @OA\Property(ref=@Model(type=Person::class), nullable=false, description="Персона преподавателя")
      */
     private $person;
 
     /**
      * @var string | null
+     * @OA\Property(type="string", nullable=true, description="Занимаемая должность", example="Декан ФАИ")
      */
     private $position;
 

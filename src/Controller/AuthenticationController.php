@@ -107,7 +107,7 @@ class AuthenticationController extends AbstractRestController
      *          @OA\JsonContent(ref=@Model(type=RegisterCredentials::class, groups={"Default"}))
      *     ),
      *     @OA\Response(
-     *          response="201",
+     *          response="200",
      *          description="Объект идентификации пользователя",
      *          @OA\JsonContent(ref=@Model(type=AuthenticationData::class, groups={"fully-authorized"}))
      *     )
@@ -186,6 +186,39 @@ class AuthenticationController extends AbstractRestController
 
     /**
      * @Route("/token/refresh", name="app_jwt_refresh", methods={"POST"})
+     *
+     * @OA\Post(
+     *     tags={"Авторизация и регистрация"},
+     *     summary="Обновление JWT токена",
+     *     @Security(name="Bearer"),
+     *     @OA\RequestBody(
+     *          required=true,
+     *          description="Токен обновления JWT",
+     *          @OA\JsonContent(
+     *              @OA\Property(
+     *                  property="refresh_token",
+     *                  type="string",
+     *                  example="a91c9fbe1663937a4d4cb7c704670cbd67ba7c10804f18dba6e6d5c0bc9d3dbeb61e3bfdd4bd7a2eb3750964334a9c86f6d1daca49be185b8cddf6e12055b827"
+     *              )
+     *          )
+     *     ),
+     *     @OA\Response(
+     *          response="200",
+     *          description="Обновленные данные авторизации",
+     *          @OA\JsonContent(
+     *              @OA\Property(
+     *                  property="token",
+     *                  type="string",
+     *                  example="eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJpYXQiOjE2MjM1NzA1MzgsImV4cCI6MTYyMzU3NDEzOCwicm9sZXMiOlsiUk9MRV9VU0VSIl0sInVzZXJuYW1lIjoiaWxqYS52bGFzb3YyMDEyQHlhbmRleC5ydSJ9.XRNtlEsDbVvDpiinUxwbXHgqtdA41XMYmp-7Cju2s73ye6k1w_-ov1dCrghvGwvCjCmu9F_IIfzRhPOtwYkL6Jv0UpGy4naDhbLm1Gjr0yqxAaqUFQFeewuhCVNUVeAkoIt1qXez4e7cRMNk3lbKdNUTrszXw-lZ_Avx1t7Aec2nXV0Sz98Y8Gz3NNUqhW494K-orSmxivSMDaLR8MXl8qDvlB6dMw2YbESMe-k4A9VR6QYwCDBxgaCT8rkCDBKVMmbepbtN04x6jzPl9Ejb0FKpaHlZDGbwqH8IrS3iC84WYHhY-oIuFr0mzk0E0lL2tj3B6CSBNvgVrq-TAIZEmA"
+     *              ),
+     *              @OA\Property(
+     *                  property="refresh_token",
+     *                  type="string",
+     *                  example="a91c9fbe1663937a4d4cb7c704670cbd67ba7c10804f18dba6e6d5c0bc9d3dbeb61e3bfdd4bd7a2eb3750964334a9c86f6d1daca49be185b8cddf6e12055b827"
+     *              )
+     *          )
+     *     )
+     * )
      * @param Request $request
      * @param RefreshToken $refreshService
      * @return JsonResponse
@@ -209,14 +242,10 @@ class AuthenticationController extends AbstractRestController
      *              @OA\Property(
      *                  property="uoid",
      *                  type="string",
-     *                  description="Идентификатор персоны текущеего пользователя",
+     *                  description="Идентификатор персоны текущего пользователя",
      *                  example="5:93491220"
      *              )
      *          )
-     *     ),
-     *     @OA\Response(
-     *          response="500",
-     *          description="Внутренняя ошибка"
      *     )
      * )
      *

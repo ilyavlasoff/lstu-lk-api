@@ -3,21 +3,26 @@
 namespace App\Model\DTO;
 
 use JMS\Serializer\Annotation as JMS;
+use Nelmio\ApiDocBundle\Annotation\Model;
+use OpenApi\Annotations as OA;
 
 class Discipline
 {
     /**
      * @var string
+     * @OA\Property(type="string", nullable=false, description="Идентификатор дисциплины", example="5:13293443")
      */
     public $id;
 
     /**
      * @var string
+     * @OA\Property(type="string", nullable=false, description="Наименование дисциплины", example="Теоретические основы автоматизированного управления")
      */
     public $name;
 
     /**
      * @var \App\Model\DTO\Chair | null
+     * @OA\Property(ref=@Model(type=Chair::class))
      */
     private $chair;
 

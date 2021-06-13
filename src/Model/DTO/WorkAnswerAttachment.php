@@ -3,15 +3,18 @@
 namespace App\Model\DTO;
 
 use JMS\Serializer\Annotation as JMS;
+use Nelmio\ApiDocBundle\Annotation\Model;
 use Symfony\Component\Validator\Constraints as Assert;
 use App\Model\DTO\ExternalLink;
 use App\Model\DTO\Attachment;
+use OpenApi\Annotations as OA;
 
 class WorkAnswerAttachment
 {
     /**
      * @var string | null
      * @JMS\ReadOnly()
+     * @OA\Property(type="string", description="Идентификатор прикрепленного документа", nullable=false, example="5:32432432")
      */
     private $id;
 
@@ -20,18 +23,21 @@ class WorkAnswerAttachment
      * @JMS\Type("string")
      * @Assert\NotNull(message="Attachment name was not found")
      * @Assert\NotBlank(message="Attachment name can not be blank")
+     * @OA\Property(type="string", description="Наименование вложения", nullable=false, example="Ответ на задание по методам оптимизации")
      */
     private $name;
 
     /**
      * @var Attachment[] | null
      * @JMS\Type("array<App\Model\DTO\Attachment>")
+     * @OA\Property(ref=@Model(type=Attachment::class), description="Список прикрепленных медиа файлов", nullable=true)
      */
     private $attachments;
 
     /**
      * @var ExternalLink[] | null
      * @JMS\Type("array<App\Model\DTO\ExternalLink>")
+     * @OA\Property(ref=@Model(type=ExternalLink::class), description="Список прикрепленных внешних ссылок", nullable=true)
      */
     private $extLinks;
 

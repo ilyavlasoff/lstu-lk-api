@@ -65,22 +65,10 @@ class DisciplineController extends AbstractRestController
      *          name="dis",
      *          description="Идентификатор дисциплины"
      *     ),
-     *     @OA\Parameter(
-     *          in="query",
-     *          required=true,
-     *          name="edu",
-     *          description="Идентификатор периода обучения"
-     *     ),
-     *     @OA\Parameter(
-     *          in="query",
-     *          required=true,
-     *          name="sem",
-     *          description="Идентификатор семестра"
-     *     ),
      *     @OA\Response(
      *          response="200",
-     *          description="Список объектов публикаций пользователя",
-     *          @OA\JsonContent(ref=@Model(type="PublicationList::class", groups={"Default"}))
+     *          description="Объект учебной дисциплины",
+     *          @OA\JsonContent(ref=@Model(type=App\Model\DTO\Discipline::class, groups={"Default"}))
      *     ),
      *     @OA\Response(
      *          response="400",
@@ -89,10 +77,6 @@ class DisciplineController extends AbstractRestController
      *     @OA\Response(
      *          response="404",
      *          description="Запрошенное значение не найдено"
-     *     ),
-     *     @OA\Response(
-     *          response="500",
-     *          description="Внутренняя ошибка"
      *     )
      * )
      * @param Discipline $discipline
@@ -111,6 +95,40 @@ class DisciplineController extends AbstractRestController
 
     /**
      * @Route("/teachers", name="discipline_teachers_list", methods={"GET"})
+     *
+     * @OA\Get(
+     *     tags={"Дисциплины"},
+     *     summary="Информация о преподавателях дисциплины",
+     *     @Security(name="Bearer"),
+     *     @OA\Parameter(
+     *          in="query",
+     *          required=true,
+     *          name="dis",
+     *          description="Идентификатор дисциплины"
+     *     ),
+     *     @OA\Parameter(
+     *          in="query",
+     *          required=true,
+     *          name="edu",
+     *          description="Идентификатор периода обучения"
+     *     ),
+     *     @OA\Parameter(
+     *          in="query",
+     *          required=true,
+     *          name="sem",
+     *          description="Идентификатор учебного семестра"
+     *     ),
+     *     @OA\Response(
+     *          response="200",
+     *          description="Список преподавателей по дисциплине",
+     *          @OA\MediaType(
+     *             mediaType="application/json",
+     *             @OA\Schema(
+     *              @OA\Property(property="count", type="integer"),
+     *              @OA\Property(property="payload", type="array", @OA\Items(ref=@Model(type=App\Model\DTO\TimetableItem::class, groups={"Default"})))
+     *          ))
+     *     ),
+     * )
      *
      * @param Discipline $discipline
      * @param Education $education
@@ -141,6 +159,34 @@ class DisciplineController extends AbstractRestController
 
     /**
      * @Route("/timetable", name="discipline_timetable_get", methods={"GET"})
+     *
+     * @OA\Get(
+     *     tags={"Дисциплины"},
+     *     summary="Расписание выборанной дисциплины",
+     *     @Security(name="Bearer"),
+     *     @OA\Parameter(
+     *          in="query",
+     *          required=true,
+     *          name="dis",
+     *          description="Идентификатор дисциплины"
+     *     ),
+     *     @OA\Parameter(
+     *          in="query",
+     *          required=true,
+     *          name="edu",
+     *          description="Идентификатор периода обучения"
+     *     ),
+     *     @OA\Parameter(
+     *          in="query",
+     *          required=true,
+     *          name="sem",
+     *          description="Идентификатор учебного семестра"
+     *     ),
+     *     @OA\Response(
+     *          response="200",
+     *          description="Успешно получена информация о расписании дисциплин",
+     *          @OA\JsonContent(ref=@Model(type=Timetable::class)))
+     *     )
      *
      * @param Discipline $discipline
      * @param Education $education

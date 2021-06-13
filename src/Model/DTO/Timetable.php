@@ -3,21 +3,26 @@
 namespace App\Model\DTO;
 
 use App\Model\DTO\Week;
+use Nelmio\ApiDocBundle\Annotation\Model;
+use OpenApi\Annotations as OA;
 
 class Timetable
 {
     /**
      * @var string
+     * @OA\Property(type="string", nullable=false, description="Идентификатор группы", example="5:34298534")
      */
     private $groupId;
 
     /**
      * @var string
+     * @OA\Property(type="string", nullable=false, description="Наименование группы", example="ПИ-17-1")
      */
     private $groupName;
 
     /**
      * @var Week[]
+     * @OA\Property(type="array", @OA\Items(ref=@Model(type=Week::class)))
      */
     private $weeks;
 

@@ -2,22 +2,26 @@
 
 namespace App\Model\DTO;
 
+use OpenApi\Annotations as OA;
 use JMS\Serializer\Annotation as JMS;
 
 class Semester
 {
     /**
      * @var string
+     * @OA\Property(type="string", description="Идентификатор семестра", nullable=false, example="5:23453423")
      */
     private $id;
 
     /**
      * @var string|null
+     * @OA\Property(type="string", description="Год обучения", nullable=true, example="2020")
      */
     private $year;
 
     /**
      * @var string|null
+     * @OA\Property(type="string", description="Тип семестра", nullable=true, example="Весна")
      */
     private $season;
 

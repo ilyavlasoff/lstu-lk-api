@@ -3,21 +3,25 @@
 namespace App\Model\DTO;
 
 use JMS\Serializer\Annotation as JMS;
+use OpenApi\Annotations as OA;
 
 class Chair
 {
     /**
      * @var string | null
+     * @OA\Property(type="string", nullable=false, description="Идентификатор кафедры", example="5:2343244")
      */
     private $id;
 
     /**
      * @var string | null
+     * @OA\Property(type="string", nullable=true, description="Наименование кафедры", example="Автоматизированных систем управления")
      */
     private $chairName;
 
     /**
      * @var string | null
+     * @OA\Property(type="string", nullable=true, description="Краткое имя кафедры", example="АСУ")
      */
     private $chairNameAbbr;
 

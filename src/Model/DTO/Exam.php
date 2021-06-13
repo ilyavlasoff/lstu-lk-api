@@ -3,32 +3,39 @@
 namespace App\Model\DTO;
 
 use JMS\Serializer\Annotation as JMS;
+use Nelmio\ApiDocBundle\Annotation\Model;
+use OpenApi\Annotations as OA;
 
 class Exam
 {
     /**
      * @var Discipline
      * @JMS\Type("App\Model\DTO\Discipline")
+     * @OA\Property(ref=@Model(type=Discipline::class), description="Объект дисциплины", nullable=false)
      */
     private $discipline;
 
     /**
      * @var string
+     * @OA\Property(type="string", description="ФИО экзаменатора", nullable=true, example="Домашнев П.А.")
      */
     private $teacherName;
 
     /**
      * @var \DateTime
+     * @OA\Property(type="DateTime", description="Дата и время экзамена", nullable=true)
      */
     private $examTime;
 
     /**
      * @var string
+     * @OA\Property(type="string", description="Наименование аудитории", nullable=true, example="362")
      */
     private $room;
 
     /**
      * @var string | null
+     * @OA\Property(type="string", description="Корпус", nullable=true, example="2-ой корпус")
      */
     private $campus;
 

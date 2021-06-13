@@ -3,33 +3,40 @@
 namespace App\Model\DTO;
 
 use JMS\Serializer\Annotation as JMS;
+use Nelmio\ApiDocBundle\Annotation\Model;
+use OpenApi\Annotations as OA;
 
 class TeachingMaterial
 {
     /**
      * @var string
+     * @OA\Property(type="string", description="Идентификатор материала", nullable=false, example="5:495783945")
      */
     private $id;
 
     /**
      * @var string | null
+     * @OA\Property(type="string", description="Наименование материала", nullable=false, example="Методические указания по лабораторным работам")
      */
     private $materialName;
 
     /**
      * @var string | null
+     * @OA\Property(type="string", description="Тип учебного материала", nullable=true, example="Рабочие программы")
      */
     private $materialType;
 
     /**
      * @var Attachment | null
      * @JMS\Type("App\Model\DTO\Attachment")
+     * @OA\Property(ref=@Model(type=Attachment::class), description="Список закрепленных файлов", nullable=true)
      */
     private $attachment;
 
     /**
      * @var ExternalLink | null
      * @JMS\Type("App\Model\DTO\ExternalLink")
+     * @OA\Property(ref=@Model(type=ExternalLink::class), description="Список внешних ссылок", nullable=true)
      */
     private $externalLink;
 

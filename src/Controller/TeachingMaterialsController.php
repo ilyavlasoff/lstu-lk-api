@@ -11,8 +11,11 @@ use App\Model\QueryParam\WithJsonFlag;
 use App\Repository\TeachingMaterialsRepository;
 use Doctrine\DBAL\Exception;
 use JMS\Serializer\SerializerInterface;
+use Nelmio\ApiDocBundle\Annotation\Model;
+use Nelmio\ApiDocBundle\Annotation\Security;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Annotation\Route;
+use OpenApi\Annotations as OA;
 
 /**
  * Class TeachingMaterialsController
@@ -36,6 +39,40 @@ class TeachingMaterialsController extends AbstractRestController
      * @param Semester $semester
      * @param WithJsonFlag $withJsonFlag
      * @return JsonResponse
+     *
+     * @OA\Get(
+     *     tags={"Учебные материалы"},
+     *     summary="Получение списка учебных материалов",
+     *     @Security(name="Bearer"),
+     *     @OA\Parameter(
+     *          in="query",
+     *          required=true,
+     *          name="dis",
+     *          description="Идентификатор дисциплины"
+     *     ),
+     *     @OA\Parameter(
+     *          in="query",
+     *          required=true,
+     *          name="edu",
+     *          description="Идентификатор периода обучения"
+     *     ),
+     *     @OA\Parameter(
+     *          in="query",
+     *          required=true,
+     *          name="sem",
+     *          description="Идентификатор учебного семестра"
+     *     ),
+     *     @OA\Response(
+     *          response="200",
+     *          description="Список учебных материалов по запрошенной дисциплине",
+     *          @OA\MediaType(
+     *             mediaType="application/json",
+     *             @OA\Schema(
+     *              @OA\Property(property="count", type="integer"),
+     *              @OA\Property(property="payload", type="array", @OA\Items(ref=@Model(type=App\Model\DTO\Achievement::class, groups={"Default"})))
+     *          ))
+     *     )
+     * )
      */
     public function getDisciplineMaterialsList(
         Discipline $discipline,

@@ -3,22 +3,26 @@
 namespace App\Model\DTO;
 
 use JMS\Serializer\Annotation as JMS;
+use OpenApi\Annotations as OA;
 
 class AuthenticationData
 {
     /**
      * @var string
      * @JMS\SerializedName("token")
+     * @OA\Property(type="string", nullable=false, description="Токен аутентификации пользователя")
      */
     private $jwtToken;
 
     /**
      * @var string
+     * @OA\Property(type="string", nullable=false, description="Токен обновления JWT")
      */
     private $refreshToken;
 
     /**
      * @var array
+     * @OA\Property(type="string", nullable=false, description="Роль пользователя", example="ROLE_STUDENT")
      */
     private $roles;
 

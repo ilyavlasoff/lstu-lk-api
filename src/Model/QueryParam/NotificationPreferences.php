@@ -3,18 +3,21 @@
 namespace App\Model\QueryParam;
 
 use JMS\Serializer\Annotation as JMS;
+use OpenApi\Annotations as OA;
 
 class NotificationPreferences
 {
     /**
      * @var bool | null
      * @JMS\Type("bool")
+     * @OA\Property(type="boolean", nullable=true, description="Флаг отключения уведомлений о личных сообщениях", example="true")
      */
     private $disablePrivateMessageNotifications;
 
     /**
      * @var bool | null
      * @JMS\Type("bool")
+     * @OA\Property(type="boolean", nullable=true, description="Флаг отключения уведомлений о сообщениях в обсуждении дисциплин", example="true")
      */
     private $disableDiscussionMessageNotifications;
 

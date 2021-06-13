@@ -2,30 +2,38 @@
 
 namespace App\Model\DTO;
 
+use Nelmio\ApiDocBundle\Annotation\Model;
+use OpenApi\Annotations as OA;
+
 class Dialog
 {
     /**
      * @var string
+     * @OA\Property(type="string", nullable=false, description="Идентификатор диалога", example="5:45348454")
      */
     private $id;
 
     /**
      * @var \App\Model\DTO\Person
+     * @OA\Property(ref=@Model(type=Person::class), description="Объект персоны собеседника", nullable=false)
      */
     private $companion;
 
     /**
      * @var bool
+     * @OA\Property(type="boolean", nullable=false, description="Флаг наличия непрочитанных сообщений", example="true")
      */
     private $hasUnread;
 
     /**
      * @var int
+     * @OA\Property(type="integer", nullable=true, description="Количество непрочитанных сообщений", example="5")
      */
     private $unreadCount;
 
     /**
      * @var \App\Model\DTO\PrivateMessage
+     * @OA\Property(ref=@Model(type=PrivateMessage::class), description="Объект последнего личного сообщения диалога", nullable=false)
      */
     private $lastMessage;
 

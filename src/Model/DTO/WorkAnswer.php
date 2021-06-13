@@ -2,15 +2,20 @@
 
 namespace App\Model\DTO;
 
+use Nelmio\ApiDocBundle\Annotation\Model;
+use OpenApi\Annotations as OA;
+
 class WorkAnswer
 {
     /**
      * @var float | null
+     * @OA\Property(type="float", description="Балл, полученный за данную работу студентом", nullable=true, example="4.0")
      */
     private $score;
 
     /**
      * @var WorkAnswerAttachment[]
+     * @OA\Property(ref=@Model(type=WorkAnswerAttachment::class), description="Список прикрепленных данных", nullable=false)
      */
     private $answerAttachments;
 

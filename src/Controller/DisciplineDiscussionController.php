@@ -9,7 +9,6 @@ use App\Model\DTO\Attachment;
 use App\Model\DTO\BinaryFile;
 use App\Model\DTO\DiscussionMessage;
 use App\Model\DTO\Group;
-use App\Model\DTO\IdentifierBoundedListedResponse;
 use App\Model\DTO\ListedResponse;
 use App\Model\QueryParam\Discipline;
 use App\Model\QueryParam\Education;
@@ -25,8 +24,11 @@ use App\Service\RabbitmqTest;
 use App\Service\StringConverter;
 use Doctrine\DBAL\Exception;
 use JMS\Serializer\SerializerInterface;
+use Nelmio\ApiDocBundle\Annotation\Model;
+use Nelmio\ApiDocBundle\Annotation\Security;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Annotation\Route;
+use OpenApi\Annotations as OA;
 
 /**
  * Class DisciplineDiscussionController
@@ -47,6 +49,55 @@ class DisciplineDiscussionController extends AbstractRestController
 
     /**
      * @Route("/list", name="discipline_discussion_list", methods={"GET"})
+     *
+     * @OA\Get(
+     *     tags={"Обсуждения дисциплин"},
+     *     summary="Получение списка сообщений в обсуждении дисциплины с данными о пагинации",
+     *     @Security(name="Bearer"),
+     *     @OA\Parameter(
+     *          in="query",
+     *          required=true,
+     *          name="dis",
+     *          description="Идентификатор дисциплины"
+     *     ),
+     *     @OA\Parameter(
+     *          in="query",
+     *          required=true,
+     *          name="edu",
+     *          description="Идентификатор периода обучения"
+     *     ),
+     *     @OA\Parameter(
+     *          in="query",
+     *          required=true,
+     *          name="sem",
+     *          description="Идентификатор учебного семестра"
+     *     ),
+     *     @OA\Parameter(
+     *          in="query",
+     *          required=false,
+     *          name="iof",
+     *          description="Последний ранее загруженный элемент"
+     *     ),
+     *     @OA\Parameter(
+     *          in="query",
+     *          required=false,
+     *          name="ic",
+     *          description="Ммаксимальное количество отдаваемых элементов на одной странице ответа"
+     *     ),
+     *     @OA\Response(
+     *          response="200",
+     *          description="Cтраницa списка сообщений обсуждения дисциплины",
+     *          @OA\MediaType(
+     *             mediaType="application/json",
+     *             @OA\Schema(
+     *              @OA\Property(property="count", type="integer"),
+     *              @OA\Property(property="offset", type="integer"),
+     *              @OA\Property(property="next_offset", type="integer"),
+     *              @OA\Property(property="remains", type="integer"),
+     *              @OA\Property(property="payload", type="array", @OA\Items(ref=@Model(type=App\Model\DTO\DiscussionMessage::class, groups={"Default"})))
+     *          ))
+     *     )
+     * )
      *
      * @param Discipline $discipline
      * @param Education $education
@@ -111,6 +162,48 @@ class DisciplineDiscussionController extends AbstractRestController
 
     /**
      * @Route("", name="discipline_discussion_message_add", methods={"POST"})
+     *
+     * @OA\Post(
+     *     tags={"Обсуждения дисциплин"},
+     *     summary="Добавление нового сообщения в обсуждение дисциплины",
+     *     @Security(name="Bearer"),
+     *     @OA\Parameter(
+     *          in="query",
+     *          required=true,
+     *          name="dis",
+     *          description="Идентификатор дисциплины"
+     *     ),
+     *     @OA\Parameter(
+     *          in="query",
+     *          required=true,
+     *          name="edu",
+     *          description="Идентификатор периода обучения"
+     *     ),
+     *     @OA\Parameter(
+     *          in="query",
+     *          required=true,
+     *          name="sem",
+     *          description="Идентификатор учебного семестра"
+     *     ),
+     *     @OA\RequestBody(
+     *          description="Объект нового сообщения в дисциплине",
+     *          @OA\JsonContent(
+     *              ref=@Model(type=SendingDiscussionMessage::class, groups={"Default"})
+     *          )
+     *     ),
+     *     @OA\Response(
+     *          response="201",
+     *          description="Успешно добавлено",
+     *          @OA\JsonContent(
+     *              @OA\Property(
+     *                  property="id",
+     *                  nullable=false,
+     *                  type="string",
+     *                  description="Идентификатор добавленного сообщения"
+     *              )
+     *          )
+     *     )
+     * )
      *
      * @param SendingDiscussionMessage $message
      * @param Education $education
@@ -192,6 +285,33 @@ class DisciplineDiscussionController extends AbstractRestController
 
     /**
      * @Route("/doc", name="discipline_discussion_message_attachment_add", methods={"POST"})
+     *
+     * @OA\Post(
+     *     tags={"Обсуждения дисциплин"},
+     *     summary="Добавление документа к сообщению в обсуждении",
+     *     @Security(name="Bearer"),
+     *     @OA\Parameter(
+     *          in="query",
+     *          required=true,
+     *          name="msg",
+     *          description="Идентификатор сообщения в обсуждении"
+     *     ),
+     *     @OA\RequestBody(
+     *          description="Медиа-файл, добавляемый к сообщению",
+     *          @OA\MediaType(
+     *              mediaType="multipart/form-data",
+     *              @OA\Property(
+     *                  property="attachment",
+     *                  type="file",
+     *                  description="Файл, добавляемый к сообщению"
+     *              )
+     *          )
+     *      ),
+     *     @OA\Response(
+     *          response="200",
+     *          description="Медиа-файл успешно добавлен"
+     *      )
+     * )
      *
      * @param BinaryFile $file
      * @param DisciplineDiscussionMessage $message

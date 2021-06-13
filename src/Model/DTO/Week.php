@@ -3,22 +3,27 @@
 namespace App\Model\DTO;
 
 use JMS\Serializer\Annotation as JMS;
+use Nelmio\ApiDocBundle\Annotation\Model;
+use OpenApi\Annotations as OA;
 
 class Week
 {
     /**
      * @var bool | null
+     * @OA\Property(type="boolean", nullable=true, description="Флаг текущей недели", example="true")
      */
     private $current;
 
     /**
      * @var string | null
+     * @OA\Property(type="string", nullable=true, description="Наименование недели", example="green")
      */
     private $type;
 
     /**
      * @var Day[]
      * @JMS\Type("array<App\Model\DTO\Day>")
+     * @OA\Property(ref=@Model(type=Day::class))
      */
     private $days;
 

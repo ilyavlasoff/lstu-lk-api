@@ -9,8 +9,11 @@ use App\Model\QueryParam\NotificationPreferences;
 use App\Model\QueryParam\NotifiedDevice;
 use App\Service\NotifierQueryService;
 use JMS\Serializer\SerializerInterface;
+use Nelmio\ApiDocBundle\Annotation\Model;
+use Nelmio\ApiDocBundle\Annotation\Security;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Annotation\Route;
+use OpenApi\Annotations as OA;
 
 /**
  * Class NotificationController
@@ -31,6 +34,30 @@ class NotificationController extends AbstractRestController
      * @Route("/device", name="add_notified_device", methods={"POST"})
      * @param NotifiedDevice $device
      * @return JsonResponse
+     *
+     * @OA\Post(
+     *     tags={"Уведомления"},
+     *     summary="Добавление устройства",
+     *     @Security(name="Bearer"),
+     *     @OA\RequestBody(
+     *          description="Добавляемое устройство для FCM уведомлений",
+     *          @OA\JsonContent(
+     *              ref=@Model(type="NotifiedDevice::class")
+     *          )
+     *     ),
+     *     @OA\Response(
+     *          response="200",
+     *          description="Устройство добавлено",
+     *          @OA\JsonContent(
+     *              @OA\Property(
+     *                  property="success",
+     *                  type="boolean",
+     *                  description="Флаг успешного добавления",
+     *                  example="true"
+     *              )
+     *          )
+     *     )
+     * )
      */
     public function addNotifiedDevice(NotifiedDevice $device)
     {
@@ -50,6 +77,30 @@ class NotificationController extends AbstractRestController
      * @Route("/device", name="remove_notified_device", methods={"DELETE"})
      * @param NotifiedDevice $device
      * @return JsonResponse
+     *
+     * @OA\Delete(
+     *     tags={"Уведомления"},
+     *     summary="Удаление устройства",
+     *     @Security(name="Bearer"),
+     *     @OA\RequestBody(
+     *          description="Добавляемое устройство для FCM уведомлений",
+     *          @OA\JsonContent(
+     *              ref=@Model(type="NotifiedDevice::class")
+     *          )
+     *     ),
+     *     @OA\Response(
+     *          response="200",
+     *          description="Успешно удалено",
+     *          @OA\JsonContent(
+     *              @OA\Property(
+     *                  property="success",
+     *                  type="boolean",
+     *                  description="Флаг успешного удаления",
+     *                  example="true"
+     *              )
+     *          )
+     *     )
+     * )
      */
     public function removeNotifiedDevice(NotifiedDevice $device)
     {
@@ -68,6 +119,19 @@ class NotificationController extends AbstractRestController
     /**
      * @Route("/prefs", name="get_notification_prefs", methods={"GET"})
      * @return JsonResponse
+     *
+     * @OA\Get(
+     *     tags={"Уведомления"},
+     *     summary="Получение настроек уведомлений пользователя",
+     *     @Security(name="Bearer"),
+     *     @OA\Response(
+     *          response="200",
+     *          description="Объект настроек уведомлений",
+     *          @OA\JsonContent(
+     *              ref=@Model(type=NotificationPreferences::class, groups={"Default"})
+     *          )
+     *     )
+     * )
      */
     public function getCurrentNotificationPreferences()
     {
@@ -84,6 +148,25 @@ class NotificationController extends AbstractRestController
      * @Route("/prefs", name="patch_notification_prefs", methods={"PATCH"})
      * @param NotificationPreferences $notificationPreferences
      * @return JsonResponse
+     *
+     * @OA\Patch(
+     *     tags={"Уведомления"},
+     *     summary="Изменение настроек уведомлений пользователя",
+     *     @Security(name="Bearer"),
+     *     @OA\RequestBody(
+     *          description="Объект изменения настроек уведомлений",
+     *          @OA\JsonContent(
+     *              ref=@Model(type=NotificationPreferences::class, groups={"Default"})
+     *          )
+     *     ),
+     *     @OA\Response(
+     *          response="200",
+     *          description="Объект обновленных настроек уведомлений",
+     *          @OA\JsonContent(
+     *              ref=@Model(type=NotificationPreferences::class, groups={"Default"})
+     *          )
+     *     )
+     * )
      */
     public function updateNotificationPreferences(NotificationPreferences $notificationPreferences)
     {

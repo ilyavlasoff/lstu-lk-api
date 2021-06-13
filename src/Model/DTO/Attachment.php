@@ -3,24 +3,28 @@
 namespace App\Model\DTO;
 
 use JMS\Serializer\Annotation as JMS;
+use OpenApi\Annotations as OA;
 
 class Attachment
 {
     /**
      * @var string | null
      * @JMS\Type("string")
+     * @OA\Property(type="string", nullable=true, description="Наименование вложения")
      */
     private $attachmentName;
 
     /**
      * @var float | null
      * @JMS\Type("string")
+     * @OA\Property(type="float", nullable=true, description="Размер в байтах")
      */
     private $attachmentSize;
 
     /**
      * @var string | null
      * @JMS\Type("string")
+     * @OA\Property(type="string", nullable=true, description="Документ в base64")
      */
     private $b64attachment;
 

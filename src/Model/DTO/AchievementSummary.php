@@ -4,28 +4,33 @@ namespace App\Model\DTO;
 
 use App\Model\DTO\Achievement;
 use App\Model\DTO\Publication;
-
+use Nelmio\ApiDocBundle\Annotation\Model;
+use OpenApi\Annotations as OA;
 use JMS\Serializer\Annotation as JMS;
 
 class AchievementSummary
 {
     /**
      * @var int
+     * @OA\Property(type="integer", description="Общее количество достижений пользователя", nullable=false, example="3")
      */
     private $achievementsTotalCount;
 
     /**
      * @var int
+     * @OA\Property(type="integer", description="Общее количество публикаций пользователя", nullable=false, example="2")
      */
     private $publicationsTotalCount;
 
     /**
      * @var Achievement[]
+     * @OA\Property(ref=@Model(type=Achievement::class), description="Список достижений", nullable=false)
      */
     private $achievementList;
 
     /**
      * @var Publication[]
+     * @OA\Property(ref=@Model(type=Publication::class), description="Список публикаций", nullable=false)
      */
     private $publicationsList;
 

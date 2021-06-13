@@ -2,40 +2,50 @@
 
 namespace App\Model\DTO;
 
+use Nelmio\ApiDocBundle\Annotation\Model;
+use OpenApi\Annotations as OA;
+
 class StudentWork
 {
     /**
      * @var string
+     * @OA\Property(type="string", description="Идентификатор учебной работы", nullable=false, example="5:3243423")
      */
     private $id;
 
     /**
      * @var Teacher
+     * @OA\Property(ref=@Model(type=Teacher::class), description="Объект преподавателя, добавившего задание", nullable=false)
      */
     private $teacher;
 
     /**
      * @var string | null
+     * @OA\Property(type="string", description="Тип учебной работы", nullable=true, example="Практические работа")
      */
     private $workType;
 
     /**
      * @var string | null
+     * @OA\Property(type="string", description="Наименование учебной работы", nullable=true, example="Лабораторная №1")
      */
     private $workName;
 
     /**
      * @var string | null
+     * @OA\Property(type="string", description="Тема учебной работы", nullable=true, example="Методы оптимизации")
      */
     private $workTheme;
 
     /**
      * @var float | null
+     * @OA\Property(type="float", description="Максимальная оценка учебной работы", nullable=true, example="10.0")
      */
     private $workMaxScore;
 
     /**
      * @var WorkAnswer | null
+     * @OA\Property(ref=@Model(type=WorkAnswer::class), description="Список публикаций", nullable=false)
      */
     private $answer;
 

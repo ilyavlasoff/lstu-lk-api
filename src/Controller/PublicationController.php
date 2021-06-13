@@ -58,8 +58,16 @@ class PublicationController extends AbstractRestController
      *     ),
      *     @OA\Response(
      *          response="200",
-     *          description="Список объектов публикаций пользователя",
-     *          @OA\JsonContent(ref=@Model(type="PublicationList::class", groups={"Default"}))
+     *          description="Список объектов публикаций пользователя c даннымио пагинации ответа",
+     *          @OA\MediaType(
+     *             mediaType="application/json",
+     *             @OA\Schema(
+     *              @OA\Property(property="count", type="integer"),
+     *              @OA\Property(property="offset", type="integer"),
+     *              @OA\Property(property="next_offset", type="integer"),
+     *              @OA\Property(property="remains", type="integer"),
+     *              @OA\Property(property="payload", type="array", @OA\Items(ref=@Model(type=App\Model\DTO\Publication::class, groups={"Default"})))
+     *          ))
      *     ),
      *     @OA\Response(
      *          response="400",

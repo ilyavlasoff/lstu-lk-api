@@ -48,8 +48,16 @@ class EducationController extends AbstractRestController
      *     ),
      *     @OA\Response(
      *          response="200",
-     *          description="Массив объектов обучения",
-     *          @OA\JsonContent(type="array", @OA\Items(ref=@Model(type=Education::class, groups={"Default"})))
+     *          description="Лист списка объектов достижений пользователя c данными о пагинации",
+     *          @OA\MediaType(
+     *             mediaType="application/json",
+     *             @OA\Schema(
+     *              @OA\Property(property="count", type="integer"),
+     *              @OA\Property(property="offset", type="integer"),
+     *              @OA\Property(property="next_offset", type="integer"),
+     *              @OA\Property(property="remains", type="integer"),
+     *              @OA\Property(property="payload", type="array", @OA\Items(ref=@Model(type=App\Model\DTO\Education::class, groups={"Default"})))
+     *          ))
      *     )
      * )
      * @param Person $person
@@ -86,7 +94,12 @@ class EducationController extends AbstractRestController
      *     @OA\Response(
      *          response="200",
      *          description="Массив объектов семестров",
-     *          @OA\JsonContent(type="array", @OA\Items(ref=@Model(type=Semester::class, groups={"Default"})))
+     *          @OA\MediaType(
+     *             mediaType="application/json",
+     *             @OA\Schema(
+     *              @OA\Property(property="count", type="integer"),
+     *              @OA\Property(property="payload", type="array", @OA\Items(ref=@Model(type=App\Model\DTO\Semester::class, groups={"Default"})))
+     *          ))
      *     )
      * )
      * @param \App\Model\QueryParam\Education $education
@@ -113,7 +126,7 @@ class EducationController extends AbstractRestController
      * @Route("/semesters/current", name="current_semester", methods={"GET"})
      *
      * @OA\Get(
-     *     tags={"Обарзование"},
+     *     tags={"Образование"},
      *     summary="Текущий семестр",
      *     @Security(name="Bearer"),
      *     @OA\Parameter(
@@ -148,6 +161,18 @@ class EducationController extends AbstractRestController
 
     /**
      * @Route("/groups/ids/list", name="groups_ids_full_list", methods={"GET"})
+     *
+     * @OA\Get(
+     *     tags={"Образование"},
+     *     summary="Список идентификаторов групп пользователя",
+     *     @Security(name="Bearer"),
+     *     @OA\MediaType(
+     *             mediaType="application/json",
+     *             @OA\Schema(
+     *              @OA\Property(property="count", type="integer"),
+     *              @OA\Property(property="payload", type="array", @OA\Items(@OA\Property(type="string", description="Идентификатор группы пользователя", property="id", example="5:24534546"))))
+     *          ))
+     * )
      * @return JsonResponse
      */
     public function getGroupIdentifiersList() {

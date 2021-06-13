@@ -16,10 +16,12 @@ use App\Repository\EducationTaskRepository;
 use App\Repository\PrivateMessageRepository;
 use App\Repository\TeachingMaterialsRepository;
 use Doctrine\DBAL\Exception;
+use Nelmio\ApiDocBundle\Annotation\Security;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
+use OpenApi\Annotations as OA;
 
 /**
  * Class MultipartController
@@ -41,6 +43,30 @@ class MultipartController extends AbstractController
 
     /**
      * @Route("/api/v1/materials/doc", name="discipline_materials_attachment_get", methods={"GET"})
+     *
+     * @OA\Get(
+     *     tags={"Файловые операции"},
+     *     summary="Получение документа, прикрепленного к материалам дисциплины",
+     *     @Security(name="Bearer"),
+     *     @OA\Parameter(
+     *          in="query",
+     *          required=true,
+     *          name="material",
+     *          description="Идентификатор материала дисциплины"
+     *     ),
+     *     @OA\Response(
+     *          response="200",
+     *          description="Файл, прикрепленный к материалам дисциплины",
+     *          @OA\MediaType(
+     *             mediaType="application/octet-stream",
+     *             @OA\Property(type="file")
+     *          )
+     *     ),
+     *     @OA\Response(
+     *          response="404",
+     *          description="Не найдено"
+     *     )
+     * )
      *
      * @param TeachingMaterial $material
      * @param TeachingMaterialsRepository $teachingMaterialsRepository
@@ -64,6 +90,30 @@ class MultipartController extends AbstractController
 
     /**
      * @Route("/api/v1/student/tasks/doc", name="education_answer_attachment_get", methods={"GET"})
+     *
+     * @OA\Get(
+     *     tags={"Файловые операции"},
+     *     summary="Получение документа, прикрепленного к ответам на учебные задания",
+     *     @Security(name="Bearer"),
+     *     @OA\Parameter(
+     *          in="query",
+     *          required=true,
+     *          name="answer",
+     *          description="Идентификатор ответа на учебное задание"
+     *     ),
+     *     @OA\Response(
+     *          response="200",
+     *          description="Файл, прикрепленный к учебному заданию",
+     *          @OA\MediaType(
+     *             mediaType="application/octet-stream",
+     *             @OA\Property(type="file")
+     *          )
+     *     ),
+     *     @OA\Response(
+     *          response="404",
+     *          description="Не найдено"
+     *     )
+     * )
      *
      * @param TaskAnswer $answer
      * @param EducationTaskRepository $educationTaskRepository
@@ -99,6 +149,30 @@ class MultipartController extends AbstractController
     /**
      * @Route("/api/v1/discussion/doc", name="discipline_discussion_message_attachment_get", methods={"GET"})
      *
+     * @OA\Get(
+     *     tags={"Файловые операции"},
+     *     summary="Получение документа, прикрепленного к сообщениям в обсуждении дисциплин",
+     *     @Security(name="Bearer"),
+     *     @OA\Parameter(
+     *          in="query",
+     *          required=true,
+     *          name="msg",
+     *          description="Идентификатор сообщения в обсуждении дисциплин"
+     *     ),
+     *     @OA\Response(
+     *          response="200",
+     *          description="Файл, прикрепленный к сообщению в обсуждении дисциплин",
+     *          @OA\MediaType(
+     *             mediaType="application/octet-stream",
+     *             @OA\Property(type="file")
+     *          )
+     *     ),
+     *     @OA\Response(
+     *          response="404",
+     *          description="Не найдено"
+     *     )
+     * )
+     *
      * @param DisciplineDiscussionMessage $message
      * @param DisciplineDiscussionRepository $disciplineDiscussionRepository
      * @return Response
@@ -119,6 +193,30 @@ class MultipartController extends AbstractController
 
     /**
      * @Route("/api/v1/messenger/doc", name="private_message_attachment_get", methods={"GET"})
+     *
+     * @OA\Get(
+     *     tags={"Файловые операции"},
+     *     summary="Получение документа, прикрепленного к личным сообщениям пользователей",
+     *     @Security(name="Bearer"),
+     *     @OA\Parameter(
+     *          in="query",
+     *          required=true,
+     *          name="pmsg",
+     *          description="Идентификатор личного сообщения"
+     *     ),
+     *     @OA\Response(
+     *          response="200",
+     *          description="Файл, прикрепленный к личному сообщению",
+     *          @OA\MediaType(
+     *             mediaType="application/octet-stream",
+     *             @OA\Property(type="file")
+     *          )
+     *     ),
+     *     @OA\Response(
+     *          response="404",
+     *          description="Не найдено"
+     *     )
+     * )
      *
      * @param PrivateMessage $privateMessage
      * @param PrivateMessageRepository $privateMessageRepository

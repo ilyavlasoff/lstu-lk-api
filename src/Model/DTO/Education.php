@@ -3,21 +3,26 @@
 namespace App\Model\DTO;
 
 use JMS\Serializer\Annotation as JMS;
+use Nelmio\ApiDocBundle\Annotation\Model;
+use OpenApi\Annotations as OA;
 
 class Education
 {
     /**
      * @var string|null
+     * @OA\Property(type="string", nullable=true, description="Идентификатор периода обучения", example="5:2498745")
      */
     private $id;
 
     /**
      * @var string|null
+     * @OA\Property(type="string", nullable=true, description="Статус обучения на данный момент", example="Учится")
      */
     private $status;
 
     /**
      * @var \App\Model\DTO\Group | null
+     * @OA\Property(ref=@Model(type=Group::class))
      */
     private $group;
 

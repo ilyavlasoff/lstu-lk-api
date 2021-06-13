@@ -2,40 +2,49 @@
 
 namespace App\Model\DTO;
 
+use OpenApi\Annotations as OA;
+
 class Publication
 {
     /**
      * @var string
+     * @OA\Property(type="string", nullable=false)
      */
     private $id;
 
     /**
      * @var string | null
+     * @OA\Property(type="string", nullable=true)
      */
     private $title;
 
     /**
      * @var string | null
+     * @OA\Property(type="string", nullable=true)
      */
     private $description;
 
     /**
      * @var string | null
+     * @OA\Property(type="string", nullable=true)
      */
     private $published;
 
     /**
      * @var string | null
+     * @OA\Property(type="string", nullable=true)
      */
     private $pubType;
 
     /**
      * @var string | null
+     * @OA\Property(type="string", nullable=true)
      */
     private $pubForm;
 
     /**
      * @var string | null
+     * @OA\Property(type="string", nullable=true)
      */
     private $pubFormValue;
 

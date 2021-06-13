@@ -3,18 +3,21 @@
 namespace App\Model\DTO;
 
 use JMS\Serializer\Annotation as JMS;
+use OpenApi\Annotations as OA;
 
 class ExternalLink
 {
     /**
      * @var string | null
      * @JMS\Type("string")
+     * @OA\Property(type="string", nullable=true, description="Текст ссылки", example="Пояснительная записка ВКР")
      */
     private $linkText;
 
     /**
      * @var string | null
      * @JMS\Type("string")
+     * @OA\Property(type="string", nullable=true, description="Значение ссылки", example="https://disk.yandex.ru/d/dfFer3-sdFewa")
      */
     private $linkContent;
 

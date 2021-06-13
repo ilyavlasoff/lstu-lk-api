@@ -4,6 +4,7 @@ namespace App\Model\QueryParam;
 
 use Symfony\Component\Validator\Constraints as Assert;
 use JMS\Serializer\Annotation as JMS;
+use OpenApi\Annotations as OA;
 
 class PersonProperties
 {
@@ -16,6 +17,7 @@ class PersonProperties
      *     maxMessage="Phone value can not be longer than {{ limit }} symbols"
      * )
      * @JMS\Type("string")
+     * @OA\Property(type="string", nullable=true, description="Изменяемый телефон")
      */
     private $phone;
 
@@ -23,6 +25,7 @@ class PersonProperties
      * @var string | null
      * @Assert\Email(message="Email value is invalid")
      * @JMS\Type("string")
+     * @OA\Property(type="string", nullable=true, description="Изменяемый email")
      */
     private $email;
 
@@ -30,6 +33,7 @@ class PersonProperties
      * @var string | null
      * @Assert\Length(max=50, maxMessage="Messenger value can not be longer than {{ limit }} symbols")
      * @JMS\Type("string")
+     * @OA\Property(type="string", nullable=true, description="Изменяемый мессенджер")
      */
     private $messenger;
 

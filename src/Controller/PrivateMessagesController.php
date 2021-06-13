@@ -9,7 +9,6 @@ use App\Exception\DuplicateValueException;
 use App\Exception\NotFoundException;
 use App\Model\DTO\Attachment;
 use App\Model\DTO\BinaryFile;
-use App\Model\DTO\IdentifierBoundedListedResponse;
 use App\Model\QueryParam\Dialog;
 use App\Model\QueryParam\IdentifierPaginator;
 use App\Model\QueryParam\Paginator;
@@ -24,8 +23,11 @@ use App\Service\StringConverter;
 use Doctrine\DBAL\ConnectionException;
 use Doctrine\DBAL\Exception;
 use JMS\Serializer\SerializerInterface;
+use Nelmio\ApiDocBundle\Annotation\Model;
+use Nelmio\ApiDocBundle\Annotation\Security;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Annotation\Route;
+use OpenApi\Annotations as OA;
 
 /**
  * Class PrivateMessagesController
@@ -44,6 +46,37 @@ class PrivateMessagesController extends AbstractRestController
 
     /**
      * @Route("/dialog/list", name="messenger_dialog_list", methods={"GET"})
+     *
+     * @OA\Get(
+     *     tags={"Личные сообщения"},
+     *     summary="Страница списка диалогов с данными о пагинации",
+     *     @Security(name="Bearer"),
+     *     @OA\Parameter(
+     *          in="query",
+     *          required=false,
+     *          name="iof",
+     *          description="Последний ранее загруженный элемент"
+     *     ),
+     *     @OA\Parameter(
+     *          in="query",
+     *          required=false,
+     *          name="ic",
+     *          description="Максимальное количество отдаваемых элементов на одной странице ответа"
+     *     ),
+     *     @OA\Response(
+     *          response="200",
+     *          description="Страница списка диалогов пользователя",
+     *          @OA\MediaType(
+     *             mediaType="application/json",
+     *             @OA\Schema(
+     *              @OA\Property(property="count", type="integer"),
+     *              @OA\Property(property="offset", type="integer"),
+     *              @OA\Property(property="next_offset", type="integer"),
+     *              @OA\Property(property="remains", type="integer"),
+     *              @OA\Property(property="payload", type="array", @OA\Items(ref=@Model(type=App\Model\DTO\Dialog::class, groups={"Default"})))
+     *          ))
+     *     )
+     * )
      *
      * @param IdentifierPaginator $paginator
      * @return JsonResponse
@@ -84,6 +117,22 @@ class PrivateMessagesController extends AbstractRestController
 
     /**
      * @Route("/dialog/ids/list", name="messenger_dialog_ids_full_list", methods={"GET"})
+     *
+     * @OA\Get(
+     *     tags={"Личные сообщения"},
+     *     summary="Список идентфикаторов диалогов пользователей",
+     *     @Security(name="Bearer"),
+     *     @OA\Response(
+     *          response="200",
+     *          description="Список идентификаторов диалогов пользователя",
+     *          @OA\MediaType(
+     *             mediaType="application/json",
+     *             @OA\Schema(
+     *              @OA\Property(property="count", type="integer"),
+     *              @OA\Property(property="payload", type="array", @OA\Items(@OA\Property(property="id", description="Идентификатор диалога", nullable=false, example="5:956985465")))
+     *          ))
+     *     )
+     * )
      * @return JsonResponse
      */
     public function getDialogIdentifiersFullList() {
@@ -108,6 +157,30 @@ class PrivateMessagesController extends AbstractRestController
 
     /**
      * @Route("/dialog", name="messenger_dialog_add", methods={"POST"})
+     *
+     * @OA\Post(
+     *     tags={"Личные сообщения"},
+     *     summary="Создание нового диалога",
+     *     @Security(name="Bearer"),
+     *     @OA\Parameter(
+     *          in="query",
+     *          required=true,
+     *          name="p",
+     *          description="Идентификатор пользователя, с которым создается диалог"
+     *     ),
+     *     @OA\Response(
+     *          response="200",
+     *          description="Успешное создание диалога",
+     *          @OA\JsonContent(
+     *              @OA\Property(
+     *                  property="id",
+     *                  type="string",
+     *                  description="Идентификатор диалога",
+     *                  example="5:43565455"
+     *              )
+     *          )
+     *     )
+     * )
      *
      * @param Person $companion
      * @param RabbitmqTest $rabbitmqTest
@@ -157,6 +230,37 @@ class PrivateMessagesController extends AbstractRestController
 
     /**
      * @Route("/list", name="private_messages_list", methods={"GET"})
+     *
+     * @OA\Get(
+     *     tags={"Личные сообщения"},
+     *     summary="Страница списка личных сообщений с данными о пагинации",
+     *     @Security(name="Bearer"),
+     *     @OA\Parameter(
+     *          in="query",
+     *          required=false,
+     *          name="iof",
+     *          description="Последний ранее загруженный элемент"
+     *     ),
+     *     @OA\Parameter(
+     *          in="query",
+     *          required=false,
+     *          name="ic",
+     *          description="Максимальное количество отдаваемых элементов на одной странице ответа"
+     *     ),
+     *     @OA\Response(
+     *          response="200",
+     *          description="Страница списка личных сообщений пользователя",
+     *          @OA\MediaType(
+     *             mediaType="application/json",
+     *             @OA\Schema(
+     *              @OA\Property(property="count", type="integer"),
+     *              @OA\Property(property="offset", type="integer"),
+     *              @OA\Property(property="next_offset", type="integer"),
+     *              @OA\Property(property="remains", type="integer"),
+     *              @OA\Property(property="payload", type="array", @OA\Items(ref=@Model(type=App\Model\DTO\PrivateMessage::class, groups={"Default"})))
+     *          ))
+     *     )
+     * )
      *
      * @param Dialog $dialog
      * @param IdentifierPaginator $paginator
@@ -221,6 +325,36 @@ class PrivateMessagesController extends AbstractRestController
 
     /**
      * @Route("", name="private_messages_add", methods={"POST"})
+     *
+     * @OA\Post(
+     *     tags={"Личные сообщения"},
+     *     summary="Добавление нового сообщения",
+     *     @Security(name="Bearer"),
+     *     @OA\RequestBody(
+     *          required=true,
+     *          description="Объект нового сообщения",
+     *          @OA\JsonContent(ref=@Model(type=SendingPrivateMessage::class), description="Объект добавляемого сообщения", nullable=false)
+     *     ),
+     *     @OA\Parameter(
+     *          in="query",
+     *          required=true,
+     *          name="dialog",
+     *          description="Диалог, в который добавляется сообщение"
+     *     ),
+     *     @OA\Response(
+     *          response="200",
+     *          description="Успешное добавление сообщения в диалог",
+     *          @OA\JsonContent(
+     *              @OA\Property(
+     *                  property="id",
+     *                  type="string",
+     *                  description="Идентификатор добавленного сообщения",
+     *                  example="5:43565455"
+     *              )
+     *          )
+     *     )
+     * )
+     *
      * @param SendingPrivateMessage $privateMessage
      * @param Dialog $dialog
      * @param WithJsonFlag $jsonFlag
@@ -298,6 +432,33 @@ class PrivateMessagesController extends AbstractRestController
 
     /**
      * @Route("/doc", name="private_message_attachment_add", methods={"POST"})
+     *
+     * @OA\Post(
+     *     tags={"Личные сообщения"},
+     *     summary="Добавление документа к личному сообщению",
+     *     @Security(name="Bearer"),
+     *     @OA\Parameter(
+     *          in="query",
+     *          required=true,
+     *          name="pmsg",
+     *          description="Идентификатор личного сообщения"
+     *     ),
+     *     @OA\RequestBody(
+     *          description="Медиа-файл, добавляемый к сообщению",
+     *          @OA\MediaType(
+     *              mediaType="multipart/form-data",
+     *              @OA\Property(
+     *                  property="attachment",
+     *                  type="file",
+     *                  description="Файл, добавляемый к сообщению"
+     *              )
+     *          )
+     *      ),
+     *     @OA\Response(
+     *          response="200",
+     *          description="Медиа-файл успешно добавлен"
+     *      )
+     * )
      *
      * @param BinaryFile $binaryFile
      * @param PrivateMessage $privateMessage

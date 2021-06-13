@@ -58,7 +58,7 @@ class AchievementController extends AbstractRestController
      *     @OA\Response(
      *          response="200",
      *          description="Итоговые значения по публикациям и достижениям",
-     *          @OA\JsonContent(ref=@Model(type="App\Model\DTO\AchievementSummary::class", groups={"Default"}))
+     *          @OA\JsonContent(ref=@Model(type=AchievementSummary::class, groups={"Default"}))
      *     ),
      *     @OA\Response(
      *          response="400",
@@ -126,8 +126,16 @@ class AchievementController extends AbstractRestController
      *     ),
      *     @OA\Response(
      *          response="200",
-     *          description="Список объектов достижений пользователя",
-     *          @OA\JsonContent(ref=@Model(type="App\Model\DTO\ListedResponse::class", groups={"Default"}))
+     *          description="Лист списка объектов достижений пользователя c данными о пагинации",
+     *          @OA\MediaType(
+     *             mediaType="application/json",
+     *             @OA\Schema(
+     *              @OA\Property(property="count", type="integer"),
+     *              @OA\Property(property="offset", type="integer"),
+     *              @OA\Property(property="next_offset", type="integer"),
+     *              @OA\Property(property="remains", type="integer"),
+     *              @OA\Property(property="payload", type="array", @OA\Items(ref=@Model(type=App\Model\DTO\Achievement::class, groups={"Default"})))
+     *          ))
      *     ),
      *     @OA\Response(
      *          response="400",

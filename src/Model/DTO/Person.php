@@ -3,52 +3,61 @@
 namespace App\Model\DTO;
 
 use JMS\Serializer\Annotation as JMS;
+use OpenApi\Annotations as OA;
 
 class Person
 {
     /**
      * @var string|null
+     * @OA\Property(type="string", nullable=true, description="Идентификатор персоны в бд")
      */
     private $uoid;
 
     /**
      * @var string|null
+     * @OA\Property(type="string", nullable=true, description="Фамилия персоны")
      */
     private $lname;
 
     /**
      * @var string|null
+     * @OA\Property(type="string", nullable=true, description="Имя персоны")
      */
     private $fname;
 
     /**
      * @var string|null
-     *
+     * @OA\Property(type="string", nullable=true, description="Отчество персоны")
      */
     private $patronymic;
 
     /**
      * @var \DateTime|null
+     * @OA\Property(type="DateTime", nullable=true, description="Дата рождения персоны")
      */
     private $bday;
 
     /**
      * @var string|null
+     * @OA\Property(type="string", nullable=true, description="Пол персоны")
      */
     private $sex;
 
     /**
      * @var string|null
+     * @OA\Property(type="string", nullable=true, description="Телефон, указанный в профиле")
      */
     private $phone;
 
     /**
      * @var string|null
+     * @OA\Property(type="string", nullable=true, description="Email, указанный в профиле")
      */
     private $email;
 
     /**
      * @var string|null
+     * @OA\Property(type="string", nullable=true, description="Мессенджер, указанный в профиле")
      */
     private $messenger;
 

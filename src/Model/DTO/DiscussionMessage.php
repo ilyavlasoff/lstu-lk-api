@@ -3,36 +3,44 @@
 namespace App\Model\DTO;
 
 use JMS\Serializer\Annotation as JMS;
+use Nelmio\ApiDocBundle\Annotation\Model;
+use OpenApi\Annotations as OA;
 
 class DiscussionMessage
 {
     /**
      * @var string
+     * @OA\Property(type="string", nullable=false, description="Идентификатор сообщения", example="5:2323434")
      */
     private $id;
 
     /**
      * @var Person
+     * @OA\Property(ref=@Model(type=Person::class), nullable=false, description="Объект персоны отправителя")
      */
     private $sender;
 
     /**
      * @var \DateTime | null
+     * @OA\Property(type="DateTime", nullable=true, description="Время отправки сообщения")
      */
     private $created;
 
     /**
      * @var string | null
+     * @OA\Property(type="string", nullable=true, description="Текст сообщения", example="Всем привет!")
      */
     private $msg;
 
     /**
      * @var \App\Model\DTO\Attachment[]
+     * @OA\Property(ref=@Model(type=Achievement::class))
      */
     private $attachments;
 
     /**
      * @var \App\Model\DTO\ExternalLink[]
+     * @OA\Property(ref=@Model(type=ExternalLink::class))
      */
     private $externalLinks;
 

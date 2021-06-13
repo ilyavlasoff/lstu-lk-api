@@ -3,31 +3,37 @@
 namespace App\Model\DTO;
 
 use JMS\Serializer\Annotation as JMS;
+use OpenApi\Annotations as OA;
 
 class Achievement
 {
     /**
      * @var string
+     * @OA\Property(type="string", nullable=false)
      */
     private $id;
 
     /**
      * @var string | null
+     * @OA\Property(type="string", nullable=true)
      */
     private $name;
 
     /**
      * @var \DateTime | null
+     * @OA\Property(type="DateTime", nullable=true)
      */
     private $achievedDate;
 
     /**
      * @var string | null
+     * @OA\Property(type="string", nullable=true)
      */
     private $kind;
 
     /**
      * @var string | null
+     * @OA\Property(type="string", nullable=true)
      */
     private $type;
 

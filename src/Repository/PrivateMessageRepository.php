@@ -377,6 +377,7 @@ class PrivateMessageRepository extends AbstractRepository
             ->where('(EMLK.NUM = (SELECT MAX(NUM) FROM ET_MSG_CHAT_LK WHERE ET_MSG_CHAT_LK.DIALOG = DM.DIALOG) OR EMLK.NUM IS NULL)')
             ->andWhere('DM.PERSON = :PERSON')
             ->orderBy('EMLK.CREATED', 'DESC NULLS LAST')
+            ->addOrderBy("TO_NUMBER(SUBSTR(DM.DIALOG, INSTR(DM.DIALOG, ':') + 1))", 'DESC')
             ->setParameter('PERSON', $person);
 
         if($dialogId) {

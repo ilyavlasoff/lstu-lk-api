@@ -4,8 +4,10 @@ namespace App\Model\QueryParam;
 
 use App\Model\DTO\Attachment;
 use App\Model\DTO\ExternalLink;
+use Nelmio\ApiDocBundle\Annotation\Model;
 use Symfony\Component\Validator\Constraints as Assert;
 use JMS\Serializer\Annotation as JMS;
+use OpenApi\Annotations as OA;
 
 class SendingDiscussionMessage
 {
@@ -15,18 +17,21 @@ class SendingDiscussionMessage
      * @Assert\NotNull(message="DisciplineDiscussionMessage must contain any text")
      * @Assert\NotBlank(message="DisciplineDiscussionMessage text can not be blank")
      * @Assert\Length(max=2048, maxMessage="Too long message, max length is {{ limit }}, given {{ value }} symbols")
+     * @OA\Property(type="string", nullable=false, description="Текст сообщения", example="Всем привет")
      */
     private $msg;
 
     /**
      * @var Attachment[]
      * @JMS\Type("array<App\Model\DTO\Attachment>")
+     * @OA\Property(ref=@Model(type=Attachment::class))
      */
     private $attachments = [];
 
     /**
      * @var ExternalLink[]
      * @JMS\Type("array<App\Model\DTO\ExternalLink>")
+     * @OA\Property(ref=@Model(type=ExternalLink::class))
      */
     private $externalLinks = [];
 

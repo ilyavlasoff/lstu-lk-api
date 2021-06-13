@@ -3,48 +3,58 @@
 namespace App\Model\DTO;
 
 use JMS\Serializer\Annotation as JMS;
+use Nelmio\ApiDocBundle\Annotation\Model;
+use OpenApi\Annotations as OA;
 
 class TimetableItem
 {
     /**
      * @var Discipline|null
      * @JMS\Type("App\Model\DTO\Discipline")
+     * @OA\Property(type="string", nullable=false, description="Идентификатор дисциплины", example="5:9283743")
      */
     private $discipline;
 
     /**
      * @var Teacher|null
      * @JMS\Type("App\Model\DTO\Teacher")
+     * @OA\Property(ref=@Model(type=Teacher::class))
      */
     private $teacher;
 
     /**
      * @var string|null
+     * @OA\Property(type="string", nullable=true, description="Тип учебного занятия", example="Практики")
      */
     private $lessonType;
 
     /**
      * @var int | null
+     * @OA\Property(type="int", nullable=true, description="Номер пары в расписании", example="3")
      */
     private $lessonNumber;
 
     /**
      * @var string|null
+     * @OA\Property(type="string", nullable=true, description="Время начала пары", example="08:00")
      */
     private $beginTime;
 
     /**
      * @var string|null
+     * @OA\Property(type="string", nullable=true, description="Время окончания пары", example="09:40")
      */
     private $endTime;
 
     /**
      * @var string|null
+     * @OA\Property(type="string", nullable=true, description="Аудитория проведения занятия", example="362")
      */
     private $room;
 
     /**
      * @var string|null
+     * @OA\Property(type="string", nullable=true, description="Учебный корпус", example="2-й корпус")
      */
     private $campus;
 

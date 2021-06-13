@@ -58,7 +58,7 @@ class PersonalController extends AbstractRestController
      *     @OA\Response(
      *          response="200",
      *          description="Объект персоны",
-     *          @OA\JsonContent(ref=@Model(type="App\Model\Mapping\Person::class", groups={"Default"}))
+     *          @OA\JsonContent(ref=@Model(type=Person::class, groups={"Default"}))
      *     ),
      *     @OA\Response(
      *          response="400",
@@ -94,7 +94,7 @@ class PersonalController extends AbstractRestController
      *     @Security(name="Bearer"),
      *     @OA\RequestBody(
      *          description="Объект обновленной информации о пользователе",
-     *          @OA\JsonContent(ref=@Model(type="App\Model\Request\PersonProperties::class", groups={"Default"}))
+     *          @OA\JsonContent(ref=@Model(type=PersonProperties::class, groups={"Default"}))
      *     ),
      *     @OA\Response(
      *          response="200",
@@ -161,7 +161,7 @@ class PersonalController extends AbstractRestController
      *     @OA\Response(
      *          response="200",
      *          description="Объект изображения",
-     *          @OA\JsonContent(ref=@Model(type="App\Model\Response\ProfilePicture::class", groups={"Default"}))
+     *          @OA\JsonContent(ref=@Model(type=ProfilePicture::class, groups={"Default"}))
      *     ),
      *     @OA\Response(
      *          response="400",
@@ -220,6 +220,37 @@ class PersonalController extends AbstractRestController
 
     /**
      * @Route("/list", name="persons_list_get", methods={"GET"})
+     *
+     * @OA\Get(
+     *     tags={"Персона"},
+     *     summary="Страница списка пользователей с данными о пагинации",
+     *     @Security(name="Bearer"),
+     *     @OA\Parameter(
+     *          in="query",
+     *          required=false,
+     *          name="of",
+     *          description="Номер первого загружаемого элемента"
+     *     ),
+     *     @OA\Parameter(
+     *          in="query",
+     *          required=false,
+     *          name="c",
+     *          description="Максимальное количество отдаваемых элементов на одной странице ответа"
+     *     ),
+     *     @OA\Response(
+     *          response="200",
+     *          description="Страница списка личных сообщений пользователя",
+     *          @OA\MediaType(
+     *             mediaType="application/json",
+     *             @OA\Schema(
+     *              @OA\Property(property="count", type="integer"),
+     *              @OA\Property(property="offset", type="integer"),
+     *              @OA\Property(property="next_offset", type="integer"),
+     *              @OA\Property(property="remains", type="integer"),
+     *              @OA\Property(property="payload", type="array", @OA\Items(ref=@Model(type=App\Model\DTO\Person::class, groups={"Default"})))
+     *          ))
+     *     )
+     * )
      *
      * @param TextQuery $query
      * @param Paginator $paginator

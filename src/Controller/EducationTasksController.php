@@ -22,9 +22,12 @@ use App\Repository\EducationTaskRepository;
 use App\Repository\PersonalRepository;
 use Doctrine\DBAL\Exception;
 use JMS\Serializer\SerializerInterface;
+use Nelmio\ApiDocBundle\Annotation\Model;
+use Nelmio\ApiDocBundle\Annotation\Security;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
+use OpenApi\Annotations as OA;
 
 /**
  * Class EducationTasksController
@@ -48,6 +51,40 @@ class EducationTasksController extends AbstractRestController
      * @param EducationRepository $educationRepository
      * @param PersonalRepository $personalRepository
      * @return JsonResponse
+     *
+     * @OA\Get(
+     *     tags={"Учебные задания"},
+     *     summary="Получение списка учебных заданий",
+     *     @Security(name="Bearer"),
+     *     @OA\Parameter(
+     *          in="query",
+     *          required=true,
+     *          name="dis",
+     *          description="Идентификатор дисциплины"
+     *     ),
+     *     @OA\Parameter(
+     *          in="query",
+     *          required=true,
+     *          name="edu",
+     *          description="Идентификатор периода обучения"
+     *     ),
+     *     @OA\Parameter(
+     *          in="query",
+     *          required=true,
+     *          name="sem",
+     *          description="Идентификатор учебного семестра"
+     *     ),
+     *     @OA\Response(
+     *          response="200",
+     *          description="Список учебных заданий",
+     *          @OA\MediaType(
+     *             mediaType="application/json",
+     *             @OA\Schema(
+     *              @OA\Property(property="count", type="integer"),
+     *              @OA\Property(property="payload", type="array", @OA\Items(ref=@Model(type=App\Model\DTO\StudentWork::class, groups={"Default"})))
+     *          ))
+     *     )
+     * )
      */
     public function getEducationTasksList(
         Discipline $discipline,
@@ -87,6 +124,42 @@ class EducationTasksController extends AbstractRestController
 
     /**
      * @Route("", name="education_answer_add", methods={"POST"})
+     *
+     * @OA\Post(
+     *     tags={"Учебные задания"},
+     *     summary="Добавление нового ответа на учебное задание",
+     *     @Security(name="Bearer"),
+     *     @OA\Parameter(
+     *          in="query",
+     *          required=true,
+     *          name="edu",
+     *          description="Идентификатор периода обучения"
+     *     ),
+     *     @OA\Parameter(
+     *          in="query",
+     *          required=true,
+     *          name="work",
+     *          description="Идентификатор учебной работы"
+     *     ),
+     *     @OA\RequestBody(
+     *          description="Объект нового ответа на учебное задание",
+     *          @OA\JsonContent(
+     *              ref=@Model(type=WorkAnswerAttachment::class, groups={"Default"})
+     *          )
+     *     ),
+     *     @OA\Response(
+     *          response="201",
+     *          description="Успешно добавлено",
+     *          @OA\JsonContent(
+     *              @OA\Property(
+     *                  property="id",
+     *                  nullable=false,
+     *                  type="string",
+     *                  description="Идентификатор добавленного ответа"
+     *              )
+     *          )
+     *     )
+     * )
      *
      * @param WorkAnswerAttachment $answerAttachment
      * @param Education $education
@@ -138,6 +211,33 @@ class EducationTasksController extends AbstractRestController
 
     /**
      * @Route("/doc", name="education_answer_doc_add", methods={"POST"})
+     *
+     * @OA\Post(
+     *     tags={"Учебные задания"},
+     *     summary="Добавление нового файла к ответу на задание",
+     *     @Security(name="Bearer"),
+     *     @OA\Parameter(
+     *          in="query",
+     *          required=true,
+     *          name="answer",
+     *          description="Идентификатор ответа на учебное задание"
+     *     ),
+     *     @OA\RequestBody(
+     *          description="Медиа-файл, добавляемый к сообщению",
+     *          @OA\MediaType(
+     *              mediaType="multipart/form-data",
+     *              @OA\Property(
+     *                  property="attachment",
+     *                  type="file",
+     *                  description="Файл, добавляемый ответу на учебное задание"
+     *              )
+     *          )
+     *      ),
+     *     @OA\Response(
+     *          response="200",
+     *          description="Медиа-файл успешно добавлен"
+     *      )
+     * )
      *
      * @param BinaryFile $binaryFile
      * @param TaskAnswer $answer

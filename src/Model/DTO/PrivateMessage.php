@@ -1,51 +1,62 @@
 <?php
 
 namespace App\Model\DTO;
+use Nelmio\ApiDocBundle\Annotation\Model;
+use OpenApi\Annotations as OA;
 
 class PrivateMessage
 {
     /**
      * @var string
+     * @OA\Property(type="string", description="Идентификатор личного сообщения", nullable=false, example="5:342095843")
      */
     private $id;
 
     /**
      * @var string
+     * @OA\Property(type="string", description="Идентификатор чата", nullable=false, example="5:497354434")
      */
     private $chat;
 
     /**
      * @var \App\Model\DTO\Person
+     * @OA\Property(ref=@Model(type=Person::class), description="Объект персоны отправителя", nullable=true)
      */
     private $sender;
 
     /**
      * @var bool | null
+     * @OA\Property(type="boolean", description="Флаг авторства пользователя", nullable=true, example="5:497354434")
      */
     private $meSender;
 
     /**
      * @var string | null
+     * @OA\Property(type="string", description="Текст сообщений", nullable=false, example="Привет")
      */
     private $messageText;
 
     /**
      * @var \DateTime
+     * @OA\Property(type="DateTime", description="Время отправки сообщения", nullable=false)
      */
     private $sendTime;
 
     /**
      * @var bool | null
+     * @OA\Property(type="boolean", description="Флаг прочтения сообщения собеседником автора", nullable=true, example="true")
      */
     private $isRead;
 
     /**
      * @var \App\Model\DTO\ExternalLink[]
+     * @OA\Property(ref=@Model(type=ExternalLink::class), description="Внешние ссылки, прикрепленные к сообщению", nullable=true)
      */
     private $links;
 
     /**
      * @var \App\Model\DTO\Attachment[]
+     * @OA\Property(ref=@Model(type=Attachment::class), description="Файлы, прикрепленные к сообщению", nullable=true)
      */
     private $attachments;
 
