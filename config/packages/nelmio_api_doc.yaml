@@ -1,9 +1,7 @@
 nelmio_api_doc:
     documentation:
         info:
-            title: LSTU LK Application API
-            #description: This is an awesome app!
-            version: "1.0"
+            title: LK Api
         components:
             securitySchemes:
                 Bearer:
